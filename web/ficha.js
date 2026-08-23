@@ -12,7 +12,7 @@
 const C = {
   verde: '#0D4E47', verdeMedio: '#3D7A72', verdeClaro: '#A8C9C3', verdePalido: '#DCEAE7',
   coral: '#F55654', coralClaro: '#FBB4B3', coralPalido: '#FDE2E1',
-  linea: '#E2EAE8', tinta40: '#8A9895', tinta60: '#5A6B68',
+  linea: '#E6E6E6', tinta40: '#A2A2A2', tinta60: '#6F6F6F',
 };
 
 // useGrouping:'always' porque es-ES no separa los millares de cuatro cifras
@@ -43,12 +43,26 @@ const ultimoValido = (V) => {
   return null;
 };
 
-/** Abre un <svg> con título accesible. Ancho fluido: el viewBox fija la
- *  proporción y el SVG se estira hasta el ancho de su tarjeta. */
+/** Abre un <svg> con título accesible.
+ *
+ *  Los gráficos se dibujan con el viewBox igual al ancho real del contenedor,
+ *  o sea a escala 1:1. Si en vez de eso se dibujaran a un ancho fijo y se
+ *  estiraran al 100%, en un móvil de 320 px el factor sería 0,4 y las etiquetas
+ *  de 8 px acabarían midiendo 3 px reales: ilegibles.
+ */
 function abrirSVG(w, h, titulo, fluido = true) {
   const dim = fluido ? `width="100%"` : `width="${w}" height="${h}"`;
   return `<svg viewBox="0 0 ${w} ${h}" ${dim} role="img" `
        + `aria-label="${esc(titulo)}" preserveAspectRatio="xMidYMid meet">`;
+}
+
+const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
+
+/** Ancho útil de la tarjeta que contiene a un elemento. */
+function anchoDe(id, porDefecto = 520) {
+  const e = document.getElementById(id);
+  const w = e ? e.clientWidth : 0;
+  return w > 60 ? w : porDefecto;
 }
 
 /* ============================================================ localizador === */
@@ -175,7 +189,8 @@ function graficoPiramide(p, w = 560, h = 350) {
   const MX = (p.extranjera_mujeres || []).map((v) => v / total * 100);
 
   const tope = Math.ceil(Math.max(...H, ...M, ...p.canarias_hombres, ...p.canarias_mujeres) * 1.1);
-  const centro = w / 2, hueco = 56;             // hueco central para las etiquetas
+  // El hueco central se encoge en pantallas estrechas para no comerse las barras.
+  const centro = w / 2, hueco = acotar(w * 0.11, 34, 58);
   const anchoLado = centro - hueco / 2 - m.l;
   const altoFila = (h - m.t - m.b) / n;
   const barra = altoFila * 0.78;
@@ -348,7 +363,7 @@ function bloqueAporte(ind) {
 }
 
 /* ================================================================ montaje === */
-let GEO = null, INDICE = null;
+let GEO = null, INDICE = null, FICHA = null;
 
 async function cargar(codmun) {
   const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
@@ -356,7 +371,20 @@ async function cargar(codmun) {
   history.replaceState(null, '', `?municipio=${codmun}`);
 }
 
+// Como los gráficos se dibujan a la medida de la tarjeta, hay que rehacerlos
+// cuando cambia el ancho: girar el móvil, redimensionar la ventana o el propio
+// iframe de WordPress al recalcularse.
+let temporizador = null;
+let anchoPrevio = window.innerWidth;
+addEventListener('resize', () => {
+  if (!FICHA || window.innerWidth === anchoPrevio) return;
+  anchoPrevio = window.innerWidth;
+  clearTimeout(temporizador);
+  temporizador = setTimeout(() => pintar(FICHA), 180);
+});
+
 function pintar(f) {
+  FICHA = f;
   const doc = document;
   doc.title = `${f.nombre} · Fichas municipales · Canarias Convive`;
 
@@ -389,16 +417,24 @@ function pintar(f) {
   ].map(([v, t, e, ac]) =>
     `<div class="cifra${ac ? ' acento' : ''}"><b>${v}</b><i>${t}</i><em>${e}</em></div>`).join('');
 
-  // --- gráficos ---
-  doc.getElementById('g-evolucion').innerHTML = graficoEvolucion(f.evolucion);
-  doc.getElementById('g-extranjero').innerHTML = graficoExtranjero(f.extranjero);
-  doc.getElementById('g-piramide').innerHTML = graficoPiramide(f.piramide);
+  // --- gráficos, dibujados a 1:1 sobre el ancho real de cada tarjeta ---
+  const wEv = anchoDe('g-evolucion'), wEx = anchoDe('g-extranjero', 300);
+  const wPi = anchoDe('g-piramide'), wCo = anchoDe('g-componentes');
+  const wOr = anchoDe('g-origen', 300);
+
+  doc.getElementById('g-evolucion').innerHTML =
+    graficoEvolucion(f.evolucion, wEv, acotar(wEv * 0.40, 180, 250));
+  doc.getElementById('g-extranjero').innerHTML =
+    graficoExtranjero(f.extranjero, wEx, acotar(wEx * 0.70, 190, 240));
+  doc.getElementById('g-piramide').innerHTML =
+    graficoPiramide(f.piramide, wPi, acotar(wPi * 0.62, 330, 430));
   const anom = f.componentes.anomalias || [];
-  doc.getElementById('g-componentes').innerHTML = graficoComponentes(f.componentes)
+  doc.getElementById('g-componentes').innerHTML =
+    graficoComponentes(f.componentes, wCo, acotar(wCo * 0.36, 180, 240))
     + (anom.length ? `<figcaption class="nota">${anom.map((a) =>
         `En ${a.anio} no se representa el ${a.serie === 'migratorio' ? 'saldo migratorio' : 'crecimiento vegetativo'} `
         + `(${nf(a.valor)}): corresponde a un ${a.motivo}, no a un flujo demográfico real.`).join(' ')}</figcaption>` : '');
-  doc.getElementById('g-origen').innerHTML = graficoOrigen(f.origen);
+  doc.getElementById('g-origen').innerHTML = graficoOrigen(f.origen, wOr, 150);
 
   doc.getElementById('g-indices').innerHTML =
     bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14', 'C21'], f.nombre, f.isla);
