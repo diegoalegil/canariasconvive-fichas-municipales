@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+.DS_Store
+
+# Fuentes de datos: son de Pedro y pesan 20 MB. Los scripts las leen de ~/Downloads.
+*.xlsx
+*.gpkg
+*.ipynb

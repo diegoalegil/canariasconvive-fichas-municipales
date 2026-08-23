@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas municipales · Canarias Convive</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-int">
+    <div class="marca">Canarias Convive<span>Fichas demográficas municipales</span></div>
+    <div class="campo">
+      <label for="sel-municipio">Municipio</label>
+      <select id="sel-municipio"><option>Cargando…</option></select>
+    </div>
+    <button class="btn-pdf" type="button" id="btn-pdf">Descargar PDF</button>
+  </div>
+</header>
+
+<main class="envoltorio">
+
+  <section class="cabecera">
+    <div>
+      <p class="migas" id="migas">—</p>
+      <h1 id="nombre">Cargando…</h1>
+      <p class="hab" id="habitantes"></p>
+    </div>
+    <div class="localizador" id="localizador"></div>
+  </section>
+
+  <div class="rejilla">
+
+    <section class="tarjeta">
+      <h2>Cifras clave</h2>
+      <div class="sub">Últimos datos disponibles</div>
+      <div class="cifras" id="cifras"></div>
+    </section>
+
+    <section class="tarjeta dos-tercios">
+      <h2>Evolución de la población</h2>
+      <div class="sub">Serie histórica de habitantes</div>
+      <figure id="g-evolucion"></figure>
+    </section>
+
+    <section class="tarjeta tercio destacada">
+      <h2>Peso de la población de origen extranjero</h2>
+      <div class="sub">Municipio frente a Canarias</div>
+      <figure id="g-extranjero"></figure>
+      <div class="leyenda">
+        <span><i class="llave linea" style="background:#F55654"></i>Municipio</span>
+        <span><i class="llave linea" style="background:#A8C9C3"></i>Canarias</span>
+      </div>
+    </section>
+
+    <section class="tarjeta dos-tercios destacada">
+      <h2>Estructura de la población</h2>
+      <div class="sub">Pirámide del municipio con la población de origen extranjero superpuesta</div>
+      <figure id="g-piramide"></figure>
+      <div class="leyenda">
+        <span><i class="llave" style="background:#0D4E47"></i>Hombres</span>
+        <span><i class="llave" style="background:#3D7A72"></i>Mujeres</span>
+        <span><i class="llave" style="background:#F55654"></i>De origen extranjero</span>
+        <span><i class="llave linea" style="background:#5A6B68"></i>Perfil de Canarias</span>
+      </div>
+    </section>
+
+    <section class="tarjeta tercio">
+      <h2>Índices geodemográficos</h2>
+      <div class="sub">Ordenados por valor, no por jerarquía territorial</div>
+      <div id="g-indices"></div>
+    </section>
+
+    <section class="tarjeta mitad destacada">
+      <h2>Aportación de la población migrante</h2>
+      <div class="sub">Cada índice, con toda la población y contando solo a los nacidos en España</div>
+      <div class="aporte" id="g-aporte"></div>
+    </section>
+
+    <section class="tarjeta mitad">
+      <h2>Lugar de nacimiento</h2>
+      <div class="sub">Reparto de la población según dónde nació</div>
+      <figure id="g-origen"></figure>
+      <div class="leyenda">
+        <span><i class="llave" style="background:#0D4E47"></i>Canarias</span>
+        <span><i class="llave" style="background:#A8C9C3"></i>Resto de España</span>
+        <span><i class="llave" style="background:#F55654"></i>Extranjero</span>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Componentes del cambio poblacional</h2>
+      <div class="sub">Cuánto del cambio viene de nacimientos y defunciones, y cuánto de migraciones</div>
+      <figure id="g-componentes"></figure>
+      <div class="leyenda">
+        <span><i class="llave" style="background:#A8C9C3"></i>Crecimiento vegetativo</span>
+        <span><i class="llave" style="background:#F55654"></i>Saldo migratorio</span>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="pie">
+    <p><b>Fuentes:</b> ISTAC — Instituto Canario de Estadística · INE · Cartografía: GRAFCAN.
+       Datos de <span id="pie-anio">—</span>. Metodología y diseño de la ficha: Pedro Delgado.</p>
+    <p>La serie cambia de fuente entre 2022 y 2023 (padrón municipal → censo anual de población),
+       lo que introduce una discontinuidad metodológica.</p>
+  </footer>
+
+</main>
+
+<script src="ficha.js"></script>
+<script>
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  window.print();   // provisional: enlazar al PDF de Pedro cuando esté publicado
+});
+</script>
+</body>
+</html>

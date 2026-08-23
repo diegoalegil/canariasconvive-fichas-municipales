@@ -1,0 +1,180 @@
+/* =============================================================================
+   FICHAS MUNICIPALES · CANARIAS CONVIVE
+   Identidad propia: verde corporativo de canariasconvive.com, coral para la
+   capa de población de origen extranjero, retícula de tarjetas web (no A4).
+   ============================================================================= */
+
+:root {
+  --verde:        #0D4E47;
+  --verde-medio:  #3D7A72;
+  --verde-claro:  #A8C9C3;
+  --verde-palido: #DCEAE7;
+  --coral:        #F55654;
+  --coral-claro:  #FBB4B3;
+  --coral-palido: #FDE2E1;
+  --oliva:        #979C30;
+  --burdeos:      #B15265;
+
+  --tinta:    #1B2A28;
+  --tinta-60: #5A6B68;
+  --tinta-40: #8A9895;
+  --linea:    #E2EAE8;
+  --fondo:    #FFFFFF;
+  --fondo-alt:#F6F9F8;
+
+  --r: 14px;
+  --sombra: 0 1px 2px rgba(13, 78, 71, .05), 0 8px 24px -12px rgba(13, 78, 71, .18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Montserrat, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--fondo-alt);
+  color: var(--tinta);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+}
+
+.envoltorio { max-width: 1180px; margin: 0 auto; padding: 0 20px 64px; }
+
+/* ------------------------------------------------------------- selector --- */
+.barra {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--linea);
+  margin-bottom: 26px;
+}
+.barra-int {
+  max-width: 1180px; margin: 0 auto; padding: 12px 20px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+.marca {
+  font-size: 13px; font-weight: 700; color: var(--verde);
+  letter-spacing: -.2px; margin-right: auto;
+}
+.marca span { display: block; font-size: 10.5px; font-weight: 500; color: var(--tinta-40); letter-spacing: .3px; }
+
+.campo { display: flex; align-items: center; gap: 8px; }
+.campo label { font-size: 11px; font-weight: 600; color: var(--tinta-60); text-transform: uppercase; letter-spacing: .6px; }
+select {
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--verde);
+  padding: 8px 34px 8px 12px; border: 1px solid var(--linea); border-radius: 9px;
+  background: #fff url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%230D4E47' stroke-width='1.8'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E") no-repeat right 11px center;
+  background-size: 12px; appearance: none; cursor: pointer; min-width: 190px;
+}
+select:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
+
+.btn-pdf {
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 8px 15px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--verde); background: var(--verde); color: #fff;
+}
+.btn-pdf:hover { background: #0a3d38; }
+
+/* ------------------------------------------------------------- cabecera --- */
+.cabecera {
+  display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center;
+  background: var(--verde); color: #fff; border-radius: var(--r);
+  padding: 28px 30px; margin-bottom: 20px;
+}
+.migas { font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--verde-claro); }
+.cabecera h1 { font-size: clamp(28px, 4.4vw, 46px); font-weight: 700; letter-spacing: -1.2px; line-height: 1.05; margin: 4px 0 12px; }
+.hab { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.hab b { font-size: 27px; font-weight: 600; letter-spacing: -.6px; }
+.hab span { font-size: 13px; color: var(--verde-claro); }
+
+/* localizador: la escalera de zoom, integrada en la cabecera */
+.localizador { display: flex; gap: 10px; }
+.loc { text-align: center; }
+.loc svg { display: block; }
+.loc-pie { font-size: 10px; color: var(--verde-claro); margin-top: 5px; letter-spacing: .3px; }
+.loc-pie b { display: block; font-size: 12.5px; color: #fff; font-weight: 700; }
+
+/* --------------------------------------------------------------- rejilla --- */
+.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+
+.tarjeta {
+  grid-column: span 12;
+  background: var(--fondo); border: 1px solid var(--linea);
+  border-radius: var(--r); padding: 20px 22px; box-shadow: var(--sombra);
+}
+.tarjeta.mitad  { grid-column: span 6; }
+.tarjeta.tercio { grid-column: span 4; }
+.tarjeta.dos-tercios { grid-column: span 8; }
+
+.tarjeta h2 {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .9px;
+  color: var(--verde); padding-left: 11px; border-left: 3px solid var(--verde);
+  margin-bottom: 3px;
+}
+.tarjeta.destacada h2 { color: var(--coral); border-left-color: var(--coral); }
+.sub { font-size: 12px; color: var(--tinta-60); padding-left: 14px; margin-bottom: 16px; }
+
+/* ---------------------------------------------------------- cifras clave --- */
+.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 2px; background: var(--linea); }
+.cifra { background: #fff; padding: 15px 16px; }
+.cifra b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -.9px; color: var(--verde); line-height: 1.1; }
+.cifra.acento b { color: var(--coral); }
+.cifra i { font-style: normal; display: block; font-size: 11px; color: var(--tinta-60); margin-top: 3px; line-height: 1.3; }
+.cifra em { font-style: normal; font-size: 10.5px; color: var(--tinta-40); }
+
+/* -------------------------------------------------------------- leyenda --- */
+.leyenda { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; padding-left: 14px; }
+.leyenda span { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--tinta-60); }
+.llave { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.llave.linea { height: 2px; border-radius: 0; }
+
+/* ------------------------------------------------------- índices (barras) --- */
+.indice { margin-bottom: 15px; }
+.indice:last-child { margin-bottom: 0; }
+.indice-tit { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; margin-bottom: 7px; }
+.indice-tit b { font-weight: 600; color: var(--tinta); }
+.indice-tit em { font-style: normal; font-size: 10.5px; color: var(--tinta-40); }
+.pista { display: grid; gap: 4px; }
+.fila { display: grid; grid-template-columns: 62px 1fr 46px; gap: 9px; align-items: center; font-size: 11px; }
+.fila > span:first-child { color: var(--tinta-60); text-align: right; }
+.fila > b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.raya { height: 9px; border-radius: 5px; background: var(--verde-palido); overflow: hidden; }
+.raya i { display: block; height: 100%; border-radius: 5px; background: var(--verde-claro); }
+.fila.propia .raya i { background: var(--verde); }
+.fila.propia > b { color: var(--verde); }
+
+/* --------------------------------------------------------------- aporte --- */
+.aporte { display: grid; gap: 14px; }
+.aporte-fila { border: 1px solid var(--linea); border-radius: 10px; padding: 14px 16px; }
+.aporte-fila h3 { font-size: 12.5px; font-weight: 700; color: var(--tinta); margin-bottom: 2px; }
+.aporte-fila p { font-size: 11px; color: var(--tinta-60); margin-bottom: 11px; }
+.duo { display: flex; align-items: center; gap: 14px; }
+.duo-lado { flex: 1; }
+.duo-lado span { display: block; font-size: 10.5px; color: var(--tinta-60); margin-bottom: 3px; }
+.duo-lado b { font-size: 21px; font-weight: 600; letter-spacing: -.5px; }
+.duo-lado.con b { color: var(--verde); }
+.duo-lado.sin b { color: var(--coral); }
+.flecha { font-size: 11px; font-weight: 700; color: var(--tinta-40); white-space: nowrap; }
+
+/* ------------------------------------------------------------------ pie --- */
+.pie { margin-top: 26px; font-size: 11px; color: var(--tinta-40); line-height: 1.7; }
+.pie b { color: var(--tinta-60); font-weight: 600; }
+
+figure { margin: 0; }
+svg { max-width: 100%; height: auto; display: block; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
+  .cabecera { grid-template-columns: 1fr; }
+  .localizador { justify-content: space-between; }
+}
+@media (max-width: 560px) {
+  .marca { width: 100%; margin-bottom: 4px; }
+  .campo { width: 100%; }
+  select { flex: 1; min-width: 0; }
+}
+
+.nota {
+  margin-top: 10px; padding-left: 14px;
+  font-size: 11px; color: var(--tinta-40); line-height: 1.5;
+  border-left: 2px solid var(--linea);
+}
