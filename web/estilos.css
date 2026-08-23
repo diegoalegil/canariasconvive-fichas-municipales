@@ -113,8 +113,17 @@ select:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
 .sub { font-size: 12px; color: var(--tinta-60); padding-left: 14px; margin-bottom: 16px; }
 
 /* ---------------------------------------------------------- cifras clave --- */
-.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 2px; background: var(--linea); }
-.cifra { background: #fff; padding: 15px 16px; }
+/* Las separaciones van como sombra de cada celda, no como fondo de la rejilla:
+   así, cuando las cifras se parten en dos filas, el hueco sobrante no se pinta
+   de gris. `overflow:hidden` recorta las líneas de los bordes exteriores. */
+.cifras {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  background: var(--fondo); overflow: hidden;
+}
+.cifra {
+  padding: 15px 16px;
+  box-shadow: -1px 0 0 var(--linea), 0 -1px 0 var(--linea);
+}
 .cifra b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -.9px; color: var(--verde); line-height: 1.1; }
 .cifra.acento b { color: var(--coral); }
 .cifra i { font-style: normal; display: block; font-size: 11px; color: var(--tinta-60); margin-top: 3px; line-height: 1.3; }
