@@ -205,3 +205,16 @@ svg { max-width: 100%; height: auto; display: block; }
   select { min-height: 44px; }
   .btn-pdf { min-height: 44px; padding-inline: 20px; }
 }
+
+/* En pantallas estrechas el nombre del territorio pasa a su propia línea: en
+   una columna de 62 px, "Santa María de Guía de Gran Canaria" se parte en tres. */
+@media (max-width: 620px) {
+  .fila {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "nombre valor" "barra barra";
+    row-gap: 4px; margin-bottom: 8px;
+  }
+  .fila > span:first-child { grid-area: nombre; text-align: left; }
+  .fila > b { grid-area: valor; }
+  .fila > .raya { grid-area: barra; }
+}
