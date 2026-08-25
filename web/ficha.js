@@ -45,6 +45,17 @@ function pasoRedondo(rango, objetivo = 5) {
   return 10 * exp;
 }
 
+/** Menor número redondo >= v cuya mitad también es redonda. Se usa en los ejes
+ *  simétricos: con la secuencia 1-2-5 el paso salta de 2.000 a 5.000 y un
+ *  municipio con máximo 5.500 acababa con el eje en 10.000, con las barras
+ *  aplastadas contra el cero. */
+function topeRedondo(v) {
+  if (!(v > 0)) return 1;
+  const exp = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 4, 6, 8, 10]) if (v <= m * exp + 1e-9) return m * exp;
+  return 10 * exp;
+}
+
 function anchoDe(id, porDefecto = 520) {
   const e = document.getElementById(id);
   const w = e ? e.clientWidth : 0;
@@ -120,6 +131,7 @@ function mapa(geo, codmun, ambito, w, h, conLimites) {
 }
 
 /* -------------------------------------------------------------- evolución -- */
+let EVOLUCION = null;   // geometría del último gráfico dibujado, para la lectura al pasar el ratón
 function graficoEvolucion(ev, w, h) {
   const m = { t: w < 430 ? 46 : 30, r: 14, b: 26, l: 52 };
   const X = ev.anios, Y = ev.valores;
@@ -139,6 +151,7 @@ function graficoEvolucion(ev, w, h) {
     ejeX += `<text x="${px(a).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="${C.gris}">${a}</text>`;
   }
 
+  EVOLUCION = { X, Y, px, py, w, m };
   const curva = suavizar(X, Y).map(([x, y]) => `${px(x).toFixed(1)},${py(y).toFixed(1)}`);
   const area = `M${px(X[0]).toFixed(1)},${(h - m.b).toFixed(1)} L${curva.join(' L')} L${px(X[X.length - 1]).toFixed(1)},${(h - m.b).toFixed(1)}Z`;
 
@@ -146,20 +159,29 @@ function graficoEvolucion(ev, w, h) {
   // del texto, así que el texto baja a una segunda línea en vez de salirse.
   const v = ev.variacion_acumulada;
   const leyendaVar = `Variación acumulada entre ${ev.anio_base} y ${ev.anio_fin}`;
-  const cabeAlLado = w - m.r - (m.l + 78) > leyendaVar.length * 5.6;
+  const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}%`;
+  const anchoCapsula = Math.max(58, textoVar.length * 6.4 + 16);   // +261,3% no cabe en un ancho fijo
+  const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * 5.6;
   const rotulo = v == null ? '' : `
     <g transform="translate(${m.l + 8}, ${m.t - 12})">
-      <rect x="0" y="-10" width="62" height="20" rx="10" fill="${C.azul}"/>
-      <text x="31" y="4.5" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}%</text>
-      <text x="${cabeAlLado ? 70 : 0}" y="${cabeAlLado ? 4.5 : 24}" font-size="10.5" fill="${C.negro}">${leyendaVar}</text>
+      <rect x="0" y="-10" width="${anchoCapsula.toFixed(0)}" height="20" rx="10" fill="${C.azul}"/>
+      <text x="${(anchoCapsula / 2).toFixed(0)}" y="4.5" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${textoVar}</text>
+      <text x="${cabeAlLado ? (anchoCapsula + 9).toFixed(0) : (2 - m.l - 8).toFixed(0)}" y="${cabeAlLado ? 4.5 : 24}" font-size="${cabeAlLado ? 10.5 : 10}" fill="${C.negro}">${leyendaVar}</text>
     </g>`;
 
   return abrirSVG(w, h, `Evolución de la población entre ${X[0]} y ${X[X.length - 1]}`)
     + rejilla
-    + `<path d="${area}" fill="${C.azul}" opacity=".10"/>`
+    + `<defs><linearGradient id="degradado-evolucion" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.azul}" stop-opacity=".22"/><stop offset="1" stop-color="${C.azul}" stop-opacity=".02"/></linearGradient></defs>`
+    + `<path d="${area}" fill="url(#degradado-evolucion)"/>`
     + `<polyline points="${curva.join(' ')}" fill="none" stroke="${C.azul}" stroke-width="2.3" stroke-linejoin="round"/>`
     + `<circle cx="${px(X[X.length - 1]).toFixed(1)}" cy="${py(Y[Y.length - 1]).toFixed(1)}" r="4" fill="${C.azul}"/>`
-    + ejeY + ejeX + rotulo + '</svg>';
+    + ejeY + ejeX + rotulo
+    + `<g id="guia-evolucion" opacity="0" pointer-events="none">`
+    + `<line y1="${m.t}" y2="${h - m.b}" stroke="${C.azul}" stroke-width="1" stroke-dasharray="3 3"/>`
+    + `<circle r="4.5" fill="${C.azul}" stroke="#fff" stroke-width="1.6"/></g>`
+    + `<rect id="cazador-evolucion" x="${m.l}" y="${m.t}" width="${(w - m.l - m.r).toFixed(1)}" `
+    + `height="${(h - m.t - m.b).toFixed(1)}" fill="transparent"/>`
+    + '</svg>';
 }
 
 /* --------------------------------------------- peso de origen extranjero --- */
@@ -171,9 +193,12 @@ function graficoExtranjero(ext, w, h) {
   const m = { t: 30, r: 34, b: 26, l: 42 };
   const A = ext.anios, M = ext.municipio, R = ext.canarias;
   const vivos = A.map((a, i) => [a, M[i]]).filter(([, v]) => v != null && isFinite(v));
+  // Primero el paso a partir del máximo, y el tope como el múltiplo justo por
+  // encima. Al revés, el eje quedaba holgado: un municipio con 23,5 % acababa
+  // con la escala en 40 y las barras a media altura.
   const maximo = Math.max(...M.concat(R).filter((v) => v != null));
-  const paso = pasoRedondo(maximo * 1.2, 4);
-  const tope = Math.ceil(maximo * 1.2 / paso) * paso;
+  const paso = pasoRedondo(maximo, 5);
+  const tope = Math.ceil(maximo / paso) * paso;
 
   const ancho = (w - m.l - m.r) / vivos.length;
   const bw = Math.min(ancho * 0.62, 26);
@@ -275,10 +300,19 @@ function construirPiramide(p, w, h) {
     perfil.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="${C.negro}" stroke-width="1.3" stroke-linejoin="round"/>`);
   }
 
-  const svg = abrirSVG(w, h, 'Pirámide de población del municipio comparada con el perfil de Canarias')
-    + rejilla + barras + `<g id="perfil-canarias">${perfil.join('')}</g>` + etiquetas + ejeX + '</svg>';
+  // Franjas transparentes por grupo de edad: capturan el ratón para poder leer
+  // los valores exactos, que es lo que una ficha en papel no puede dar.
+  let franjas = `<rect id="franja-activa" x="${m.l}" y="0" width="${(w - m.l - m.r).toFixed(1)}" `
+              + `height="${barra.toFixed(1)}" fill="${C.azul}" opacity="0" pointer-events="none"/>`;
+  for (let i = 0; i < n; i++) {
+    franjas += `<rect class="franja" data-i="${i}" x="${m.l}" y="${(fy(i) - (altoFila - barra) / 2).toFixed(1)}" `
+             + `width="${(w - m.l - m.r).toFixed(1)}" height="${altoFila.toFixed(1)}" fill="transparent"/>`;
+  }
 
-  return { svg, vistas, escala, centro, hueco };
+  const svg = abrirSVG(w, h, 'Pirámide de población del municipio comparada con el perfil de Canarias')
+    + rejilla + barras + `<g id="perfil-canarias">${perfil.join('')}</g>` + etiquetas + ejeX + franjas + '</svg>';
+
+  return { svg, vistas, escala, centro, hueco, edades: p.edades, fy, barra, altoFila };
 }
 
 /* --------------------------------------------- índices geodemográficos ----- */
@@ -312,9 +346,8 @@ function graficoComponentes(c, w, h) {
   const S = idx.map((i) => c.migratorio[i]);
 
   const vals = [...V, ...S].filter((v) => v != null && isFinite(v));
-  const maximo = Math.max(...vals.map(Math.abs)) * 1.12;
-  const paso = pasoRedondo(maximo, 3);          // ~3 divisiones a cada lado del cero
-  const tope = Math.ceil(maximo / paso) * paso;
+  const tope = topeRedondo(Math.max(...vals.map(Math.abs)) * 1.08);
+  const paso = tope / 2;                        // dos divisiones a cada lado del cero
   const py = (v) => m.t + (tope - v) / (2 * tope) * (h - m.t - m.b);
   const ancho = (w - m.l - m.r) / A.length;
   const bw = Math.min(ancho * 0.38, 13);
@@ -527,6 +560,60 @@ function pintar(f) {
         <div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(vals[i], 1)}%</b></div>`).join('')}
       </div>
     </div>`).join('');
+
+  conectarLecturaPiramide();
+  conectarLecturaEvolucion();
+}
+
+/* ------------------------------------------------------- lecturas al vuelo -- */
+/* Un gráfico impreso no puede dar el valor exacto de una barra. Este sí. */
+
+function conectarLecturaPiramide() {
+  const svg = document.querySelector('#g-piramide svg');
+  const salida = document.getElementById('lectura-piramide');
+  if (!svg || !salida || !PIRAMIDE) return;
+  const activa = svg.querySelector('#franja-activa');
+
+  svg.querySelectorAll('.franja').forEach((fr) => {
+    fr.addEventListener('mouseenter', () => {
+      const i = +fr.dataset.i, v = PIRAMIDE.vistas[VISTA];
+      activa.setAttribute('y', (PIRAMIDE.fy(i)).toFixed(1));
+      activa.setAttribute('opacity', '.07');
+      salida.innerHTML = `<b>${esc(PIRAMIDE.edades[i])} años</b> · `
+        + `Hombres ${nf(v.H[i], 2)}% · Mujeres ${nf(v.M[i], 2)}%`;
+    });
+  });
+  svg.addEventListener('mouseleave', () => {
+    activa.setAttribute('opacity', '0');
+    salida.textContent = '';
+  });
+}
+
+function conectarLecturaEvolucion() {
+  const svg = document.querySelector('#g-evolucion svg');
+  const salida = document.getElementById('lectura-evolucion');
+  if (!svg || !salida || !EVOLUCION) return;
+  const { X, Y, px, py } = EVOLUCION;
+  const guia = svg.querySelector('#guia-evolucion');
+  const linea = guia.querySelector('line'), punto = guia.querySelector('circle');
+  const cazador = svg.querySelector('#cazador-evolucion');
+
+  cazador.addEventListener('mousemove', (ev) => {
+    const caja = svg.getBoundingClientRect();
+    const escalaX = svg.viewBox.baseVal.width / caja.width;
+    const xSvg = (ev.clientX - caja.left) * escalaX;
+    let mejor = 0, dist = Infinity;
+    X.forEach((a, i) => { const d = Math.abs(px(a) - xSvg); if (d < dist) { dist = d; mejor = i; } });
+    const x = px(X[mejor]), y = py(Y[mejor]);
+    linea.setAttribute('x1', x.toFixed(1)); linea.setAttribute('x2', x.toFixed(1));
+    punto.setAttribute('cx', x.toFixed(1)); punto.setAttribute('cy', y.toFixed(1));
+    guia.setAttribute('opacity', '1');
+    salida.innerHTML = `<b>${X[mejor]}</b> · ${nf(Y[mejor])} habitantes`;
+  });
+  cazador.addEventListener('mouseleave', () => {
+    guia.setAttribute('opacity', '0');
+    salida.textContent = '';
+  });
 }
 
 /* ------------------------------------------------------------------ inicio -- */

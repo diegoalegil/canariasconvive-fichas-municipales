@@ -27,7 +27,10 @@
   --fondo:  #FFFFFF;
   --papel:  #EFF3F7;
 
-  --sombra-tarjeta: 0 1px 1px rgba(24,95,165,.04), 0 10px 30px -18px rgba(24,95,165,.28);
+  /* Sombra en dos capas: un contacto muy fino y una difusa amplia. Da relieve
+     sin el halo gris de una sombra única. */
+  --sombra-tarjeta: 0 1px 1.5px rgba(20,50,80,.05), 0 12px 28px -16px rgba(24,95,165,.22);
+  --sombra-cartela: 0 1px 2px rgba(24,95,165,.10);
   --r: 12px;
 }
 
@@ -110,7 +113,9 @@ select {
 .habitantes span { font-size: 14px; color: var(--gris); }
 
 /* ------------------------------------------------------------ rejilla ------ */
-.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+/* align-items:start para que cada tarjeta mida lo que mide su contenido. Si se
+   estiran a la altura de la fila, la más corta queda con un hueco blanco. */
+.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
 
 .tarjeta {
   grid-column: span 12;
@@ -126,9 +131,10 @@ select {
 .cartela {
   display: block; text-align: center;
   border: 1px solid var(--azul); border-radius: 40px;
-  padding: 7px 20px; margin: 0 auto 4px;
+  padding: 8px 22px; margin: 0 auto 4px;
   font-size: 12.5px; font-weight: 600; letter-spacing: .3px;
-  color: var(--negro); background: var(--fondo);
+  color: var(--azul); background: linear-gradient(180deg, #fff 0%, var(--azul-humo) 100%);
+  box-shadow: var(--sombra-cartela);
   max-width: 520px;
 }
 .sub { font-size: 12px; color: var(--gris); text-align: center; margin: 8px auto 16px; max-width: 62ch; }
@@ -229,3 +235,35 @@ svg { max-width: 100%; height: auto; display: block; }
 }
 @media (pointer: coarse) { select, .btn, .vista { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+
+
+/* ------------------------------------------------------------- lecturas --- */
+/* Valor exacto del punto sobre el que está el ratón. Altura reservada para que
+   el contenido de abajo no dé un salto al aparecer y desaparecer. */
+.lectura {
+  min-height: 20px; margin-top: 10px; text-align: center;
+  font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums;
+}
+.lectura b { color: var(--azul); font-weight: 700; }
+#g-piramide .franja { cursor: crosshair; }
+#g-evolucion #cazador-evolucion { cursor: crosshair; }
+
+/* --------------------------------------------------------------- entrada --- */
+@keyframes surgir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.cabecera, .tarjeta { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
+.tarjeta:nth-of-type(1) { animation-delay: .04s; }
+.tarjeta:nth-of-type(2) { animation-delay: .08s; }
+.tarjeta:nth-of-type(3) { animation-delay: .12s; }
+.tarjeta:nth-of-type(4) { animation-delay: .16s; }
+.tarjeta:nth-of-type(5) { animation-delay: .20s; }
+.tarjeta:nth-of-type(6) { animation-delay: .24s; }
+@media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
+
+/* -------------------------------------------------------------- impresión -- */
+@media print {
+  .barra, .vistas, .lectura { display: none; }
+  body { background: #fff; }
+  .envoltorio { max-width: none; padding: 0; }
+  .tarjeta, .cabecera { box-shadow: none; border-color: var(--rejilla); break-inside: avoid; animation: none; }
+  .rejilla { gap: 10px; }
+}

@@ -6,7 +6,7 @@
 <title>Fichas municipales · Canarias Convive</title>
 <link rel="icon" href="img/logo-canariasconvive-menu.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=10">
+<link rel="stylesheet" href="estilos.css?v=13">
 </head>
 <body>
 
@@ -45,6 +45,7 @@
     <section class="tarjeta dos-tercios">
       <h2 class="cartela">Evolución de la población</h2>
       <figure id="g-evolucion"></figure>
+      <p class="lectura" id="lectura-evolucion"></p>
     </section>
 
     <section class="tarjeta tercio">
@@ -73,6 +74,7 @@
       </div>
       <p class="vista-info" id="vista-info"></p>
       <figure id="g-piramide"></figure>
+      <p class="lectura" id="lectura-piramide"></p>
       <div class="leyenda">
         <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
         <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
@@ -102,14 +104,9 @@
 
   </div>
 
-  <footer class="pie">
-    <p>La serie cambia de fuente entre 2022 y 2023 (padrón municipal → censo anual
-       de población), lo que introduce una discontinuidad metodológica.</p>
-  </footer>
-
 </main>
 
-<script src="ficha.js?v=10"></script>
+<script src="ficha.js?v=13"></script>
 <script>
 document.getElementById('btn-pdf').addEventListener('click', () => window.print());
 </script>
