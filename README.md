@@ -48,21 +48,32 @@ web/datos/           salida de los dos scripts
 **Sin librerías de gráficos.** Los SVG se generan a mano en `ficha.js`. Da control
 total sobre el diseño, pesa nada y permite etiquetar todo para lectores de pantalla.
 
-**Identidad propia.** Verde corporativo de canariasconvive.com en vez del azul del
-ISTAC, retícula de tarjetas web en vez de una página A4, y un código de color
-constante en toda la ficha:
+**Paleta azul, la de Pedro.** La misma que documenta en el LEEME de su notebook.
 
-| Color | Significa |
-|---|---|
-| Verde `#0D4E47` | el municipio / la población total |
-| Verde claro `#A8C9C3` | Canarias, como referencia |
-| Coral `#F55654` | todo lo relativo a población de origen extranjero |
+**Dos criterios que vienen de la revisión con Pedro y que no se tocan:**
 
-**Mirada de convivencia.** Además de los 13 indicadores de la ficha PDF, se usan
-otros que ya estaban en el Excel sin explotar y que son el tema del programa:
-pirámide de población de origen extranjero (C24) y las variantes de dependencia
-y reemplazo laboral calculadas solo sobre nacidos en España (C19, C16), más el
-sex ratio (C21).
+1. **Ningún color de alerta sobre personas.** En semiología gráfica el rojo
+   significa alerta, y estos gráficos representan población. Un primer prototipo
+   usaba coral para marcar la población de origen extranjero; se retiró.
+2. **La ficha muestra datos y no los interpreta.** Se eliminó un bloque que
+   comparaba los índices con y sin la población nacida fuera. Emitía un juicio
+   de valor que el programa no quiere emitir, y además el dato era engañoso: el
+   índice de reemplazo laboral compara la franja de 15-19 años con la de 60-64,
+   y como se migra a partir de los 19, la población de origen extranjero está
+   estructuralmente vacía en el numerador. No medía la aportación de la
+   migración, medía la edad a la que se migra.
+
+**Pirámide con tres vistas.** Población total con el perfil de Canarias
+superpuesto, nacida en España, y de origen extranjero (hoja C24). Se pasa de una
+a otra con una transición animada, y el eje es común a las tres para que las
+siluetas se puedan comparar.
+
+**Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
+derecha por valor, y el tono indica la posición. El ISTAC no lo tiene así.
+
+**Mosaico para el lugar de nacimiento.** Cien casillas: de cada cien habitantes,
+cuántos nacieron dónde. Sustituye a las barras apiladas, donde las etiquetas de
+algunos municipios no cabían dentro.
 
 **Código INE como clave.** Los nombres de municipio canarios tienen tildes,
 artículos y formas largas (*La Laguna* / *San Cristóbal de La Laguna*). Todo se
@@ -89,11 +100,22 @@ los tres ámbitos y el reparto por lugar de nacimiento. **Coinciden los 19.**
 Además, la suma de la población de los 88 municipios cuadra exactamente con el
 total regional de la hoja C1R.
 
+## Accesibilidad
+
+Comprobado en once anchos de 320 a 2560 px: sin desbordes horizontales, sin
+texto por debajo de 7,5 px reales, y todo el texto pasa el contraste AA (4,5:1,
+o 3:1 en texto grande) tanto sobre blanco como sobre los fondos de las tarjetas.
+Objetivos táctiles de 44 px en cualquier aparato con puntero grueso. La
+transición de la pirámide se desactiva con `prefers-reduced-motion` y también
+cuando la pestaña está oculta, donde el navegador congela `requestAnimationFrame`.
+
 ## Pendiente
 
-- [ ] Enlazar el botón de PDF a las fichas de Pedro (ahora llama a `window.print()`).
+- [ ] Enlazar el botón de PDF a una ficha de una sola hoja (ahora imprime la página).
+- [ ] Confirmar con Pedro cómo nombrar la vista "Nacida en España" de la pirámide:
+      se obtiene restando la población de origen extranjero (C24) del total (C23).
+- [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
 - [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk.
-- [ ] Repasar contraste y navegación por teclado antes de publicar (RD 1112/2018).
 - [ ] Ojo: la web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
       hereda el iframe. Está en la auditoría como hallazgo M1.
