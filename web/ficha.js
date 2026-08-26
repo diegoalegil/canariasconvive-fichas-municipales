@@ -243,7 +243,9 @@ function graficoExtranjero(ext, w, h) {
             + `height="${(h - m.b - py(v)).toFixed(1)}" fill="${ultima ? C.azul : C.azulClaro}" rx="1.5"/>`;
     if (ultima) {
       barras += `<text x="${px(i).toFixed(1)}" y="${(py(v) - (P ? 4 : 8)).toFixed(1)}" text-anchor="middle" `
-              + `font-size="${P ? 9 : 13}" font-weight="700" fill="${C.negro}">${nf(v, 1)}%</text>`;
+              + `font-size="${P ? 9 : 13}" font-weight="700" fill="${C.negro}" `
+              + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
+              + `paint-order="stroke fill">${nf(v, 1)}%</text>`;
     }
     if (a % 5 === 0 || ultima) {
       ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;

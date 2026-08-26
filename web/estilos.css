@@ -209,6 +209,7 @@ select {
   padding: var(--e-5) var(--e-5) 20px;
   display: flex; flex-direction: column; gap: 18px;
   border-left: 1px solid var(--linea);
+  text-align: center;
 }
 .cifra:first-child { border-left: 0; }
 .cifra-dato b {
@@ -218,7 +219,8 @@ select {
 }
 .cifra-dato b span { font-size: .55em; font-weight: 600; color: var(--azul); letter-spacing: 0; }
 .cifra-dato i {
-  font-style: normal; display: flex; align-items: flex-start; gap: 7px;
+  font-style: normal; display: flex; align-items: flex-start;
+  justify-content: center; gap: 7px;
   margin-top: var(--e-2);
   font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--gris);
@@ -363,7 +365,7 @@ select {
 }
 .buscador input {
   border: 0; outline: none; font: inherit; font-size: 14px;
-  color: var(--negro); width: 100%; background: transparent;
+  color: var(--negro); width: 100%; height: 100%; background: transparent;
 }
 .islas { display: flex; align-items: center; gap: var(--e-2); flex-wrap: wrap; }
 .islas > b {
@@ -486,11 +488,13 @@ select {
     padding: var(--e-4) 18px;
   }
   .cifra:first-child { border-top: 0; }
+  .cifra { text-align: left; }
   .cifra-dato { flex: 1; min-width: 0; }
+  .cifra-dato i { justify-content: flex-start; }
   .cifra-dato b { font-size: 32px; }
   .cifra-dato i { font-size: 11px; letter-spacing: .04em; }
   .cifra-viz { width: 110px; flex: none; height: 34px; }
-  .cifra em { display: none; }
+  .cifra em, .cifra em.entre { display: none; }
   .panel { grid-template-columns: 1fr; }
   .buscador { width: 100%; }
   .columnas { columns: 2 150px; }
@@ -511,7 +515,10 @@ select {
   .tapa-datos { grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
   .columnas { columns: 1; }
 }
-@media (pointer: coarse) { select, .btn, .vista, .chip { min-height: 44px; } }
+@media (pointer: coarse) {
+  select, .btn, .vista, .chip { min-height: 44px; }
+  .grupo a { padding: 10px 0; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 
 /* ============================================================== impresión == */
@@ -569,7 +576,8 @@ select {
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. En la hoja
      hay sitio para las cuatro aunque en pantalla, a esta anchura, irían 2x2. */
   .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
-  .cifra { padding: 2mm 4mm 1.6mm 0; gap: 1.2mm; border-left: 0; border-top: 0; flex-direction: column; align-items: stretch; }
+  .cifra { padding: 2mm 4mm 1.6mm 0; gap: 1.2mm; border-left: 0; border-top: 0; flex-direction: column; align-items: stretch; text-align: center; }
+  .cifra-dato i { justify-content: center; }
   .cifra + .cifra { padding-left: 4mm; border-left: .2mm solid var(--linea); }
   .cifra:last-child { padding-right: 0; }
   .cifra-viz { width: auto; }

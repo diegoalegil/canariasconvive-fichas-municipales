@@ -73,7 +73,8 @@ vuelven blancos sin duplicar el marcado.
 micro-representación dibujada con los valores reales del municipio: la serie de
 población del periodo, la edad media sobre la escala 0-100 y el reparto por sexo
 en una retícula de puntos. Ninguna marca un umbral ni una referencia de "lo
-normal"; solo dan escala a la cifra que tienen encima.
+normal"; solo dan escala a la cifra que tienen encima. Los números van centrados,
+como pidió Pedro en la revisión.
 
 **Dos criterios que vienen de la revisión con Pedro y que no se tocan:**
 
@@ -116,6 +117,14 @@ referencia por `codmun`.
 - **Frontera y El Pinar no existen antes de 2007**, así que la variación acumulada
   y la TVMA arrancan en 2008 y la etiqueta lo dice.
 
+**El listado no es un extra, sostiene la accesibilidad del mapa.** En un móvil
+hay trece municipios del norte de Tenerife cuya forma baja de los 24 px que pide
+la norma para un objetivo táctil; el más pequeño es Puerto de la Cruz, con 16x11.
+La norma admite esos casos cuando existe **un control equivalente en la misma
+página**, y ese control es el listado alfabético por islas, que además es lo que
+filtra el buscador. Por eso en pantalla táctil sus enlaces van holgados (37 px) y
+no justos.
+
 **Portada con mapa de verdad.** Cada isla se dibuja en su propio panel y a su
 propia escala, en vez de meter el archipiélago entero a escala única. Así
 Betancuria (805 habitantes) se pincha igual de fácil que Las Palmas (384.023) sin
@@ -147,9 +156,17 @@ La ficha impresa se comprobó municipio a municipio midiendo la altura real de l
 maqueta a 190 mm de ancho: los 88 caben entre 271,2 y 273,1 mm, con 281 mm
 disponibles en una A4 con estos márgenes. **Ninguno pasa a una segunda página.**
 
+La auditoría comprueba además que **el contenido no se salga de su propia caja a
+ninguna profundidad**, no solo de la tarjeta. La diferencia no es teórica: en
+móvil, el pie de la celda de edad media se colaba por especificidad —`.cifra
+em.entre` gana a `.cifra em` aunque la segunda esté dentro de una media query—,
+y flex encogía el número hasta 4 px en vez de desbordar la tarjeta. La
+comprobación antigua no lo veía; la nueva sí, y está verificada reintroduciendo
+el fallo a propósito.
+
 ## Accesibilidad
 
-Comprobado en once anchos de 320 a 2560 px: sin desbordes horizontales, sin
+Comprobado en 320, 375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin desbordes horizontales, sin
 texto por debajo de 7,5 px reales, y todo el texto pasa el contraste AA (4,5:1,
 o 3:1 en texto grande) tanto sobre blanco como sobre los fondos de las tarjetas.
 Objetivos táctiles de 44 px en cualquier aparato con puntero grueso. La
