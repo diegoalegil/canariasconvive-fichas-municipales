@@ -12,7 +12,6 @@
 
 const C = {
   azul: '#185FA5', azulMedio: '#2E75B6', azulClaro: '#85B7EB', azulPalido: '#B5D4F4',
-  azulHumo: '#E4F0FB',
   negro: '#1A1A1A', gris: '#5F5E5A', gris40: '#82817C',
   rejilla: '#D9D9D9', linea: '#C9D4E0',
 };

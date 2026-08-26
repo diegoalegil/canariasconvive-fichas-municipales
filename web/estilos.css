@@ -21,7 +21,6 @@
   --azul-claro:  #85B7EB;   /* mujeres, fondo de mapas */
   --azul-palido: #B5D4F4;   /* tono más claro de las escalas */
   --azul-anio:   #4A87C4;   /* el año junto al municipio: 3,8:1, pasa AA en texto grande */
-  --azul-humo:   #E4F0FB;
   /* Texto secundario sobre la cabecera azul. El #B5D4F4 de las escalas se queda
      en 4,25:1 contra el #185FA5 y no llega al 4,5:1 que pide AA en texto
      normal; este aclarado da 4,94:1. */
@@ -30,11 +29,12 @@
   --negro:  #1A1A1A;
   --gris:   #5F5E5A;   /* 6,5:1 sobre blanco y 6,0:1 sobre la caja */
   --gris-40:#6E6D69;   /* 5,2:1 sobre blanco y 4,7:1 sobre el papel: pasa AA */
-  --rejilla:#D9D9D9;
   --linea:  #C9D4E0;
   --caja:   #F5F7FA;
   --fondo:  #FFFFFF;
   --papel:  #EFF3F7;
+  /* Los tonos que solo pintan dentro de un gráfico (rejilla de los ejes, humo)
+     no están aquí: viven en la constante C de ficha.js, que es quien los usa. */
 
   /* ---- espaciado, base 4. Solo estos siete valores ---- */
   --e-1: 4px;    /* icono a texto */
@@ -283,7 +283,6 @@ select {
 .mosaicos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
 .mosaico { text-align: center; }
 .mosaico h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
-.mosaico p { font-size: 11px; color: var(--gris); margin-bottom: var(--e-3); }
 .mosaico svg { margin: 0 auto; }
 .reparto { display: grid; gap: 5px; margin-top: var(--e-3); font-size: 11.5px; }
 .reparto div { display: grid; grid-template-columns: 11px 1fr auto; gap: var(--e-2); align-items: center; }
@@ -602,7 +601,6 @@ select {
 
   .mosaicos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .mosaico h3 { font-size: 7pt; }
-  .mosaico p { font-size: 6pt; margin-bottom: 1mm; }
   .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6pt; }
   .nota { font-size: 5.5pt; margin-top: 1.4mm; }
 }
