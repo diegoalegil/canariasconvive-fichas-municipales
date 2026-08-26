@@ -3,112 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fichas municipales · Canarias Convive</title>
+<title>Fichas demográficas municipales · Canarias Convive</title>
 <link rel="icon" href="img/logo-canariasconvive-menu.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=13">
+<link rel="stylesheet" href="estilos.css?v=22">
 </head>
 <body>
 
-<header class="barra">
-  <div class="barra-int">
-    <div class="marca">
-      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
-      <span>Fichas demográficas municipales</span>
+<main class="portada">
+  <div class="tapa">
+
+    <div class="tapa-alto">
+      <div class="tapa-marca">
+        <span class="placa"><img src="img/logo-canariasconvive.png" alt="Canarias Convive"></span>
+        <span>Fichas demográficas municipales</span>
+      </div>
+      <div class="tapa-cuerpo">
+        <div>
+          <h1>Una ficha por cada municipio de Canarias</h1>
+          <p>La estructura de su población, su evolución desde 1996, su lugar de nacimiento
+             y su posición dentro de la isla y del archipiélago.
+             <span id="tapa-anio"></span></p>
+        </div>
+        <div class="tapa-datos" id="tapa-datos"></div>
+      </div>
     </div>
-    <div class="campo">
-      <label for="sel-municipio">Municipio</label>
-      <select id="sel-municipio"><option>Cargando…</option></select>
+
+    <div class="filtros">
+      <div class="buscador" data-ico="buscar">
+        <label class="oculto" for="buscar">Buscar municipio por nombre</label>
+        <input type="search" id="buscar" placeholder="Buscar municipio por nombre" autocomplete="off">
+      </div>
+      <div class="islas" id="chips"><b>Por isla</b></div>
     </div>
-    <button class="btn" type="button" id="btn-pdf">Descargar PDF</button>
-  </div>
-</header>
 
-<main class="envoltorio">
+    <div class="tapa-mapa">
+      <div class="islario" id="islario"></div>
 
-  <section class="cabecera">
-    <p class="migas" id="migas">—</p>
-    <div class="titular">
-      <h1 id="nombre">Cargando…</h1>
-      <span class="anio" id="anio"></span>
+      <div class="panel">
+        <div class="panel-ficha">
+          <p class="kicker">Municipio</p>
+          <h2 id="panel-nombre">—</h2>
+          <p id="panel-isla"></p>
+          <a class="btn" id="panel-enlace" href="ficha.html" data-ico-fin="flecha" data-px="16">Abrir ficha demográfica</a>
+        </div>
+        <div class="ayuda">
+          <b>Cómo leer el mapa</b>
+          <p>Cada isla se dibuja a su propia escala para que en todas se pueda pinchar
+             cualquier municipio. Los tamaños no son comparables entre islas.</p>
+          <div><i style="background:#B5D4F4"></i>Municipio</div>
+          <div><i style="background:#2E75B6"></i>Bajo el cursor</div>
+          <div><i style="background:#185FA5"></i>Seleccionado</div>
+        </div>
+      </div>
     </div>
-    <p class="habitantes" id="habitantes"></p>
-  </section>
 
-  <div class="rejilla">
-
-    <section class="tarjeta">
-      <h2 class="cartela">Cifras clave</h2>
-      <div class="cifras" id="cifras"></div>
-    </section>
-
-    <section class="tarjeta dos-tercios">
-      <h2 class="cartela">Evolución de la población</h2>
-      <figure id="g-evolucion"></figure>
-      <p class="lectura" id="lectura-evolucion"></p>
-    </section>
-
-    <section class="tarjeta tercio">
-      <h2 class="cartela">Origen extranjero</h2>
-      <figure id="g-extranjero"></figure>
-      <div class="leyenda">
-        <span><i class="llave" style="background:#85B7EB"></i>Municipio</span>
-        <span><i class="llave" style="background:#185FA5"></i>Último dato</span>
-        <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias</span>
-      </div>
-    </section>
-
-    <!-- Franja central: los tres mapas a tamaño grande. -->
-    <section class="tarjeta">
-      <h2 class="cartela">Dónde está el municipio</h2>
-      <p class="sub">Su posición por población en Canarias, en su isla y en su comarca</p>
-      <div class="mapas" id="mapas"></div>
-    </section>
-
-    <section class="tarjeta dos-tercios">
-      <h2 class="cartela">Estructura de la población</h2>
-      <div class="vistas">
-        <button class="vista" type="button" aria-pressed="true">Población total</button>
-        <button class="vista" type="button" aria-pressed="false">Nacida en España</button>
-        <button class="vista" type="button" aria-pressed="false">De origen extranjero</button>
-      </div>
-      <p class="vista-info" id="vista-info"></p>
-      <figure id="g-piramide"></figure>
-      <p class="lectura" id="lectura-piramide"></p>
-      <div class="leyenda">
-        <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
-        <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
-        <span><i class="llave hueca"></i>Canarias</span>
-      </div>
-    </section>
-
-    <section class="tarjeta tercio">
-      <h2 class="cartela">Información geodemográfica</h2>
-      <p class="sub">De menor a mayor valor</p>
-      <div id="g-indices"></div>
-    </section>
-
-    <section class="tarjeta mitad">
-      <h2 class="cartela">Componentes del cambio poblacional</h2>
-      <figure id="g-componentes"></figure>
-      <div class="leyenda">
-        <span><i class="llave" style="background:#85B7EB"></i>Crecimiento vegetativo</span>
-        <span><i class="llave" style="background:#185FA5"></i>Saldo migratorio</span>
-      </div>
-    </section>
-
-    <section class="tarjeta mitad">
-      <h2 class="cartela">Lugar de nacimiento</h2>
-      <div class="mosaicos" id="g-origen"></div>
-    </section>
+    <div class="listado">
+      <h2 id="cuenta">Los 88 municipios</h2>
+      <div class="columnas" id="listado"></div>
+    </div>
 
   </div>
-
 </main>
 
-<script src="ficha.js?v=13"></script>
-<script>
-document.getElementById('btn-pdf').addEventListener('click', () => window.print());
-</script>
+<script src="iconos.js?v=22"></script>
+<script src="portada.js?v=22"></script>
 </body>
 </html>

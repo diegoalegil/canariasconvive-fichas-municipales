@@ -13,8 +13,10 @@ recalcula ningún indicador: los índices se leen ya calculados desde el Excel.
 python3 -m http.server 8140 --directory web
 ```
 
-Y se abre `http://localhost:8140`. Se puede enlazar un municipio concreto con
-`?municipio=38038` (código INE).
+Y se abre `http://localhost:8140`. La raíz es la portada con el mapa selector;
+la ficha vive en `ficha.html` y se puede enlazar un municipio concreto con
+`ficha.html?municipio=38038` (código INE). Un enlace antiguo del tipo
+`index.html?municipio=38038` redirige solo.
 
 ## Regenerar los datos
 
@@ -34,9 +36,12 @@ Ambos leen de `~/Downloads/`. La ruta está en una constante al principio de cad
 exportar_datos.py    Excel -> 88 JSON (3,6 KB cada uno)
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook
-web/index.html       estructura de la ficha
-web/estilos.css      identidad visual
-web/ficha.js         gráficos en SVG, sin librerías
+web/index.html       portada: mapa selector de los 88 municipios
+web/portada.js       cartografía por islas, buscador y filtro por isla
+web/ficha.html       estructura de la ficha municipal
+web/ficha.js         gráficos en SVG, sin librerías, en pantalla y en hoja A4
+web/iconos.js        el set de diez iconos, en un solo sitio
+web/estilos.css      sistema de tarjeta, identidad visual e impresión
 web/datos/           salida de los dos scripts
 ```
 
@@ -49,6 +54,26 @@ web/datos/           salida de los dos scripts
 total sobre el diseño, pesa nada y permite etiquetar todo para lectores de pantalla.
 
 **Paleta azul, la de Pedro.** La misma que documenta en el LEEME de su notebook.
+
+**Sistema de tarjeta con dos rótulos.** Todas las tarjetas llevan un filete azul
+de 3 px arriba y el título a la izquierda, que es donde empieza la lectura. Solo
+una por pantalla —la pirámide, que es la destacada— lleva cabecera azul plena; si
+la llevaran todas, la página sería una escalera de bloques azules. Se retiró la
+cápsula centrada de borde fino: competía con el título de la sección y dejaba la
+tarjeta sin anclaje. Espaciados de base 4, cuatro radios y dos sombras, siempre
+tintadas en azul y nunca en negro puro.
+
+**Iconografía propia.** Diez iconos sobre retícula de 24, trazo 1,5 uniforme y
+monocromo, en `iconos.js`. Ninguno usa banderas ni siluetas humanas: al hablar de
+personas, un signo geométrico no arrastra los sesgos que arrastra un retrato. El
+color lo pone el contenedor con `currentColor`, así que sobre la cabecera azul se
+vuelven blancos sin duplicar el marcado.
+
+**Cifras clave con su propio dato dentro.** Cada celda lleva una
+micro-representación dibujada con los valores reales del municipio: la serie de
+población del periodo, la edad media sobre la escala 0-100 y el reparto por sexo
+en una retícula de puntos. Ninguna marca un umbral ni una referencia de "lo
+normal"; solo dan escala a la cifra que tienen encima.
 
 **Dos criterios que vienen de la revisión con Pedro y que no se tocan:**
 
@@ -91,6 +116,24 @@ referencia por `codmun`.
 - **Frontera y El Pinar no existen antes de 2007**, así que la variación acumulada
   y la TVMA arrancan en 2008 y la etiqueta lo dice.
 
+**Portada con mapa de verdad.** Cada isla se dibuja en su propio panel y a su
+propia escala, en vez de meter el archipiélago entero a escala única. Así
+Betancuria (805 habitantes) se pincha igual de fácil que Las Palmas (384.023) sin
+renunciar a la forma real del municipio, que es lo que un concejal busca. Que las
+islas no comparten escala entre sí se dice en el propio mapa. Cada municipio es un
+enlace de verdad dentro del SVG: funciona el teclado, el clic central y el abrir
+en otra pestaña sin una línea de JavaScript para ello. Debajo va el listado
+completo por islas, que es la alternativa accesible al mapa y además es lo que
+filtra el buscador.
+
+**El PDF se redibuja, no se encoge.** Al imprimir, `beforeprint` vuelve a generar
+todos los SVG a la medida de la hoja, con márgenes de eje y cuerpos de letra
+propios. Escalar por CSS un gráfico pensado para 640 px hasta 60 mm dejaba las
+etiquetas del eje en tres puntos y unas encima de otras. En la hoja el reparto de
+la retícula pasa de 8/4 a 7/5: los índices repiten el nombre del municipio tres
+veces y a cuatro columnas se partía en tres líneas, que era lo que hacía que la
+ficha no cupiera en una cara.
+
 ## Verificación
 
 Los valores exportados se contrastaron uno a uno contra la ficha PDF de Santa Cruz
@@ -99,6 +142,10 @@ media, reparto por sexo, los tres rankings con sus pesos, los cuatro índices en
 los tres ámbitos y el reparto por lugar de nacimiento. **Coinciden los 19.**
 Además, la suma de la población de los 88 municipios cuadra exactamente con el
 total regional de la hoja C1R.
+
+La ficha impresa se comprobó municipio a municipio midiendo la altura real de la
+maqueta a 190 mm de ancho: los 88 caben entre 271,2 y 273,1 mm, con 281 mm
+disponibles en una A4 con estos márgenes. **Ninguno pasa a una segunda página.**
 
 ## Accesibilidad
 
@@ -111,7 +158,6 @@ cuando la pestaña está oculta, donde el navegador congela `requestAnimationFra
 
 ## Pendiente
 
-- [ ] Enlazar el botón de PDF a una ficha de una sola hoja (ahora imprime la página).
 - [ ] Confirmar con Pedro cómo nombrar la vista "Nacida en España" de la pirámide:
       se obtiene restando la población de origen extranjero (C24) del total (C23).
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.

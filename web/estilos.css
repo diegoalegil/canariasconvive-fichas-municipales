@@ -8,18 +8,27 @@
       significa alerta, y estos gráficos hablan de población.
    2. La ficha muestra datos y no los interpreta. Ningún elemento califica un
       dato como bueno o malo.
+
+   Sobre esos dos criterios va el sistema de tarjeta: un solo contenedor con dos
+   tratamientos de rótulo —filete superior para todas, cabecera plena para la
+   destacada—, escala de espaciados de base 4, cuatro radios y dos sombras.
    ============================================================================= */
 
 :root {
+  /* ---- paleta ---- */
   --azul:        #185FA5;   /* principal, cifras destacadas, último dato */
   --azul-medio:  #2E75B6;   /* hombres en la pirámide */
   --azul-claro:  #85B7EB;   /* mujeres, fondo de mapas */
   --azul-palido: #B5D4F4;   /* tono más claro de las escalas */
   --azul-anio:   #4A87C4;   /* el año junto al municipio: 3,8:1, pasa AA en texto grande */
   --azul-humo:   #E4F0FB;
+  /* Texto secundario sobre la cabecera azul. El #B5D4F4 de las escalas se queda
+     en 4,25:1 contra el #185FA5 y no llega al 4,5:1 que pide AA en texto
+     normal; este aclarado da 4,94:1. */
+  --azul-sobre:  #CFE2F8;
 
   --negro:  #1A1A1A;
-  --gris:   #5F5E5A;
+  --gris:   #5F5E5A;   /* 6,5:1 sobre blanco y 6,0:1 sobre la caja */
   --gris-40:#6E6D69;   /* 5,2:1 sobre blanco y 4,7:1 sobre el papel: pasa AA */
   --rejilla:#D9D9D9;
   --linea:  #C9D4E0;
@@ -27,11 +36,24 @@
   --fondo:  #FFFFFF;
   --papel:  #EFF3F7;
 
-  /* Sombra en dos capas: un contacto muy fino y una difusa amplia. Da relieve
-     sin el halo gris de una sombra única. */
-  --sombra-tarjeta: 0 1px 1.5px rgba(20,50,80,.05), 0 12px 28px -16px rgba(24,95,165,.22);
-  --sombra-cartela: 0 1px 2px rgba(24,95,165,.10);
-  --r: 12px;
+  /* ---- espaciado, base 4. Solo estos siete valores ---- */
+  --e-1: 4px;    /* icono a texto */
+  --e-2: 8px;    /* elementos de leyenda */
+  --e-3: 12px;   /* pie de tarjeta */
+  --e-4: 16px;   /* título a subtítulo */
+  --e-5: 24px;   /* padding de tarjeta */
+  --e-6: 32px;   /* entre tarjetas */
+  --e-7: 40px;   /* entre secciones */
+
+  /* ---- radios: cuatro, no más ---- */
+  --r-1: 4px;    /* barras, teselas, chips de leyenda */
+  --r-2: 8px;    /* botones y campos */
+  --r-3: 12px;   /* tarjeta */
+  --r-full: 999px;
+
+  /* ---- sombras, tintadas en azul y nunca en negro puro ---- */
+  --s-1: 0 1px 2px rgba(24,95,165,.06);
+  --s-2: 0 4px 12px rgba(24,95,165,.10), 0 1px 2px rgba(24,95,165,.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,6 +68,12 @@ body {
 
 .envoltorio { max-width: 1180px; margin: 0 auto; padding: 0 20px 70px; }
 
+figure { margin: 0; }
+svg { max-width: 100%; height: auto; display: block; }
+.ico { flex: none; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+
 /* ------------------------------------------------------------- barra ------- */
 .barra {
   position: sticky; top: 0; z-index: 30;
@@ -58,42 +86,46 @@ body {
   max-width: 1180px; margin: 0 auto; padding: 11px 20px;
   display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
 }
-.marca { display: flex; align-items: center; gap: 11px; margin-right: auto; }
+.marca { display: flex; align-items: center; gap: 11px; margin-right: auto; text-decoration: none; color: inherit; }
 .marca img { height: 34px; width: auto; display: block; }
 .marca span {
   font-size: 11px; font-weight: 600; color: var(--gris);
   letter-spacing: .4px; text-transform: uppercase;
   padding-left: 11px; border-left: 1px solid var(--linea);
 }
+.marca:hover span { color: var(--azul); }
 
-.campo { display: flex; align-items: center; gap: 8px; }
+.campo { display: flex; align-items: center; gap: var(--e-2); }
 .campo label {
   font-size: 11px; font-weight: 600; color: var(--gris);
   text-transform: uppercase; letter-spacing: .6px;
 }
 select {
   font: inherit; font-size: 13.5px; font-weight: 600; color: var(--azul);
-  padding: 8px 34px 8px 12px; border: 1px solid var(--linea); border-radius: 8px;
+  padding: 8px 34px 8px 12px; border: 1px solid var(--linea); border-radius: var(--r-2);
   background: #fff url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23185FA5' stroke-width='1.8'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E") no-repeat right 11px center;
   background-size: 12px; appearance: none; cursor: pointer; min-width: 200px;
 }
 .btn {
   font: inherit; font-size: 12.5px; font-weight: 600;
-  padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  padding: 9px 16px; border-radius: var(--r-2); cursor: pointer;
   border: 1px solid var(--azul); background: var(--azul); color: #fff;
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  text-decoration: none;
 }
-.btn:hover { background: #12497e; }
-:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+.btn:hover { background: var(--azul-medio); border-color: var(--azul-medio); }
+.btn-liso { background: var(--fondo); color: var(--azul); border-color: var(--linea); }
+.btn-liso:hover { background: var(--caja); border-color: var(--azul-claro); color: var(--azul); }
 
 /* ---------------------------------------------------------- cabecera ------- */
 .cabecera {
   background: var(--fondo); border: 1px solid var(--linea);
-  border-radius: var(--r); box-shadow: var(--sombra-tarjeta);
-  padding: 30px 34px 26px; margin-bottom: 16px;
+  border-radius: var(--r-3); box-shadow: var(--s-1);
+  padding: 30px 34px 26px; margin-bottom: var(--e-4);
 }
 .migas {
   font-size: 11.5px; font-weight: 600; letter-spacing: .9px;
-  text-transform: uppercase; color: var(--gris); margin-bottom: 8px;
+  text-transform: uppercase; color: var(--gris); margin-bottom: var(--e-2);
 }
 .titular { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
 .cabecera h1 {
@@ -105,69 +137,123 @@ select {
   font-size: clamp(28px, 4.4vw, 46px); font-weight: 700;
   letter-spacing: -1.2px; color: var(--azul-anio); line-height: 1.02;
 }
-.habitantes { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.habitantes { display: flex; align-items: baseline; gap: 10px; margin-top: var(--e-3); flex-wrap: wrap; }
 .habitantes b {
   font-size: clamp(26px, 3.6vw, 38px); font-weight: 600;
-  letter-spacing: -.9px; color: var(--negro);
+  letter-spacing: -.9px; color: var(--negro); font-variant-numeric: tabular-nums;
 }
 .habitantes span { font-size: 14px; color: var(--gris); }
 
 /* ------------------------------------------------------------ rejilla ------ */
 /* align-items:start para que cada tarjeta mida lo que mide su contenido. Si se
    estiran a la altura de la fila, la más corta queda con un hueco blanco. */
-.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
+.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); align-items: start; }
 
+/* ----------------------------------------------- tarjeta: rótulo A --------- */
+/* El filete superior de 3 px hace de cartela. El título va a la izquierda, que
+   es donde empieza la lectura; la cápsula centrada de borde fino se retira
+   porque competía con el título de la sección y dejaba la tarjeta sin anclaje. */
 .tarjeta {
   grid-column: span 12;
-  background: var(--fondo); border: 1px solid var(--linea);
-  border-radius: var(--r); padding: 20px 22px 22px;
-  box-shadow: var(--sombra-tarjeta);
+  background: var(--fondo);
+  border: 1px solid var(--linea); border-top: 3px solid var(--azul);
+  border-radius: 0 0 var(--r-3) var(--r-3);
+  box-shadow: var(--s-1);
+  overflow: hidden;
 }
 .tarjeta.mitad { grid-column: span 6; }
 .tarjeta.tercio { grid-column: span 4; }
 .tarjeta.dos-tercios { grid-column: span 8; }
 
-/* Cartela del título: cápsula de borde fino, como en la ficha impresa. */
-.cartela {
-  display: block; text-align: center;
-  border: 1px solid var(--azul); border-radius: 40px;
-  padding: 8px 22px; margin: 0 auto 4px;
-  font-size: 12.5px; font-weight: 600; letter-spacing: .3px;
-  color: var(--azul); background: linear-gradient(180deg, #fff 0%, var(--azul-humo) 100%);
-  box-shadow: var(--sombra-cartela);
-  max-width: 520px;
+.rotulo {
+  display: flex; gap: var(--e-3); align-items: flex-start;
+  padding: 20px var(--e-5) var(--e-4);
+  border-bottom: 1px solid var(--linea);
+  color: var(--azul);
 }
-.sub { font-size: 12px; color: var(--gris); text-align: center; margin: 8px auto 16px; max-width: 62ch; }
+.rotulo .ico { margin-top: 1px; }
+.rotulo h2 {
+  font-size: 17px; font-weight: 600; letter-spacing: -.005em;
+  line-height: 1.25; color: var(--negro);
+}
+.rotulo p {
+  font-size: 13px; color: var(--gris); margin-top: 6px;
+  line-height: 1.45; text-wrap: pretty;
+}
+.cuerpo { padding: 20px var(--e-5) 22px; }
+
+/* ----------------------------------------------- tarjeta: rótulo B --------- */
+/* Cabecera plena. Se reserva a una tarjeta por pantalla —la destacada—; usada
+   en todas, la página se convierte en una escalera de bloques azules. */
+.tarjeta.destacada {
+  border-top: 1px solid var(--linea);
+  border-radius: var(--r-3);
+}
+.tarjeta.destacada .rotulo {
+  background: var(--azul); border-bottom: none;
+  padding: 18px var(--e-5); color: #fff;
+}
+.tarjeta.destacada .rotulo h2 { color: #fff; }
+.tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
-.cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
-.cifra {
-  text-align: center; padding: 20px 14px 18px;
-  background: var(--caja); border: 1px solid var(--linea); border-radius: 10px;
+/* Cada celda lleva dentro la forma de su propio dato: la serie real del
+   municipio, su edad media sobre la escala 0-100 y la proporción por sexo en
+   una retícula de puntos. Ninguna escala emite juicio: no hay umbral, ni
+   semáforo, ni línea de "lo normal". */
+.cifras {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--linea); border-radius: var(--r-3); overflow: hidden;
 }
-.cifra .icono { display: block; margin: 0 auto 10px; color: var(--azul); }
-.cifra b {
-  display: block; font-size: clamp(28px, 3.4vw, 36px); font-weight: 700;
-  letter-spacing: -1.2px; color: var(--azul); line-height: 1;
+.cifra {
+  padding: var(--e-5) var(--e-5) 20px;
+  display: flex; flex-direction: column; gap: 18px;
+  border-left: 1px solid var(--linea);
+}
+.cifra:first-child { border-left: 0; }
+.cifra-dato b {
+  display: block; font-size: clamp(28px, 3vw, 42px); font-weight: 600;
+  line-height: 1; letter-spacing: -.02em; color: var(--negro);
   font-variant-numeric: tabular-nums;
 }
-.cifra i { font-style: normal; display: block; font-size: 12px; font-weight: 600; color: var(--negro); margin-top: 9px; }
-.cifra em { font-style: normal; display: block; font-size: 11px; color: var(--gris); margin-top: 3px; }
+.cifra-dato b span { font-size: .55em; font-weight: 600; color: var(--azul); letter-spacing: 0; }
+.cifra-dato i {
+  font-style: normal; display: flex; align-items: flex-start; gap: 7px;
+  margin-top: var(--e-2);
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gris);
+}
+.cifra-dato i .ico { color: var(--azul); margin-top: -1px; }
+.cifra-viz { height: 42px; display: flex; align-items: center; }
+.cifra-viz svg { width: 100%; overflow: visible; }
+.cifra em {
+  font-style: normal; font-size: 11px; color: var(--gris);
+  font-variant-numeric: tabular-nums;
+}
+.cifra em.entre { display: flex; justify-content: space-between; gap: var(--e-2); }
+
+/* Retícula de puntos: el relleno marca la proporción sobre el total. */
+.puntos {
+  position: relative; width: 100%; height: 32px;
+  background-image: radial-gradient(circle at 3px 3px, var(--linea) 2.6px, transparent 2.8px);
+  background-size: 16px 16px;
+}
+.puntos i { position: absolute; top: 0; bottom: 0; left: 0; display: block; background-size: 16px 16px; }
 
 /* -------------------------------------------------------------- mapas ------ */
 /* Franja central: los tres mapas grandes, que es donde Pedro los quiere. */
-.mapas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 4px; }
+.mapas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
 .mapa-pie { margin-top: 10px; }
-.mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; }
+.mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .mapa-pie span { font-size: 12px; color: var(--gris); }
 
 /* ----------------------------------------------------------- pirámide ------ */
-.vistas { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 4px; }
+.vistas { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 .vista {
   font: inherit; font-size: 12px; font-weight: 600;
-  padding: 8px 15px; border-radius: 40px; cursor: pointer;
+  padding: 8px 15px; border-radius: var(--r-full); cursor: pointer;
   border: 1px solid var(--linea); background: var(--fondo); color: var(--gris);
   transition: background .15s, color .15s, border-color .15s;
 }
@@ -184,58 +270,34 @@ select {
 .indice-tit { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; gap: 10px; }
 .indice-tit b { font-size: 13.5px; font-weight: 700; }
 .indice-tit em { font-style: normal; font-size: 11px; color: var(--gris-40); white-space: nowrap; }
-.escala { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.escala { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e-2); }
 .peldano { text-align: center; }
 .peldano span { display: block; font-size: 10.5px; color: var(--gris); line-height: 1.25; min-height: 26px; }
 .peldano b {
   display: block; font-size: 17px; font-weight: 700; letter-spacing: -.4px;
   color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
 }
-.peldano i { display: block; height: 7px; border-radius: 4px; }
+.peldano i { display: block; height: 7px; border-radius: var(--r-1); }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .mosaicos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
 .mosaico { text-align: center; }
 .mosaico h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
-.mosaico p { font-size: 11px; color: var(--gris); margin-bottom: 12px; }
+.mosaico p { font-size: 11px; color: var(--gris); margin-bottom: var(--e-3); }
 .mosaico svg { margin: 0 auto; }
-.reparto { display: grid; gap: 5px; margin-top: 13px; font-size: 11.5px; }
-.reparto div { display: grid; grid-template-columns: 11px 1fr auto; gap: 8px; align-items: center; }
+.reparto { display: grid; gap: 5px; margin-top: var(--e-3); font-size: 11.5px; }
+.reparto div { display: grid; grid-template-columns: 11px 1fr auto; gap: var(--e-2); align-items: center; }
 .reparto i { width: 11px; height: 11px; border-radius: 2px; }
 .reparto span { text-align: left; color: var(--negro); }
 .reparto b { font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* ------------------------------------------------------------ leyenda ------ */
-.leyenda { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+.leyenda { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: var(--e-4); }
 .leyenda span { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--negro); }
-.llave { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.llave { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
 
-.nota { margin-top: 12px; font-size: 11px; color: var(--gris); line-height: 1.5; text-align: center; }
-.pie { margin-top: 26px; font-size: 11px; color: var(--gris-40); line-height: 1.7; text-align: center; }
-
-figure { margin: 0; }
-svg { max-width: 100%; height: auto; display: block; }
-.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* --------------------------------------------------------- responsive ------ */
-@media (max-width: 940px) {
-  .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
-  .mapas { grid-template-columns: 1fr; gap: 26px; }
-}
-@media (max-width: 620px) {
-  .marca span { display: none; }
-  .campo { width: 100%; }
-  select { flex: 1; min-width: 0; }
-  .cabecera { padding: 22px 18px 20px; }
-  .tarjeta { padding: 18px 15px 20px; }
-  .envoltorio { padding-inline: 14px; }
-  .escala { gap: 6px; }
-  .peldano span { font-size: 10px; }
-}
-@media (pointer: coarse) { select, .btn, .vista { min-height: 44px; } }
-@media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
-
+.nota { margin-top: var(--e-3); font-size: 11px; color: var(--gris); line-height: 1.5; text-align: center; }
 
 /* ------------------------------------------------------------- lecturas --- */
 /* Valor exacto del punto sobre el que está el ratón. Altura reservada para que
@@ -248,22 +310,299 @@ svg { max-width: 100%; height: auto; display: block; }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
 
+/* =============================================================== portada === */
+.portada { max-width: 1180px; margin: 0 auto; padding: 22px 20px 70px; }
+.tapa {
+  border: 1px solid var(--linea); border-radius: var(--r-3);
+  overflow: hidden; box-shadow: var(--s-1); background: var(--fondo);
+}
+.tapa-alto {
+  background: var(--azul); color: #fff;
+  padding: 30px var(--e-7) 34px;
+  display: flex; flex-direction: column; gap: 26px;
+}
+.tapa-marca { display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
+.tapa-marca img { height: 38px; width: auto; display: block; }
+.tapa-marca .placa {
+  background: #fff; border-radius: var(--r-2); padding: 10px 14px;
+  display: inline-flex; box-shadow: var(--s-1);
+}
+.tapa-marca span {
+  font-size: 12px; font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--azul-sobre);
+}
+.tapa-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
+.tapa-cuerpo h1 {
+  font-size: clamp(28px, 3.8vw, 40px); font-weight: 600;
+  letter-spacing: -.02em; line-height: 1.1; text-wrap: balance;
+}
+.tapa-cuerpo > div:first-child { max-width: 520px; }
+.tapa-cuerpo p {
+  font-size: 15px; line-height: 1.55; color: var(--azul-sobre);
+  margin-top: var(--e-3); text-wrap: pretty;
+}
+.tapa-datos { display: grid; grid-template-columns: repeat(4, auto); gap: 34px; }
+.tapa-datos b {
+  display: block; font-size: 26px; font-weight: 400; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tapa-datos span {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--azul-sobre); margin-top: var(--e-2);
+}
+
+.filtros {
+  padding: 22px var(--e-7); border-bottom: 1px solid var(--linea);
+  background: var(--caja);
+  display: flex; align-items: center; gap: var(--e-5); flex-wrap: wrap;
+}
+.buscador {
+  width: 320px; display: flex; align-items: center; gap: var(--e-3);
+  background: var(--fondo); border: 1px solid var(--linea);
+  border-radius: var(--r-2); padding: 0 var(--e-4); height: 46px;
+  color: var(--gris);
+}
+.buscador input {
+  border: 0; outline: none; font: inherit; font-size: 14px;
+  color: var(--negro); width: 100%; background: transparent;
+}
+.islas { display: flex; align-items: center; gap: var(--e-2); flex-wrap: wrap; }
+.islas > b {
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gris); margin-right: var(--e-1);
+}
+.chip {
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--negro); background: var(--fondo);
+  border: 1px solid var(--linea); border-radius: var(--r-full);
+  padding: 8px 15px; white-space: nowrap;
+}
+.chip em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
+.chip:hover { border-color: var(--azul); }
+.chip[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
+.chip[aria-pressed="true"] em { color: var(--azul-sobre); }
+
+.tapa-mapa { padding: 30px var(--e-7); display: grid; grid-template-columns: 1fr 300px; gap: var(--e-6); align-items: start; }
+
+.islario { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); }
+.isla {
+  border: 1px solid var(--linea); border-radius: var(--r-3);
+  padding: var(--e-3) var(--e-4) var(--e-4);
+  /* El reparto lo calcula el JS, que es quien conoce el ancho real con el que
+     ha dibujado cada isla. Si lo decidiera una media query, el SVG quedaría
+     dibujado a una anchura y colocado en otra. */
+  grid-column: span var(--cols, 4); background: var(--fondo);
+  display: flex; flex-direction: column;
+}
+.isla h2 {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--azul); margin-bottom: var(--e-2);
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: var(--e-2); flex-wrap: wrap;
+}
+.isla h2 span, .isla h2 em { white-space: nowrap; }
+.isla h2 em { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--gris); font-size: 11px; }
+.isla.apagada { opacity: .34; }
+.isla svg { width: 100%; margin: auto; }
+.isla path { fill: var(--azul-palido); stroke: var(--fondo); stroke-width: .8; cursor: pointer; transition: fill .12s; }
+.isla a:hover path { fill: var(--azul-medio); }
+.isla a:focus { outline: none; }
+.isla a:focus-visible path { fill: var(--azul-medio); stroke: var(--negro); stroke-width: 1.4; }
+.isla path.marcado { fill: var(--azul); }
+
+.panel { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 86px; }
+.panel-ficha {
+  border: 1px solid var(--linea); border-radius: var(--r-3);
+  padding: 22px var(--e-5) var(--e-5); background: var(--fondo); box-shadow: var(--s-2);
+}
+.panel-ficha .kicker {
+  font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--azul);
+}
+.panel-ficha h2 { font-size: 24px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; margin-top: var(--e-3); text-wrap: balance; }
+.panel-ficha p { font-size: 13px; color: var(--gris); margin-top: 6px; }
+.panel-ficha .btn { margin-top: 20px; font-size: 14px; padding: var(--e-3) 20px; }
+.ayuda {
+  background: var(--caja); border: 1px solid var(--linea); border-radius: var(--r-3);
+  padding: 20px 22px; display: flex; flex-direction: column; gap: var(--e-3);
+}
+.ayuda b { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--azul); }
+.ayuda p { font-size: 13px; line-height: 1.6; text-wrap: pretty; }
+.ayuda div { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--gris); }
+.ayuda i { width: 16px; height: 16px; border-radius: 3px; flex: none; }
+
+.listado { padding: 0 var(--e-7) var(--e-7); }
+.listado > h2 {
+  font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--azul); padding-top: var(--e-5); border-top: 1px solid var(--linea);
+  margin-bottom: var(--e-4);
+}
+.columnas { columns: 4 200px; column-gap: var(--e-6); }
+.grupo { break-inside: avoid; margin-bottom: var(--e-5); }
+.grupo h3 {
+  font-size: 12px; font-weight: 700; color: var(--negro);
+  padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--linea);
+}
+.grupo a {
+  display: block; font-size: 13px; color: var(--negro); text-decoration: none;
+  padding: 4px 0; line-height: 1.35;
+}
+.grupo a:hover { color: var(--azul); text-decoration: underline; }
+.vacio { font-size: 13px; color: var(--gris); }
+
 /* --------------------------------------------------------------- entrada --- */
 @keyframes surgir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.cabecera, .tarjeta { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
+.cabecera, .tarjeta, .tapa { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
 .tarjeta:nth-of-type(1) { animation-delay: .04s; }
 .tarjeta:nth-of-type(2) { animation-delay: .08s; }
 .tarjeta:nth-of-type(3) { animation-delay: .12s; }
 .tarjeta:nth-of-type(4) { animation-delay: .16s; }
 .tarjeta:nth-of-type(5) { animation-delay: .20s; }
 .tarjeta:nth-of-type(6) { animation-delay: .24s; }
-@media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta, .tapa { animation: none; } }
 
-/* -------------------------------------------------------------- impresión -- */
+/* --------------------------------------------------------- responsive ------ */
+@media (max-width: 1080px) {
+  .tapa-mapa { grid-template-columns: 1fr; }
+  .panel { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-4); align-items: start; }
+}
+@media (max-width: 940px) {
+  .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
+  .cifras { grid-template-columns: repeat(2, 1fr); }
+  .cifra { border-left: 1px solid var(--linea); border-top: 1px solid var(--linea); }
+  .cifra:nth-child(odd) { border-left: 0; }
+  .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
+  .mapas { grid-template-columns: 1fr; gap: 26px; }
+  .tapa-alto, .filtros, .tapa-mapa, .listado { padding-inline: var(--e-5); }
+  .listado { padding-bottom: var(--e-5); }
+  .tapa-datos { gap: var(--e-5); }
+}
+@media (max-width: 700px) {
+  /* Cifras clave: cuatro celdas en columna, con la cifra a la izquierda y su
+     micro-representación a la derecha. En cuadrícula 2x2 el número no cabe. */
+  .cifras { grid-template-columns: 1fr; }
+  .cifra {
+    border-left: 0; border-top: 1px solid var(--linea);
+    flex-direction: row; align-items: center; gap: 18px;
+    padding: var(--e-4) 18px;
+  }
+  .cifra:first-child { border-top: 0; }
+  .cifra-dato { flex: 1; min-width: 0; }
+  .cifra-dato b { font-size: 32px; }
+  .cifra-dato i { font-size: 11px; letter-spacing: .04em; }
+  .cifra-viz { width: 110px; flex: none; height: 34px; }
+  .cifra em { display: none; }
+  .panel { grid-template-columns: 1fr; }
+  .buscador { width: 100%; }
+  .columnas { columns: 2 150px; }
+}
+@media (max-width: 620px) {
+  .marca span { display: none; }
+  .campo { width: 100%; }
+  select { flex: 1; min-width: 0; }
+  .cabecera { padding: 22px 18px 20px; }
+  .rotulo { padding: 18px 16px var(--e-3); gap: 10px; }
+  .cuerpo { padding: 18px 15px 20px; }
+  .tarjeta.destacada .rotulo { padding: var(--e-4); }
+  .envoltorio { padding-inline: 14px; }
+  .portada { padding-inline: 14px; }
+  .tapa-alto, .filtros, .tapa-mapa, .listado { padding-inline: 18px; }
+  .escala { gap: 6px; }
+  .peldano span { font-size: 10px; }
+  .tapa-datos { grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
+  .columnas { columns: 1; }
+}
+@media (pointer: coarse) { select, .btn, .vista, .chip { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+
+/* ============================================================== impresión == */
+/* Ficha de una hoja A4 vertical: cabecera azul, cifras clave, evolución y
+   origen, los tres mapas, pirámide e índices, componentes y nacimiento. Se
+   dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
+@page { size: A4 portrait; margin: 9mm 10mm 7mm; }
+
 @media print {
-  .barra, .vistas, .lectura { display: none; }
-  body { background: #fff; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body { background: #fff; font-size: 8pt; line-height: 1.3; }
+  .barra, .vistas, .lectura, .vista-info, .listado, .filtros, .panel { display: none !important; }
   .envoltorio { max-width: none; padding: 0; }
-  .tarjeta, .cabecera { box-shadow: none; border-color: var(--rejilla); break-inside: avoid; animation: none; }
-  .rejilla { gap: 10px; }
+  .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
+
+  /* La anchura de una A4 en píxeles CSS cae por debajo de los 940 px del
+     salto a móvil, así que hay que devolver la retícula a su reparto. */
+  /* En la hoja el reparto es 7/5 en vez de 8/4: los índices llevan el nombre
+     del municipio repetido tres veces y a cuatro columnas se parte en tres
+     líneas, que es lo que hacía que la ficha no cupiera en una cara. */
+  .rejilla { gap: 2mm; grid-template-columns: repeat(12, 1fr); }
+  .tarjeta.mitad { grid-column: span 6; }
+  .tarjeta.tercio { grid-column: span 5; }
+  .tarjeta.dos-tercios { grid-column: span 7; }
+
+  /* Cabecera azul con el nombre a la izquierda y la población a la derecha. */
+  .cabecera {
+    background: var(--azul); border: 0; border-radius: 0;
+    padding: 2.6mm 5mm; margin-bottom: 2mm;
+    display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 6mm;
+  }
+  .cabecera .migas { grid-column: 1; grid-row: 1; color: var(--azul-sobre); font-size: 6.5pt; letter-spacing: .16em; margin-bottom: 0; }
+  .titular { grid-column: 1; grid-row: 2; gap: 3mm; margin-top: 1.4mm; }
+  .cabecera h1 { font-size: 17pt; color: #fff; letter-spacing: -.02em; }
+  .anio { font-size: 13pt; color: var(--azul-sobre); }
+  .habitantes { grid-column: 2; grid-row: 1 / span 2; flex-direction: column; align-items: flex-end; gap: 1mm; margin: 0; text-align: right; }
+  .habitantes b { font-size: 20pt; font-weight: 400; color: #fff; letter-spacing: -.03em; line-height: 1; }
+  .habitantes span { font-size: 7pt; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--azul-sobre); }
+
+  /* Tarjetas: filete fino, sin sombra, sin partirse entre paginas. */
+  .tarjeta, .tarjeta.destacada {
+    border: .2mm solid var(--linea); border-top: .2mm solid var(--linea);
+    border-radius: 1.2mm; break-inside: avoid;
+  }
+  .rotulo { padding: 2mm 3mm 1mm; border-bottom: 0; gap: 1.6mm; }
+  .rotulo .ico { width: 3.4mm; height: 3.4mm; }
+  .rotulo h2 { font-size: 8.5pt; }
+  .rotulo p { font-size: 6pt; margin-top: .3mm; }
+  .cuerpo { padding: 0 3mm 2mm; }
+  .tarjeta.destacada .rotulo { background: transparent; color: var(--azul); padding: 2mm 3mm 1mm; }
+  .tarjeta.destacada .rotulo h2 { color: var(--negro); }
+  .tarjeta.destacada .rotulo p { color: var(--gris); }
+
+  /* Cifras clave: filete azul superior y cuatro columnas, sin caja. En la hoja
+     hay sitio para las cuatro aunque en pantalla, a esta anchura, irían 2x2. */
+  .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
+  .cifra { padding: 2mm 4mm 1.6mm 0; gap: 1.2mm; border-left: 0; border-top: 0; flex-direction: column; align-items: stretch; }
+  .cifra + .cifra { padding-left: 4mm; border-left: .2mm solid var(--linea); }
+  .cifra:last-child { padding-right: 0; }
+  .cifra-viz { width: auto; }
+  .cifra em { display: block; }
+  .cifra-dato b { font-size: 14pt; color: var(--azul); }
+  .cifra-dato i { font-size: 6pt; margin-top: 1mm; letter-spacing: .04em; }
+  .cifra-dato i .ico { width: 3mm; height: 3mm; }
+  .cifra-viz { height: 4mm; }
+  .puntos { height: 4mm; }
+  .cifra em { font-size: 5.5pt; }
+
+  .mapas { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .mapa-pie { margin-top: 1mm; }
+  .mapa-pie b { font-size: 8.5pt; }
+  .mapa-pie span { font-size: 6pt; }
+
+  .leyenda { gap: 3mm; margin-top: 1.2mm; }
+  .leyenda span { font-size: 6pt; }
+  .llave { width: 2mm; height: 2mm; }
+
+  .indice { margin-bottom: 1.6mm; }
+  .indice-tit { margin-bottom: 1mm; }
+  .indice-tit b { font-size: 7pt; }
+  .indice-tit em { font-size: 6pt; }
+  .peldano span { font-size: 5.5pt; min-height: 0; line-height: 1.2; }
+  .peldano b { font-size: 8pt; margin: .3mm 0 .8mm; }
+  .peldano i { height: 1.2mm; }
+  .escala { gap: 1.4mm; }
+
+  .mosaicos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
+  .mosaico h3 { font-size: 7pt; }
+  .mosaico p { font-size: 6pt; margin-bottom: 1mm; }
+  .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6pt; }
+  .nota { font-size: 5.5pt; margin-top: 1.4mm; }
 }

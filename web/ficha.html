@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha demográfica municipal · Canarias Convive</title>
+<link rel="icon" href="img/logo-canariasconvive-menu.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css?v=22">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-int">
+    <a class="marca" href="index.html">
+      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
+      <span>Fichas demográficas municipales</span>
+    </a>
+    <div class="campo">
+      <label for="sel-municipio">Municipio</label>
+      <select id="sel-municipio"><option>Cargando…</option></select>
+    </div>
+    <a class="btn btn-liso" href="index.html" data-ico="territorio">Todos los municipios</a>
+    <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Descargar PDF</button>
+  </div>
+</header>
+
+<main class="envoltorio">
+
+  <section class="cabecera">
+    <p class="migas" id="migas">—</p>
+    <div class="titular">
+      <h1 id="nombre">Cargando…</h1>
+      <span class="anio" id="anio"></span>
+    </div>
+    <p class="habitantes" id="habitantes"></p>
+  </section>
+
+  <div class="rejilla">
+
+    <section class="tarjeta">
+      <header class="rotulo" data-ico="poblacion">
+        <div><h2>Cifras clave</h2><p id="sub-cifras"></p></div>
+      </header>
+      <div class="cuerpo">
+        <div class="cifras" id="cifras"></div>
+      </div>
+    </section>
+
+    <section class="tarjeta dos-tercios">
+      <header class="rotulo" data-ico="variacion">
+        <div><h2>Evolución de la población</h2><p id="sub-evolucion"></p></div>
+      </header>
+      <div class="cuerpo">
+        <figure id="g-evolucion"></figure>
+        <p class="lectura" id="lectura-evolucion"></p>
+      </div>
+    </section>
+
+    <section class="tarjeta tercio">
+      <header class="rotulo" data-ico="extranjero">
+        <div><h2>Origen extranjero</h2><p>Porcentaje sobre el total de habitantes</p></div>
+      </header>
+      <div class="cuerpo">
+        <figure id="g-extranjero"></figure>
+        <div class="leyenda">
+          <span><i class="llave" style="background:#85B7EB"></i>Municipio</span>
+          <span><i class="llave" style="background:#185FA5"></i>Último dato</span>
+          <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Franja central: los tres mapas a tamaño grande. -->
+    <section class="tarjeta">
+      <header class="rotulo" data-ico="territorio">
+        <div><h2>Dónde está el municipio</h2><p>Su posición por población en Canarias, en su isla y en su comarca</p></div>
+      </header>
+      <div class="cuerpo">
+        <div class="mapas" id="mapas"></div>
+      </div>
+    </section>
+
+    <!-- La destacada de la página: es la única con cabecera plena. -->
+    <section class="tarjeta dos-tercios destacada">
+      <header class="rotulo" data-ico="edad">
+        <div><h2>Estructura de la población</h2><p id="sub-piramide"></p></div>
+      </header>
+      <div class="cuerpo">
+        <div class="vistas">
+          <button class="vista" type="button" aria-pressed="true">Población total</button>
+          <button class="vista" type="button" aria-pressed="false">Nacida en España</button>
+          <button class="vista" type="button" aria-pressed="false">De origen extranjero</button>
+        </div>
+        <p class="vista-info" id="vista-info"></p>
+        <figure id="g-piramide"></figure>
+        <p class="lectura" id="lectura-piramide"></p>
+        <div class="leyenda">
+          <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
+          <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
+          <span><i class="llave hueca"></i>Canarias</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tarjeta tercio">
+      <header class="rotulo" data-ico="dependencia">
+        <div><h2>Información geodemográfica</h2><p>Los tres ámbitos, ordenados de menor a mayor valor</p></div>
+      </header>
+      <div class="cuerpo">
+        <div id="g-indices"></div>
+      </div>
+    </section>
+
+    <section class="tarjeta mitad">
+      <header class="rotulo" data-ico="relevo">
+        <div><h2>Componentes del cambio poblacional</h2><p>Nacimientos menos defunciones y saldo migratorio, cada dos años</p></div>
+      </header>
+      <div class="cuerpo">
+        <figure id="g-componentes"></figure>
+        <div class="leyenda">
+          <span><i class="llave" style="background:#85B7EB"></i>Crecimiento vegetativo</span>
+          <span><i class="llave" style="background:#185FA5"></i>Saldo migratorio</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="tarjeta mitad">
+      <header class="rotulo" data-ico="nacimiento">
+        <div><h2>Lugar de nacimiento</h2><p>De cada cien habitantes, dónde nacieron</p></div>
+      </header>
+      <div class="cuerpo">
+        <div class="mosaicos" id="g-origen"></div>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<script src="iconos.js?v=22"></script>
+<script src="ficha.js?v=22"></script>
+</body>
+</html>

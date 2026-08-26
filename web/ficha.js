@@ -56,6 +56,24 @@ function topeRedondo(v) {
   return 10 * exp;
 }
 
+/* ---------------------------------------------------------- impresión ----- */
+/* Al imprimir, los gráficos se vuelven a dibujar a la medida de la hoja. Un SVG
+   pensado para 640 px de pantalla y encogido por CSS hasta 60 mm deja las
+   etiquetas en tres puntos: hay que redibujarlo, no escalarlo.
+
+   La caja útil de la A4 vertical con los márgenes de @page es de 190 mm, y la
+   retícula sigue siendo de doce columnas con 2,4 mm de hueco. */
+const MM = 96 / 25.4;                 // píxeles CSS por milímetro
+const HOJA = 190, HUECO = 2, PAD = 3;
+let IMPRIMIENDO = false;
+
+/** Ancho interior de una tarjeta de `cols` columnas, en píxeles CSS. */
+function anchoHoja(cols) {
+  const col = (HOJA - 11 * HUECO) / 12;
+  return Math.round((col * cols + HUECO * (cols - 1) - 2 * PAD) * MM);
+}
+const mm = (v) => Math.round(v * MM);
+
 function anchoDe(id, porDefecto = 520) {
   const e = document.getElementById(id);
   const w = e ? e.clientWidth : 0;
@@ -133,7 +151,12 @@ function mapa(geo, codmun, ambito, w, h, conLimites) {
 /* -------------------------------------------------------------- evolución -- */
 let EVOLUCION = null;   // geometría del último gráfico dibujado, para la lectura al pasar el ratón
 function graficoEvolucion(ev, w, h) {
-  const m = { t: w < 430 ? 46 : 30, r: 14, b: 26, l: 52 };
+  /* En la hoja los márgenes y el cuerpo bajan: los mismos 52 px de margen
+     izquierdo que en pantalla se comen medio gráfico de 30 mm y las etiquetas
+     del eje acaban una encima de otra. */
+  const P = IMPRIMIENDO;
+  const m = P ? { t: 20, r: 8, b: 13, l: 36 } : { t: w < 430 ? 46 : 30, r: 14, b: 26, l: 52 };
+  const fe = P ? 6.5 : 10;
   const X = ev.anios, Y = ev.valores;
   const paso = pasoRedondo(Math.max(...Y) * 1.12, 5);
   const tope = Math.ceil(Math.max(...Y) * 1.12 / paso) * paso;
@@ -143,12 +166,12 @@ function graficoEvolucion(ev, w, h) {
   let rejilla = '', ejeY = '';
   for (let v = 0; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - 9}" y="${(py(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="${C.gris}">${nf(v)}</text>`;
+    ejeY += `<text x="${m.l - (P ? 5 : 9)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}</text>`;
   }
   // El eje temporal va de cinco en cinco años: cuadra con el último dato, 2025.
   let ejeX = '';
   for (let a = Math.ceil(X[0] / 5) * 5; a <= X[X.length - 1]; a += 5) {
-    ejeX += `<text x="${px(a).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="${C.gris}">${a}</text>`;
+    ejeX += `<text x="${px(a).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
   }
 
   EVOLUCION = { X, Y, px, py, w, m };
@@ -160,13 +183,14 @@ function graficoEvolucion(ev, w, h) {
   const v = ev.variacion_acumulada;
   const leyendaVar = `Variación acumulada entre ${ev.anio_base} y ${ev.anio_fin}`;
   const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}%`;
-  const anchoCapsula = Math.max(58, textoVar.length * 6.4 + 16);   // +261,3% no cabe en un ancho fijo
-  const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * 5.6;
+  const alto = P ? 13 : 20, fc = P ? 8 : 11, fl = P ? 7 : 10.5;
+  const anchoCapsula = Math.max(P ? 40 : 58, textoVar.length * (P ? 4.7 : 6.4) + (P ? 10 : 16));
+  const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * (P ? 3.8 : 5.6);
   const rotulo = v == null ? '' : `
-    <g transform="translate(${m.l + 8}, ${m.t - 12})">
-      <rect x="0" y="-10" width="${anchoCapsula.toFixed(0)}" height="20" rx="10" fill="${C.azul}"/>
-      <text x="${(anchoCapsula / 2).toFixed(0)}" y="4.5" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${textoVar}</text>
-      <text x="${cabeAlLado ? (anchoCapsula + 9).toFixed(0) : (2 - m.l - 8).toFixed(0)}" y="${cabeAlLado ? 4.5 : 24}" font-size="${cabeAlLado ? 10.5 : 10}" fill="${C.negro}">${leyendaVar}</text>
+    <g transform="translate(${m.l + 8}, ${m.t - (P ? 8 : 12)})">
+      <rect x="0" y="${-alto / 2}" width="${anchoCapsula.toFixed(0)}" height="${alto}" rx="${alto / 2}" fill="${C.azul}"/>
+      <text x="${(anchoCapsula / 2).toFixed(0)}" y="${(fc * .36).toFixed(1)}" text-anchor="middle" font-size="${fc}" font-weight="700" fill="#fff">${textoVar}</text>
+      <text x="${cabeAlLado ? (anchoCapsula + 9).toFixed(0) : (2 - m.l - 8).toFixed(0)}" y="${cabeAlLado ? (fl * .36).toFixed(1) : (alto + fl)}" font-size="${cabeAlLado ? fl : fl - .5}" fill="${C.negro}">${leyendaVar}</text>
     </g>`;
 
   return abrirSVG(w, h, `Evolución de la población entre ${X[0]} y ${X[X.length - 1]}`)
@@ -190,7 +214,9 @@ function graficoEvolucion(ev, w, h) {
 function graficoExtranjero(ext, w, h) {
   // El margen derecho deja sitio a la etiqueta del último dato, que va centrada
   // sobre la última barra y se saldría del lienzo.
-  const m = { t: 30, r: 34, b: 26, l: 42 };
+  const P = IMPRIMIENDO;
+  const m = P ? { t: 21, r: 24, b: 13, l: 26 } : { t: 30, r: 34, b: 26, l: 42 };
+  const fe = P ? 6.5 : 10;
   const A = ext.anios, M = ext.municipio, R = ext.canarias;
   const vivos = A.map((a, i) => [a, M[i]]).filter(([, v]) => v != null && isFinite(v));
   // Primero el paso a partir del máximo, y el tope como el múltiplo justo por
@@ -201,14 +227,14 @@ function graficoExtranjero(ext, w, h) {
   const tope = Math.ceil(maximo / paso) * paso;
 
   const ancho = (w - m.l - m.r) / vivos.length;
-  const bw = Math.min(ancho * 0.62, 26);
+  const bw = Math.min(ancho * 0.62, P ? 14 : 26);
   const px = (i) => m.l + i * ancho + ancho / 2;
   const py = (v) => h - m.b - (v / tope) * (h - m.t - m.b);
 
   let rejilla = '', ejeY = '';
   for (let v = 0; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - 8}" y="${(py(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="${C.gris}">${nf(v)}%</text>`;
+    ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}%</text>`;
   }
 
   let barras = '', ejeX = '';
@@ -217,11 +243,11 @@ function graficoExtranjero(ext, w, h) {
     barras += `<rect x="${(px(i) - bw / 2).toFixed(1)}" y="${py(v).toFixed(1)}" width="${bw.toFixed(1)}" `
             + `height="${(h - m.b - py(v)).toFixed(1)}" fill="${ultima ? C.azul : C.azulClaro}" rx="1.5"/>`;
     if (ultima) {
-      barras += `<text x="${px(i).toFixed(1)}" y="${(py(v) - 8).toFixed(1)}" text-anchor="middle" `
-              + `font-size="13" font-weight="700" fill="${C.negro}">${nf(v, 1)}%</text>`;
+      barras += `<text x="${px(i).toFixed(1)}" y="${(py(v) - (P ? 4 : 8)).toFixed(1)}" text-anchor="middle" `
+              + `font-size="${P ? 9 : 13}" font-weight="700" fill="${C.negro}">${nf(v, 1)}%</text>`;
     }
     if (a % 5 === 0 || ultima) {
-      ejeX += `<text x="${px(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="${C.gris}">${a}</text>`;
+      ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
     }
   });
 
@@ -339,7 +365,9 @@ function bloqueIndices(ind, codigos, nombreMun, isla) {
 
 /* ------------------------------------------------------------ componentes -- */
 function graficoComponentes(c, w, h) {
-  const m = { t: 16, r: 12, b: 26, l: 52 };
+  const P = IMPRIMIENDO;
+  const m = P ? { t: 10, r: 8, b: 13, l: 36 } : { t: 16, r: 12, b: 26, l: 52 };
+  const fe = P ? 6.5 : 10;
   const idx = c.anios.map((a, i) => i).filter((i) => c.anios[i] >= ANIO_INICIO_COMPONENTES);
   const A = idx.map((i) => c.anios[i]);
   const V = idx.map((i) => c.vegetativo[i]);
@@ -350,12 +378,12 @@ function graficoComponentes(c, w, h) {
   const paso = tope / 2;                        // dos divisiones a cada lado del cero
   const py = (v) => m.t + (tope - v) / (2 * tope) * (h - m.t - m.b);
   const ancho = (w - m.l - m.r) / A.length;
-  const bw = Math.min(ancho * 0.38, 13);
+  const bw = Math.min(ancho * 0.38, P ? 7 : 13);
 
   let rejilla = '', ejeY = '';
   for (let v = -tope; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? C.gris40 : C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - 9}" y="${(py(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="${C.gris}">${nf(v)}</text>`;
+    ejeY += `<text x="${m.l - (P ? 5 : 9)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}</text>`;
   }
   let barras = '', ejeX = '';
   A.forEach((a, i) => {
@@ -366,7 +394,7 @@ function graficoComponentes(c, w, h) {
       barras += `<rect x="${(x + s * bw / 2 - bw / 2 + s * .6).toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" `
               + `width="${bw.toFixed(1)}" height="${Math.abs(y1 - y0).toFixed(1)}" fill="${col}" rx="1"/>`;
     });
-    if (a % 2 === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="9.5" fill="${C.gris}">${a}</text>`;
+    if (a % (P ? 4 : 2) === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${P ? 6 : 9.5}" fill="${C.gris}">${a}</text>`;
   });
 
   let marcas = '';
@@ -407,19 +435,96 @@ function mosaicoOrigen(valores, lado = 17, hueco = 3) {
 }
 
 /* ------------------------------------------------------------ cifras clave -- */
-const ICONOS = {
-  variacion: (sube) => `<svg class="icono" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-      <path d="${sube ? 'M13 5 L21 19 L5 19 Z' : 'M13 21 L5 7 L21 7 Z'}" fill="currentColor"/></svg>`,
-  edad: `<svg class="icono" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-      <circle cx="13" cy="7.5" r="4" fill="currentColor"/>
-      <path d="M13 12.5c-4.2 0-6.5 2.6-6.5 6.4V22h13v-3.1c0-3.8-2.3-6.4-6.5-6.4z" fill="currentColor"/></svg>`,
-  mujeres: `<svg class="icono" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-      <circle cx="13" cy="9" r="5.2" fill="none" stroke="currentColor" stroke-width="2.4"/>
-      <path d="M13 14.5V23M9.5 19.5h7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-  hombres: `<svg class="icono" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-      <circle cx="10.5" cy="15.5" r="5.2" fill="none" stroke="currentColor" stroke-width="2.4"/>
-      <path d="M15 11L21.5 4.5M16.5 4.5h5v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-};
+/* Cada celda lleva dentro la forma de su propio dato, dibujada con los valores
+   reales del municipio: su serie de población, su edad media sobre la escala
+   0-100 y el reparto por sexo en una retícula de puntos. Ninguna de las tres
+   marca un umbral ni una referencia de "lo normal"; solo dan escala a la cifra
+   que tienen encima.
+
+   Se dibujan al ancho exacto de la celda, igual que el resto de gráficos del
+   fichero: estirar un SVG pequeño deformaría el trazo y en móvil dejaría la
+   línea en un pelo. */
+
+/** Ancho útil de una celda de cifras clave, descontando bordes y padding. */
+function anchoCelda() {
+  if (IMPRIMIENDO) return Math.floor((anchoHoja(12) - 3) / 4) - mm(4);
+  if (innerWidth <= 700) return 110;                 // el hueco fijo del móvil
+  const total = anchoDe('cifras', 1040);
+  const columnas = innerWidth <= 940 ? 2 : 4;
+  return Math.max(80, Math.floor((total - columnas + 1) / columnas) - 48);
+}
+
+/** Serie de población reducida a una línea sin ejes. La discontinua marca el
+ *  valor del primer año del periodo, para ver respecto a qué se mueve. */
+function chispa(anios, valores, desde, w, h) {
+  const pares = anios.map((a, i) => [a, valores[i]])
+    .filter(([a, v]) => a >= desde && v != null && isFinite(v));
+  if (pares.length < 2) return '';
+  const xs = pares.map(([a]) => a), ys = pares.map(([, v]) => v);
+  const min = Math.min(...ys), max = Math.max(...ys), rango = max - min || 1;
+  const px = (a) => (a - xs[0]) / (xs[xs.length - 1] - xs[0]) * w;
+  const py = (v) => h - 5 - (v - min) / rango * (h - 12);
+  const pts = pares.map(([a, v]) => `${px(a).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+  const yb = py(ys[0]).toFixed(1);
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">`
+       + `<line x1="0" y1="${yb}" x2="${w}" y2="${yb}" stroke="${C.linea}" stroke-width="1" stroke-dasharray="3 4"/>`
+       + `<polyline points="${pts}" fill="none" stroke="${C.azul}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
+       + `<circle cx="${px(xs[xs.length - 1]).toFixed(1)}" cy="${py(ys[ys.length - 1]).toFixed(1)}" r="3" fill="${C.azul}"/>`
+       + `</svg>`;
+}
+
+/** Edad media situada sobre el eje 0-100 años. */
+function barraEdad(edad, w, h) {
+  const m = Math.round(h / 2);
+  const x = acotar(edad / 100, 0, 1) * w;
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">`
+       + `<line x1="0" y1="${m}" x2="${w}" y2="${m}" stroke="${C.linea}" stroke-width="1"/>`
+       + `<rect x="0" y="${m - 4}" width="${x.toFixed(1)}" height="8" rx="4" fill="${C.azulPalido}"/>`
+       + `<rect x="${acotar(x - 2, 0, w - 4).toFixed(1)}" y="${m - 10}" width="4" height="20" rx="2" fill="${C.azul}"/>`
+       + `</svg>`;
+}
+
+/** Retícula de puntos rellena hasta la proporción indicada. El punto lleno y el
+ *  vacío quedan en 4,3:1 y 3,2:1, por encima del 3:1 que pide la norma para un
+ *  elemento gráfico. */
+function puntos(porcentaje, color) {
+  const p = acotar(porcentaje, 0, 100);
+  const relleno = `radial-gradient(circle at 3px 3px, ${color} 2.6px, transparent 2.8px)`;
+  return `<div class="puntos" aria-hidden="true">`
+       + `<i style="right:${(100 - p).toFixed(1)}%;background-image:${relleno}"></i></div>`;
+}
+
+/** Las cuatro celdas, cada una con su icono, su cifra y su micro-gráfico. */
+function cifrasClave(f) {
+  const c = f.cifras, ev = f.evolucion;
+  const w = anchoCelda(), h = (!IMPRIMIENDO && innerWidth <= 700) ? 34 : (IMPRIMIENDO ? mm(5) : 42);
+  const signo = c.tvma >= 0 ? '+' : '−';   // menos tipográfico, no guion
+
+  const celda = (ico, cifra, unidad, rotulo, viz, pie) => `
+    <div class="cifra">
+      <div class="cifra-dato">
+        <b>${cifra}${unidad ? `<span>${unidad}</span>` : ''}</b>
+        <i>${icono(ico, 16)}${rotulo}</i>
+      </div>
+      <div class="cifra-viz">${viz}</div>
+      ${pie}
+    </div>`;
+
+  return [
+    celda('variacion', `${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
+      chispa(ev.anios, ev.valores, ev.anio_base, w, h),
+      `<em>Serie ${ev.anio_base}–${ev.anio_fin}</em>`),
+    celda('edad', nf(c.edad_media, 1), '', 'Edad media',
+      barraEdad(c.edad_media, w, h),
+      `<em class="entre"><span>0</span><span>escala 0–100 años</span><span>100</span></em>`),
+    celda('mujeres', nf(c.pct_mujeres, 1), '%', 'Mujeres',
+      puntos(c.pct_mujeres, C.azul),
+      `<em>${nf(c.mujeres)} personas</em>`),
+    celda('hombres', nf(c.pct_hombres, 1), '%', 'Hombres',
+      puntos(c.pct_hombres, C.azulMedio),
+      `<em>${nf(c.hombres)} personas</em>`),
+  ].join('');
+}
 
 /* ================================================================= montaje == */
 let GEO = null, INDICE = null, FICHA = null, PIRAMIDE = null, VISTA = 0;
@@ -498,18 +603,20 @@ function pintar(f) {
   doc.getElementById('habitantes').innerHTML = `<b>${nf(f.poblacion)}</b><span>habitantes</span>`;
 
   // --- cifras clave ---
-  const c = f.cifras;
-  doc.getElementById('cifras').innerHTML = [
-    [ICONOS.variacion(c.tvma >= 0), `${c.tvma >= 0 ? '+' : '−'}${nf(Math.abs(c.tvma), 1)}%`,
-     'Variación media anual', `${f.evolucion.anio_base}–${f.evolucion.anio_fin}`],
-    [ICONOS.edad, nf(c.edad_media, 1), 'Edad media', 'años'],
-    [ICONOS.mujeres, pct(c.pct_mujeres), 'Mujeres', nf(c.mujeres)],
-    [ICONOS.hombres, pct(c.pct_hombres), 'Hombres', nf(c.hombres)],
-  ].map(([ico, v, t, e]) => `<div class="cifra">${ico}<b>${v}</b><i>${t}</i><em>${e}</em></div>`).join('');
+  doc.getElementById('cifras').innerHTML = cifrasClave(f);
+
+  // --- subtítulos de las cartelas que dependen del año o de la serie ---
+  const ev = f.evolucion;
+  doc.getElementById('sub-cifras').textContent = `Datos a 1 de enero de ${f.anio}`;
+  doc.getElementById('sub-evolucion').textContent =
+    `Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}`;
+  doc.getElementById('sub-piramide').textContent = `Grupos de cinco años · ${f.anio}`;
 
   // --- mapas, en franja central y a tamaño grande ---
-  const wMapa = Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
-  const hMapa = Math.round(wMapa * 0.74);
+  const wMapa = IMPRIMIENDO
+    ? Math.floor((anchoHoja(12) - 2 * mm(4)) / 3)
+    : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
+  const hMapa = IMPRIMIENDO ? mm(20) : Math.round(wMapa * 0.74);
   const niveles = [
     ['Canarias', () => true, f.rankings.canarias, false],
     [f.isla, (g) => g.properties.isla === f.isla, f.rankings.isla, true],
@@ -525,15 +632,17 @@ function pintar(f) {
     </figure>`).join('');
 
   // --- gráficos ---
-  const wEv = anchoDe('g-evolucion'), wEx = anchoDe('g-extranjero', 320);
-  const wPi = anchoDe('g-piramide'), wCo = anchoDe('g-componentes');
+  const wEv = IMPRIMIENDO ? anchoHoja(7) : anchoDe('g-evolucion');
+  const wEx = IMPRIMIENDO ? anchoHoja(5) : anchoDe('g-extranjero', 320);
+  const wPi = IMPRIMIENDO ? anchoHoja(7) : anchoDe('g-piramide');
+  const wCo = IMPRIMIENDO ? anchoHoja(6) : anchoDe('g-componentes');
 
   doc.getElementById('g-evolucion').innerHTML =
-    graficoEvolucion(f.evolucion, wEv, acotar(wEv * 0.42, 190, 260));
+    graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(30) : acotar(wEv * 0.42, 190, 260));
   doc.getElementById('g-extranjero').innerHTML =
-    graficoExtranjero(f.extranjero, wEx, acotar(wEx * 0.72, 200, 260));
+    graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
 
-  PIRAMIDE = construirPiramide(f.piramide, wPi, acotar(wPi * 0.70, 360, 470));
+  PIRAMIDE = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? mm(60) : acotar(wPi * 0.70, 360, 470));
   doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
   mostrarVista(VISTA, false);
 
@@ -542,7 +651,7 @@ function pintar(f) {
 
   const anom = f.componentes.anomalias || [];
   doc.getElementById('g-componentes').innerHTML =
-    graficoComponentes(f.componentes, wCo, acotar(wCo * 0.34, 190, 250))
+    graficoComponentes(f.componentes, wCo, IMPRIMIENDO ? mm(24) : acotar(wCo * 0.34, 190, 250))
     + (anom.length ? `<figcaption class="nota">${anom.map((a) =>
         `En ${a.anio} no se representa el saldo migratorio (${nf(a.valor)}): corresponde a un `
         + `${a.motivo}, no a un flujo demográfico.`).join(' ')}</figcaption>` : '');
@@ -554,8 +663,7 @@ function pintar(f) {
   ].map(([tit, vals]) => `
     <div class="mosaico">
       <h3>${tit}</h3>
-      <p>De cada 100 habitantes</p>
-      ${mosaicoOrigen(vals)}
+      ${IMPRIMIENDO ? mosaicoOrigen(vals, 6, 1.1) : mosaicoOrigen(vals)}
       <div class="reparto">${o.categorias.map((cat, i) => `
         <div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(vals[i], 1)}%</b></div>`).join('')}
       </div>
@@ -617,6 +725,21 @@ function conectarLecturaEvolucion() {
 }
 
 /* ------------------------------------------------------------------ inicio -- */
+/** Coloca el icono del set en cada rótulo y en cada botón que lo pida. Se
+ *  inyecta desde aquí y no se escribe en el HTML para que los trazos vivan en
+ *  un solo sitio: iconos.js. */
+function montarIconos() {
+  document.querySelectorAll('.rotulo[data-ico]').forEach((r) =>
+    r.insertAdjacentHTML('afterbegin', icono(r.dataset.ico, 26)));
+  document.querySelectorAll('.btn[data-ico]').forEach((b) =>
+    b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
+}
+
+/* Chrome, Safari y Firefox disparan beforeprint antes de maquetar la hoja, así
+   que da tiempo a redibujar. Vale igual para Ctrl+P que para el botón. */
+addEventListener('beforeprint', () => { if (FICHA) { IMPRIMIENDO = true; pintar(FICHA); } });
+addEventListener('afterprint', () => { if (FICHA) { IMPRIMIENDO = false; pintar(FICHA); } });
+
 let temporizador = null, anchoPrevio = window.innerWidth;
 addEventListener('resize', () => {
   if (!FICHA || innerWidth === anchoPrevio) return;
@@ -626,6 +749,9 @@ addEventListener('resize', () => {
 });
 
 async function iniciar() {
+  montarIconos();
+  document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+
   [INDICE, GEO] = await Promise.all([
     fetch('datos/indice.json').then((r) => r.json()),
     fetch('datos/geo/municipios.json').then((r) => r.json()),
