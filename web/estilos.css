@@ -453,14 +453,76 @@ select {
 
 /* --------------------------------------------------------------- entrada --- */
 @keyframes surgir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.cabecera, .tarjeta, .tapa { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
+.cabecera, .tarjeta { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
 .tarjeta:nth-of-type(1) { animation-delay: .04s; }
 .tarjeta:nth-of-type(2) { animation-delay: .08s; }
 .tarjeta:nth-of-type(3) { animation-delay: .12s; }
 .tarjeta:nth-of-type(4) { animation-delay: .16s; }
 .tarjeta:nth-of-type(5) { animation-delay: .20s; }
 .tarjeta:nth-of-type(6) { animation-delay: .24s; }
-@media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta, .tapa { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
+
+
+/* ================================================= entrada de la portada === */
+/* Storyboard de Claude Design, concepto 2: los 88 municipios entran en oleada
+   de oeste a este y las divisorias cierran la secuencia. Reglas de movimiento
+   que vienen del propio storyboard y que conviene no tocar:
+
+     · Desplazamiento máximo de 10 px, y de 6 px si el elemento lleva texto.
+       Ningún texto escala, rota ni se desenfoca: a mitad de transición ya es
+       legible.
+     · Las cuatro cifras aparecen escritas. No cuentan hacia arriba ni rebotan:
+       eso dramatizaría el dato, y aquí el dato son personas.
+     · Los 88 municipios comparten duración, color y escala. Ninguno lleva
+       acento ni orden de importancia; lo único que los ordena es la longitud
+       geográfica, que no dice nada de ellos.
+
+   El total es de 1.440 ms. Solo se usan opacity y transform. */
+
+@keyframes entrar {
+  from { opacity: 0; transform: translateY(var(--y, 6px)); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes surgir-municipio {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes surgir-divisoria {
+  from { stroke-opacity: 0; }
+  to   { stroke-opacity: 1; }
+}
+
+/* A la espera de que la sección entre en pantalla. Sin ninguna de las dos
+   clases, todo se ve: si el JS fallara, la portada no se queda en blanco. */
+.tapa.espera .ent { opacity: 0; }
+.tapa.espera .isla a path { stroke-opacity: 0; }
+
+.tapa.entra .ent {
+  animation: entrar var(--d, 260ms) cubic-bezier(0,0,.2,1) both;
+  animation-delay: var(--t, 0ms);
+}
+.tapa.entra .isla a path {
+  transform-box: fill-box; transform-origin: center;
+  animation: surgir-municipio 240ms cubic-bezier(0,0,.2,1) both,
+             surgir-divisoria 260ms ease-out both;
+  animation-delay: calc(360ms + var(--i, 0) * 9ms), 1180ms;
+}
+
+/* Tiempos de cada elemento, tal cual la tabla del storyboard. */
+.tapa .tapa-alto  { --t: 0ms;   --d: 140ms; --y: 8px; }
+.tapa .tapa-texto { --t: 100ms; --d: 280ms; --y: 6px; }
+.tapa .tapa-datos > div { --t: calc(160ms + var(--n) * 40ms); --d: 260ms; --y: 4px; }
+.tapa .buscador   { --t: 220ms; --d: 280ms; --y: 4px; }
+.tapa .chip       { --t: calc(260ms + var(--n) * 25ms); --d: 240ms; --y: 3px; }
+.tapa .isla       { --t: calc(300ms + var(--n) * 20ms); --d: 220ms; --y: 0px; }
+.tapa .panel      { --t: 300ms; --d: 280ms; --y: 10px; }
+
+/* Con movimiento reducido no hay animación ni observador: se ve directamente
+   el fotograma del 100 %. Ni versión corta ni desvanecido de cortesía. */
+@media (prefers-reduced-motion: reduce) {
+  .tapa.espera .ent, .tapa.entra .ent { opacity: 1; animation: none; transform: none; }
+  .tapa.espera .isla a path, .tapa.entra .isla a path { stroke-opacity: 1; animation: none; }
+}
 
 /* --------------------------------------------------------- responsive ------ */
 @media (max-width: 1080px) {

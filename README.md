@@ -117,6 +117,30 @@ referencia por `codmun`.
 - **Frontera y El Pinar no existen antes de 2007**, así que la variación acumulada
   y la TVMA arrancan en 2008 y la etiqueta lo dice.
 
+**Entrada en oleada, de oeste a este.** Al entrar la portada en pantalla, los 88
+municipios aparecen uno a uno con 9 ms de desfase, ordenados por su longitud
+geográfica: un frente que cruza el archipiélago de El Hierro a Lanzarote. Las
+divisorias municipales llegan al final, a los 1.180 ms, así que el mapa se
+resuelve en municipios cuando el mosaico ya está completo. Total: 1.440 ms.
+
+El orden sale de la propia geometría —la x del EPSG:4083 es el este en metros y
+crece de forma monótona de El Hierro a Lanzarote—, así que no hay que mantener
+ninguna lista a mano. Es un criterio que no dice nada de los municipios: es
+dónde están. Todos comparten duración, color y escala, y las cifras aparecen
+escritas en vez de contar hacia arriba: hacerlas subir dramatizaría un dato que
+son personas.
+
+Tres cosas que no son evidentes y están resueltas en el código: el umbral del
+`IntersectionObserver` es una fracción del área del **elemento observado**, y la
+tapa mide 5.000 px, así que un 0,3 fijo no se alcanza nunca y la animación no
+arrancaría jamás —se calcula un umbral alcanzable—; dentro de un iframe el
+observador mide contra el viewport del iframe, donde la portada está visible
+desde el principio, que es justo lo que se quiere; y la clase de animación se
+retira al acabar, para que un giro de pantalla no vuelva a lanzar la oleada.
+
+Con `prefers-reduced-motion` no hay animación ni se registra el observador: se
+ve directamente el estado final.
+
 **El listado no es un extra, sostiene la accesibilidad del mapa.** En un móvil
 hay trece municipios del norte de Tenerife cuya forma baja de los 24 px que pide
 la norma para un objetivo táctil; el más pequeño es Puerto de la Cruz, con 16x11.

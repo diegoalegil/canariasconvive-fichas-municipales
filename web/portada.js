@@ -35,6 +35,18 @@ const plano = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerC
 let GEO = null, INDICE = null, POR_COD = new Map();
 let filtroIsla = null, consulta = '', marcado = null;
 
+/* Orden de la oleada de entrada: los 88 municipios de oeste a este. La x del
+   EPSG:4083 es el este en metros y crece de forma monótona de El Hierro a
+   Lanzarote, así que basta ordenar por el centro de su envolvente. No es un
+   criterio que diga nada del municipio: es dónde está. */
+const OLEADA = new Map();
+function ordenarOleada() {
+  GEO.features
+    .map((f) => [String(f.properties.codmun), (f.properties.bbox[0] + f.properties.bbox[2]) / 2])
+    .sort((a, b) => a[1] - b[1])
+    .forEach(([cod], i) => OLEADA.set(cod, i));
+}
+
 /* ------------------------------------------------------------------ mapa --- */
 /** Dibuja una isla con un camino por municipio. Cada camino va dentro de un
  *  enlace real: así funciona el teclado, el clic central y el "abrir en otra
@@ -62,7 +74,8 @@ function dibujarIsla(nombre, ancho) {
     const d = f.geometry.coordinates.map((poli) => poli.map((anillo) =>
       'M' + anillo.map(([x, y]) => `${px(x)},${py(y)}`).join('L') + 'Z').join('')).join('');
     const p = f.properties;
-    return `<a href="ficha.html?municipio=${p.codmun}" data-cod="${p.codmun}">`
+    return `<a href="ficha.html?municipio=${p.codmun}" data-cod="${p.codmun}" `
+         + `style="--i:${OLEADA.get(String(p.codmun)) ?? 0}">`
          + `<path d="${d}" id="m${p.codmun}"><title>${esc(p.nombre)}</title></path></a>`;
   }).join('');
 
@@ -80,6 +93,10 @@ function colsEfectivas(cols) {
 
 function pintarIslario() {
   const cont = document.getElementById('islario');
+  // Si el mapa se redibuja mientras la oleada está en marcha —girar el móvil,
+  // por ejemplo—, los municipios nuevos volverían a entrar desde cero. Se corta
+  // la animación y se dibujan ya colocados.
+  if (yaEntro) document.querySelector('.tapa').classList.remove('entra', 'espera');
   const total = cont.clientWidth || 800;
   const hueco = 16;
   cont.innerHTML = ISLAS.map(({ nombre, cols }) => {
@@ -88,7 +105,7 @@ function pintarIslario() {
     // El ancho útil de un panel: su parte de la rejilla de 12, menos los huecos
     // que le tocan y menos el padding lateral de la tarjeta.
     const ancho = Math.max(120, Math.round((total - hueco * (12 - c) / c) * c / 12) - 34);
-    return `<section class="isla" style="--cols:${c}" data-isla="${esc(nombre)}">
+    return `<section class="isla ent" style="--cols:${c};--n:${ISLAS.findIndex((x) => x.nombre === nombre)}" data-isla="${esc(nombre)}">
       <h2><span>${esc(nombre)}</span> <em>${n} municipio${n === 1 ? '' : 's'}</em></h2>
       ${dibujarIsla(nombre, ancho)}
     </section>`;
@@ -155,6 +172,45 @@ function aplicarFiltro() {
   pintarListado();
 }
 
+
+/* ---------------------------------------------------------------- entrada -- */
+const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let yaEntro = false;
+
+/** Arranca la animación cuando la sección entra en pantalla, una sola vez.
+ *
+ *  Dos cuidados que no son evidentes:
+ *
+ *  1. El umbral de IntersectionObserver es una fracción del área del propio
+ *     elemento. La tapa mide varios miles de píxeles de alto, así que un 0,3
+ *     fijo no se alcanza nunca en una pantalla normal y la animación no
+ *     arrancaría jamás. Se calcula un umbral que sí sea alcanzable.
+ *  2. Dentro de un iframe el observador mide respecto al viewport del iframe,
+ *     no al de la web madre: allí la portada está visible desde el primer
+ *     momento y la animación arranca al cargar, que es justo lo que se quiere.
+ */
+function prepararEntrada() {
+  const tapa = document.querySelector('.tapa');
+  if (!tapa) return;
+  if (reducido() || yaEntro) { tapa.classList.remove('espera'); return; }
+
+  const objetivo = tapa.querySelector('.tapa-alto') || tapa;
+  const alto = objetivo.getBoundingClientRect().height || 1;
+  const umbral = Math.min(0.3, (innerHeight * 0.5) / alto);
+
+  const ob = new IntersectionObserver((entradas) => {
+    if (!entradas.some((e) => e.isIntersecting)) return;
+    ob.disconnect();
+    yaEntro = true;
+    tapa.classList.remove('espera');
+    tapa.classList.add('entra');
+    // Al acabar se retira la clase: si el mapa se vuelve a dibujar por un
+    // cambio de tamaño, los municipios nuevos no repiten la oleada.
+    setTimeout(() => tapa.classList.remove('entra'), 1600);
+  }, { threshold: umbral });
+  ob.observe(objetivo);
+}
+
 /* ---------------------------------------------------------------- inicio --- */
 function montarIconos() {
   document.querySelectorAll('[data-ico], [data-ico-fin]').forEach((e) => {
@@ -180,6 +236,7 @@ async function iniciar() {
     fetch('datos/geo/municipios.json').then((r) => r.json()),
   ]);
   INDICE.municipios.forEach((m) => POR_COD.set(String(m.codmun), m));
+  ordenarOleada();
 
   // El porcentaje de Canarias viene de la serie regional que va dentro de cada
   // ficha, así que se lee de una y no se recalcula.
@@ -193,7 +250,7 @@ async function iniciar() {
     ['88', 'Municipios'],
     ['7', 'Islas'],
     [nf(pctCan, 1) + ' %', 'Origen extranjero'],
-  ].map(([v, r]) => `<div><b>${v}</b><span>${r}</span></div>`).join('');
+  ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
 
   document.getElementById('tapa-anio').textContent =
     `Datos del padrón a 1 de enero de ${INDICE.anio}.`;
@@ -201,7 +258,7 @@ async function iniciar() {
   // Chips de isla
   const chips = document.getElementById('chips');
   chips.insertAdjacentHTML('beforeend', ISLAS.map(({ nombre }) =>
-    `<button class="chip" type="button" aria-pressed="false" data-isla="${esc(nombre)}">`
+    `<button class="chip ent" type="button" aria-pressed="false" data-isla="${esc(nombre)}" style="--n:${ISLAS.findIndex((x) => x.nombre === nombre)}">`
     + `${esc(nombre)} <em>${INDICE.islas[nombre].length}</em></button>`).join(''));
   chips.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => {
     filtroIsla = filtroIsla === b.dataset.isla ? null : b.dataset.isla;
@@ -215,6 +272,7 @@ async function iniciar() {
 
   pintarIslario();
   mostrarPanel(INDICE.municipios.find((m) => m.nombre === 'Santa Cruz de Tenerife').codmun);
+  prepararEntrada();
 }
 
 // Un enlace antiguo del tipo index.html?municipio=38038 apuntaba a la ficha
@@ -224,6 +282,7 @@ if (heredado) {
   location.replace(`ficha.html?municipio=${encodeURIComponent(heredado)}`);
 } else {
   iniciar().catch((e) => {
+    document.querySelector('.tapa').classList.remove('espera');
     document.getElementById('islario').innerHTML =
       '<p class="vacio">No se han podido cargar los datos.</p>';
     console.error(e);
