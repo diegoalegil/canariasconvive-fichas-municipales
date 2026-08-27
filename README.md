@@ -33,17 +33,56 @@ Ambos leen de `~/Downloads/`. La ruta está en una constante al principio de cad
 ## Qué hay
 
 ```
-exportar_datos.py    Excel -> 88 JSON (3,6 KB cada uno)
+exportar_datos.py    Excel -> 88 JSON (3,6 KB cada uno) + indice.json
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
+generar_tarjetas.py  las 89 tarjetas de vista previa + los envoltorios de web/m/
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook
+
 web/index.html       portada: mapa selector de los 88 municipios
-web/portada.js       cartografía por islas, buscador y filtro por isla
-web/ficha.html       estructura de la ficha municipal
-web/ficha.js         gráficos en SVG, sin librerías, en pantalla y en hoja A4
-web/iconos.js        el set de diez iconos, en un solo sitio
+web/ficha.html       la ficha municipal
+web/comparar.html    hasta tres municipios en paralelo
+web/guia.html        qué mide cada indicador y qué no dice
+web/dossier.html     las 88 fichas en un documento A4 de 98 hojas
+
+web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja
+web/portada.js       cartografía por islas, buscador, filtro y oleada de entrada
+web/comparar.js      el comparador
+web/guia.js          la guía
+web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
+web/iconos.js        el set de iconos, en un solo sitio
 web/estilos.css      sistema de tarjeta, identidad visual e impresión
-web/datos/           salida de los dos scripts
+web/dossier.css      solo el armazón del dossier
+web/og/  web/m/      tarjetas de vista previa y sus envoltorios con etiquetas og:
+web/datos/           salida de los scripts
 ```
+
+## Las definiciones de los cuatro índices
+
+No están escritas en ninguna parte: el diccionario `INDEX-C` del Excel da el
+nombre y la unidad de cada indicador, pero no la fórmula. Se dedujeron
+contrastando los valores ya calculados de Pedro contra la pirámide de población,
+municipio a municipio. Error máximo sobre los 88:
+
+| Índice | Definición | Escala | Error máx. |
+|---|---|---|---|
+| C10 Envejecimiento | (65 y más) / (0-14) | razón | 0,47 % |
+| C11 Juventud | (0-14) / (15-64) × 100 | por cien | 0,39 % |
+| C17 Dependencia | (0-14 y 65 y más) / (15-64) × 100 | por cien | 0,14 % |
+| C14 Reemplazo laboral | (15-19) / (60-64) × 100 | por cien | 0,26 % |
+
+El reemplazo laboral cuadra con lo que dijo Pedro en la revisión: 15-19 frente a
+60-64. De ahí que no tenga sentido calcularlo por separado para la población de
+origen extranjero.
+
+**Ojo con juventud.** No es el porcentaje de menores de 15 sobre la población
+—eso sería un 10,3 % en Santa Cruz— sino menores de 15 por cada cien personas de
+15 a 64, que da 15,0. La ficha lo rotula con un `%` que puede inducir a esa
+lectura; la guía lo advierte de forma expresa. **Conviene que Pedro confirme las
+cuatro definiciones antes de darlas por buenas.**
+
+También se comprobó que "de origen extranjero" y el tramo "extranjero" del
+lugar de nacimiento son el mismo dato: en los 88 municipios se diferencian como
+mucho en una décima, y de media en 0,03 puntos.
 
 ## Decisiones
 
