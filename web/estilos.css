@@ -463,6 +463,109 @@ select {
 @media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
 
 
+/* ============================================================= comparador == */
+/* Comparar no es clasificar: no hay control que ordene, ni posiciones, ni
+   destacados. El color distingue columnas, nunca valores; el azul intenso es la
+   primera columna elegida, no la mejor. */
+.cmp-acceso { margin-left: auto; }
+.cmp-intro { font-size: 14px; color: var(--gris); margin-top: var(--e-3); max-width: 70ch; text-wrap: pretty; }
+.cmp-elegidos-caja {
+  display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap;
+  margin-top: var(--e-4); padding-top: var(--e-4); border-top: 1px solid var(--linea);
+}
+.cmp-elegidos { display: flex; gap: var(--e-2); flex-wrap: wrap; flex: 1; }
+.cmp-ficha {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  border: 1px solid var(--linea); border-left: 3px solid var(--c);
+  border-radius: var(--r-2); padding: 7px 8px 7px 12px; font-size: 13px;
+}
+.cmp-ficha b { font-weight: 600; }
+.cmp-ficha button {
+  font: inherit; font-size: 16px; line-height: 1; cursor: pointer;
+  border: 0; background: transparent; color: var(--gris);
+  padding: 2px 5px; border-radius: var(--r-1);
+}
+.cmp-ficha button:hover { background: var(--caja); color: var(--negro); }
+.cmp-ninguno, .cmp-cuenta { font-size: 13px; color: var(--gris); }
+.cmp-cuenta { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cmp-vacio {
+  background: var(--fondo); border: 1px solid var(--linea); border-radius: var(--r-3);
+  padding: var(--e-7) var(--e-5); text-align: center; color: var(--gris); font-size: 14px;
+}
+
+/* Cifras clave: rótulo a la izquierda y una columna por municipio. */
+.cmp-tabla { display: grid; grid-template-columns: minmax(140px, 1.1fr) repeat(var(--cols), 1fr); gap: 0; }
+.cmp-cab { padding: 0 var(--e-3) var(--e-3); border-bottom: 2px solid var(--linea); }
+.cmp-cab b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.cmp-cab span { font-size: 11.5px; color: var(--gris); }
+.cmp-rot { padding: var(--e-3); border-bottom: 1px solid var(--linea); }
+.cmp-rot b { display: block; font-size: 13px; font-weight: 600; }
+.cmp-rot span { font-size: 11px; color: var(--gris); }
+.cmp-val {
+  padding: var(--e-3); border-bottom: 1px solid var(--linea);
+  font-size: 19px; font-weight: 600; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; align-self: center;
+}
+.cmp-val em {
+  font-style: normal; display: block; font-size: 11px; font-weight: 500;
+  letter-spacing: 0; color: var(--gris); margin-top: 2px;
+}
+
+/* Columnas de igual ancho para pirámides y mosaicos. */
+.cmp-cols { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 20px; align-items: start; }
+.cmp-col { text-align: center; }
+.cmp-col h3 { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.cmp-col p { font-size: 12px; color: var(--gris); margin: 3px 0 var(--e-3); }
+.cmp-col p b { color: var(--negro); font-weight: 700; font-size: 15px; }
+.cmp-col svg { margin: 0 auto; }
+.cmp-aviso { font-size: 11px; color: var(--gris); line-height: 1.5; margin-top: var(--e-3); text-wrap: pretty; }
+
+/* Índices: una barra por municipio sobre la escala del propio índice. */
+.cmp-indice { margin-bottom: var(--e-6); }
+.cmp-indice:last-child { margin-bottom: 0; }
+.cmp-indice-tit { margin-bottom: var(--e-3); }
+.cmp-indice-tit b { font-size: 14px; font-weight: 700; }
+.cmp-indice-tit span { display: block; font-size: 12px; color: var(--gris); margin-top: 2px; }
+.cmp-barra {
+  display: grid; grid-template-columns: minmax(110px, 1fr) 62px minmax(120px, 3fr);
+  align-items: center; gap: var(--e-3); margin-bottom: 6px;
+}
+.cmp-barra-rot { font-size: 12.5px; font-weight: 600; }
+.cmp-barra-val { font-size: 14px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.cmp-ref .cmp-barra-rot, .cmp-ref .cmp-barra-val { color: var(--gris); font-weight: 600; }
+.cmp-escala { font-size: 11px; color: var(--gris); margin-top: var(--e-2); line-height: 1.5; text-wrap: pretty; }
+
+.cmp-apilada {
+  display: grid; grid-template-columns: minmax(110px, 1fr) minmax(140px, 2.4fr) auto;
+  align-items: center; gap: var(--e-3); margin-bottom: var(--e-2);
+}
+.cmp-apilada .cmp-barra-val { font-size: 12px; font-weight: 600; color: var(--gris); }
+
+@media (max-width: 780px) {
+  .cmp-cols { grid-template-columns: 1fr; }
+  /* La tabla se apila. Las cabeceras de columna desaparecen porque cada valor
+     pasa a llevar escrito su municipio: en una sola columna, "384.023 / 805 /
+     2.949" obligaría a recordar en qué orden estaban. */
+  .cmp-tabla { grid-template-columns: 1fr; }
+  .cmp-cab { display: none; }
+  .cmp-rot { border-bottom: 0; padding: var(--e-4) 0 var(--e-2); }
+  .cmp-val {
+    display: grid; grid-template-columns: 1fr auto; align-items: baseline;
+    gap: var(--e-3); padding: 5px 0 5px var(--e-3);
+    border-bottom: 0; border-left: 3px solid var(--c); font-size: 17px;
+    margin-bottom: 4px;
+  }
+  .cmp-val::before {
+    content: attr(data-mun);
+    font-size: 12px; font-weight: 600; color: var(--gris);
+    letter-spacing: 0; font-variant-numeric: normal;
+  }
+  .cmp-val em { grid-column: 2; text-align: right; margin-top: 0; }
+  .cmp-elegidos-caja { flex-direction: column; align-items: flex-start; }
+  .cmp-barra, .cmp-apilada { grid-template-columns: 1fr auto; }
+  .cmp-barra svg, .cmp-apilada svg { grid-column: 1 / -1; }
+}
+
 /* ================================================= entrada de la portada === */
 /* Storyboard de Claude Design, concepto 2: los 88 municipios entran en oleada
    de oeste a este y las divisorias cierran la secuencia. Reglas de movimiento

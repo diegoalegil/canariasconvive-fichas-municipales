@@ -599,6 +599,8 @@ function pintar(f) {
   doc.title = `${f.nombre} · Fichas municipales · Canarias Convive`;
 
   doc.getElementById('migas').textContent = `${f.isla} · ${f.comarca.replace(/^.*? - /, '')}`;
+  // El comparador se abre con este municipio ya puesto.
+  doc.getElementById('btn-comparar').href = `comparar.html?m=${f.codmun}`;
   doc.getElementById('nombre').textContent = f.nombre;
   doc.getElementById('anio').textContent = f.anio;
   doc.getElementById('habitantes').innerHTML = `<b>${nf(f.poblacion)}</b><span>habitantes</span>`;

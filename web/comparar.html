@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparar municipios · Canarias Convive</title>
+<link rel="icon" href="img/logo-canariasconvive-menu.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css?v=35">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-int">
+    <a class="marca" href="index.html">
+      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
+      <span>Comparar municipios</span>
+    </a>
+    <div class="campo">
+      <label for="sel-anadir">Añadir</label>
+      <select id="sel-anadir"><option>Cargando…</option></select>
+    </div>
+    <a class="btn btn-liso" href="index.html" data-ico="territorio">Todos los municipios</a>
+  </div>
+</header>
+
+<main class="envoltorio">
+
+  <section class="cabecera">
+    <p class="migas">Fichas demográficas municipales</p>
+    <div class="titular"><h1>Comparar municipios</h1></div>
+    <p class="cmp-intro">Hasta tres a la vez, con las mismas secciones de la ficha.
+      El orden de las columnas es el que elijas: esta vista no ordena por ningún valor.</p>
+    <div class="cmp-elegidos-caja">
+      <div class="cmp-elegidos" id="cmp-elegidos"></div>
+      <span class="cmp-cuenta" id="cmp-cuenta"></span>
+    </div>
+  </section>
+
+  <p class="cmp-vacio" id="cmp-vacio" hidden>
+    Elige un municipio en el desplegable de arriba para empezar. Puedes comparar hasta tres.
+  </p>
+
+  <div class="rejilla" id="cmp-resultado" hidden>
+
+    <section class="tarjeta">
+      <header class="rotulo" data-ico="poblacion">
+        <div><h2>Cifras clave</h2><p>Recuentos y magnitudes con unidad propia. Se leen como número, sin barra: una barra de 384.023 frente a 805 solo diría cuál es más grande, y eso ya lo dice la cifra.</p></div>
+      </header>
+      <div class="cuerpo"><div id="cmp-cifras"></div></div>
+    </section>
+
+    <section class="tarjeta destacada">
+      <header class="rotulo" data-ico="edad">
+        <div><h2>Estructura por edad</h2><p>Cada pirámide en porcentaje sobre su propia población, y las tres con el mismo eje</p></div>
+      </header>
+      <div class="cuerpo"><div id="cmp-piramides"></div></div>
+    </section>
+
+    <section class="tarjeta">
+      <header class="rotulo" data-ico="dependencia">
+        <div><h2>Índices geodemográficos</h2><p>Cada índice sobre su propia escala, la del recorrido de los 88 municipios. Sin umbrales ni franjas de referencia</p></div>
+      </header>
+      <div class="cuerpo"><div id="cmp-indices"></div></div>
+    </section>
+
+    <section class="tarjeta mitad">
+      <header class="rotulo" data-ico="nacimiento">
+        <div><h2>Lugar de nacimiento</h2><p>Cada barra suma el 100 % de su municipio</p></div>
+      </header>
+      <div class="cuerpo"><div id="cmp-nacimiento"></div></div>
+    </section>
+
+    <section class="tarjeta mitad">
+      <header class="rotulo" data-ico="extranjero">
+        <div><h2>Población de origen extranjero</h2><p>Cien cuadros por municipio: cada cuadro es un 1 % de su población</p></div>
+      </header>
+      <div class="cuerpo"><div id="cmp-extranjero"></div></div>
+    </section>
+
+  </div>
+
+</main>
+
+<script src="iconos.js?v=35"></script>
+<script src="comparar.js?v=35"></script>
+</body>
+</html>

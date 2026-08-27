@@ -331,6 +331,7 @@ HX_CAN, MX_CAN = piramide(NRX, SRX, DRX, "Canarias")
 POB_PIR_CAN = H_CAN.sum() + M_CAN.sum()
 
 fichas = []
+todas_las_fichas = []
 for mun in MUNICIPIOS:
     isla = ISLA_DE[mun]
     comarca = COMARCA_DE[mun]
@@ -436,6 +437,20 @@ for mun in MUNICIPIOS:
         "codmun": cod, "nombre": mun, "isla": isla,
         "comarca": comarca, "poblacion": ficha["poblacion"],
     })
+    todas_las_fichas.append(ficha)
+
+# Recorrido de cada índice en el conjunto de Canarias. El comparador lo necesita
+# para dar a cada índice su propia escala: envejecimiento es una razón que va de
+# 0,8 a 5,6 y reemplazo laboral un porcentaje que llega a 103, así que una
+# escala común a los cuatro no diría nada.
+rangos = {}
+for c in INDICES:
+    vs = [ix[k] for f in todas_las_fichas
+          if (ix := f["indices"].get(c)) for k in ("municipio", "isla", "canarias")
+          if ix.get(k) is not None]
+    if vs:
+        rangos[c] = {"etiqueta": todas_las_fichas[0]["indices"][c]["etiqueta"],
+                     "min": r2(min(vs), 3), "max": r2(max(vs), 3)}
 
 indice = {
     "anio": ANIO_POB,
@@ -444,6 +459,7 @@ indice = {
     "islas": {i: sorted(ms, key=_norm) for i, ms in ISLAS.items()},
     "comarcas": {c: sorted(ms, key=_norm) for c, ms in COMARCAS.items()},
     "fuentes": ["ISTAC — Instituto Canario de Estadística", "INE", "Cartografía: GRAFCAN"],
+    "rangos_indices": rangos,
 }
 with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
