@@ -30,3 +30,8 @@ jobs:
           path: web
       - id: despliegue
         uses: actions/deploy-pages@v4
+        # Pages tardó más de los 10 minutos por defecto en dos intentos
+        # seguidos y abortó el despliegue con el sitio ya subido. Se le da
+        # margen en vez de dar por fallido algo que solo iba lento.
+        with:
+          timeout: 1200000

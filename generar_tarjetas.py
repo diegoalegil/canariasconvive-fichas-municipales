@@ -205,17 +205,27 @@ ENVOLTORIO = """<!DOCTYPE html>
 BASE = "https://diegoalegil.github.io/canariasconvive-fichas-municipales"
 
 
+def guardar(img, ruta):
+    """PNG con paleta de 64 colores.
+
+    La tarjeta son manchas planas más el suavizado del texto: 649 colores
+    distintos, casi todos en los bordes de las letras. Con 64 el resultado es
+    indistinguible a la vista y pesa 17 KB en vez de 41.
+    """
+    img.convert("RGB").quantize(colors=64, method=Image.MEDIANCUT,
+                                dither=Image.NONE).save(ruta, optimize=True)
+
+
 def main():
     idx = json.loads((WEB / "datos" / "indice.json").read_text(encoding="utf-8"))
     geo = json.loads((WEB / "datos" / "geo" / "municipios.json").read_text(encoding="utf-8"))
     SALIDA_OG.mkdir(exist_ok=True)
     SALIDA_M.mkdir(exist_ok=True)
 
-    tarjeta_portada(idx).save(SALIDA_OG / "portada.png", optimize=True)
+    guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")
 
     for m in idx["municipios"]:
-        tarjeta_municipio(m, geo, idx["anio"]).save(
-            SALIDA_OG / f"{m['codmun']}.png", optimize=True)
+        guardar(tarjeta_municipio(m, geo, idx["anio"]), SALIDA_OG / f"{m['codmun']}.png")
         (SALIDA_M / f"{m['codmun']}.html").write_text(
             ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"],
                               hab=nf(m["poblacion"]), anio=idx["anio"], base=BASE),
