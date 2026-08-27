@@ -18,6 +18,13 @@
 
 const EJEMPLO = 38038;   // Santa Cruz de Tenerife
 
+/* Los rótulos de la leyenda, redactados para que quepan dentro de una frase. */
+const EN_FRASE = {
+  'Canarias': 'en Canarias',
+  'Resto de España': 'en el resto de España',
+  'Extranjero': 'en el extranjero',
+};
+
 const nf = (v, d = 0) => v == null || !isFinite(v)
   ? '—'
   : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
@@ -149,7 +156,12 @@ function fichas(f) {
       bajo: 'una parte pequeña. Los tres tramos suman siempre cien.',
       noDice: 'dónde nació alguien no dice cuánto tiempo lleva viviendo allí. Una persona nacida fuera puede llevar cuarenta años en el municipio y una nacida en Canarias haberse mudado el año pasado.',
       viz: apilada(o.municipio, ['#185FA5', '#6FA6D8', '#B5D4F4']),
-      ejemplo: `En ${f.nombre}: ${o.categorias.map((cat, i) => `${nf(o.municipio[i], 1)} % ${cat.toLowerCase()}`).join(', ')}.`,
+      ejemplo: (() => {
+        const partes = o.categorias.map((cat, i) =>
+          `${nf(o.municipio[i], 1)} ${EN_FRASE[cat] || `en ${cat}`}`);
+        const ultima = partes.pop();
+        return `En ${f.nombre}, de cada cien habitantes nacieron ${partes.join(', ')} y ${ultima}.`;
+      })(),
     },
     {
       id: 'extranjero', ico: 'extranjero', nombre: 'Población de origen extranjero',
