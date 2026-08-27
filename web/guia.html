@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de lectura de los indicadores · Canarias Convive</title>
+<link rel="icon" href="img/logo-canariasconvive-menu.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css?v=38">
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-int">
+    <a class="marca" href="index.html">
+      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
+      <span>Guía de lectura</span>
+    </a>
+    <a class="btn btn-liso" href="comparar.html" data-ico="relevo">Comparar</a>
+    <a class="btn btn-liso" href="index.html" data-ico="territorio">Todos los municipios</a>
+  </div>
+</header>
+
+<main class="envoltorio">
+
+  <section class="cabecera">
+    <p class="migas">Fichas demográficas municipales</p>
+    <div class="titular"><h1>Guía de lectura de los indicadores</h1></div>
+    <p class="cmp-intro">Qué compara exactamente cada indicador de la ficha, cómo se lee un valor
+      alto y uno bajo, y qué no se puede concluir a partir de él. Los ejemplos usan
+      <span id="guia-ejemplo-mun">la ficha de ejemplo</span>.</p>
+    <p class="guia-aviso">Ningún indicador de esta página tiene un valor deseable.
+      Todos describen cómo se reparte una población; ninguno la califica.</p>
+    <nav class="guia-indice" id="guia-indice" aria-label="Ir a un indicador"></nav>
+  </section>
+
+  <section class="tarjeta guia-previo">
+    <header class="rotulo" data-ico="poblacion">
+      <div><h2>Antes de empezar: los tres tipos de número</h2><p>Cada ficha dice de qué tipo es el suyo</p></div>
+    </header>
+    <div class="cuerpo">
+      <div class="guia-tipos">
+        <div>
+          <b>Razón</b>
+          <p>Divide un grupo entre otro y deja el resultado tal cual. Un <b>1</b> significa que
+             los dos grupos son iguales; un <b>2</b>, que el primero es el doble del segundo.
+             No tiene techo.</p>
+          <em>Envejecimiento</em>
+        </div>
+        <div>
+          <b>Por cien</b>
+          <p>La misma división multiplicada por cien. Un <b>100</b> significa que los dos grupos
+             son iguales; un <b>50</b>, que el primero es la mitad. Tampoco tiene techo: puede
+             pasar de 100.</p>
+          <em>Juventud · Dependencia · Reemplazo laboral</em>
+        </div>
+        <div>
+          <b>Porcentaje y recuento</b>
+          <p>El porcentaje es una parte sobre el total y nunca pasa de 100. El recuento son
+             personas: se cuenta y se resta, y puede quedar por debajo de cero.</p>
+          <em>Lugar de nacimiento · Origen extranjero · Crecimiento vegetativo · Saldo migratorio</em>
+        </div>
+      </div>
+      <p class="guia-nota">La diferencia importa: un índice por cien y un porcentaje se
+        parecen escritos, pero un 15 por cien de juventud no quiere decir que el 15 % de la
+        población sea menor de 15 años. El divisor no es el mismo.</p>
+    </div>
+  </section>
+
+  <div class="rejilla" id="guia-fichas"></div>
+
+</main>
+
+<script src="iconos.js?v=38"></script>
+<script src="guia.js?v=38"></script>
+</body>
+</html>

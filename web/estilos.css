@@ -463,11 +463,57 @@ select {
 @media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
 
 
+/* ================================================================== guía == */
+.guia-aviso {
+  margin-top: var(--e-4); padding: var(--e-3) var(--e-4);
+  background: var(--caja); border-left: 3px solid var(--azul); border-radius: 0 var(--r-2) var(--r-2) 0;
+  font-size: 13.5px; line-height: 1.55; color: var(--negro); max-width: 78ch; text-wrap: pretty;
+}
+.guia-indice { display: flex; gap: var(--e-2); flex-wrap: wrap; margin-top: var(--e-4); }
+.guia-indice a {
+  font-size: 12.5px; font-weight: 500; color: var(--negro); text-decoration: none;
+  border: 1px solid var(--linea); border-radius: var(--r-full); padding: 7px 14px;
+}
+.guia-indice a:hover { border-color: var(--azul); color: var(--azul); }
+
+.guia-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--e-5); }
+.guia-tipos > div { border-top: 2px solid var(--linea); padding-top: var(--e-3); }
+.guia-tipos b { font-size: 14px; font-weight: 700; }
+.guia-tipos p { font-size: 13px; line-height: 1.6; color: var(--gris); margin-top: 6px; text-wrap: pretty; }
+.guia-tipos p b { color: var(--negro); font-weight: 700; }
+.guia-tipos em {
+  font-style: normal; display: block; margin-top: var(--e-3);
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--azul);
+}
+.guia-nota { font-size: 12.5px; line-height: 1.6; color: var(--gris); margin-top: var(--e-5); max-width: 80ch; text-wrap: pretty; }
+
+.guia-cuerpo { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--e-6); align-items: start; }
+.guia-texto { display: flex; flex-direction: column; gap: var(--e-4); }
+.guia-bloque > b {
+  display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--azul); margin-bottom: 4px;
+}
+.guia-bloque p b { font-weight: 700; color: var(--negro); }
+.guia-bloque p { font-size: 13.5px; line-height: 1.6; text-wrap: pretty; }
+.guia-ojo { background: var(--caja); border-radius: var(--r-2); padding: var(--e-3) var(--e-4); }
+.guia-ojo > b { color: var(--gris); }
+.guia-viz { text-align: center; }
+.guia-viz svg { margin: 0 auto; }
+.guia-ejemplo {
+  font-size: 12.5px; line-height: 1.6; color: var(--gris);
+  margin-top: var(--e-4); text-align: left; text-wrap: pretty;
+}
+.guia-ejemplo b { color: var(--negro); font-weight: 700; }
+
+@media (max-width: 780px) {
+  .guia-cuerpo { grid-template-columns: 1fr; gap: var(--e-5); }
+}
+
 /* ============================================================= comparador == */
 /* Comparar no es clasificar: no hay control que ordene, ni posiciones, ni
    destacados. El color distingue columnas, nunca valores; el azul intenso es la
    primera columna elegida, no la mejor. */
-.cmp-acceso { margin-left: auto; }
+.cmp-acceso { margin-left: auto; display: flex; gap: var(--e-2); flex-wrap: wrap; }
 .cmp-intro { font-size: 14px; color: var(--gris); margin-top: var(--e-3); max-width: 70ch; text-wrap: pretty; }
 .cmp-elegidos-caja {
   display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap;
