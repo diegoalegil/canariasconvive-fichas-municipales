@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dossier de las 88 fichas · Canarias Convive</title>
+<link rel="icon" href="img/logo-canariasconvive-menu.png">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css?v=44">
+<link rel="stylesheet" href="dossier.css?v=44">
+</head>
+<body class="d-body">
+
+<header class="barra d-barra" id="d-barra" hidden>
+  <div class="barra-int">
+    <a class="marca" href="index.html">
+      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
+      <span>Dossier de las 88 fichas</span>
+    </a>
+    <span class="d-cuenta" id="d-total"></span>
+    <button class="btn" type="button" onclick="window.print()">Imprimir o guardar en PDF</button>
+  </div>
+</header>
+
+<p class="d-aviso" id="d-aviso">Preparando el dossier…</p>
+
+<main id="dossier"></main>
+
+<script src="iconos.js?v=44"></script>
+<script src="ficha.js?v=44"></script>
+<script src="dossier.js?v=44"></script>
+</body>
+</html>

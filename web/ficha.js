@@ -65,6 +65,8 @@ function topeRedondo(v) {
 const MM = 96 / 25.4;                 // píxeles CSS por milímetro
 const HOJA = 190, HUECO = 2, PAD = 3;
 let IMPRIMIENDO = false;
+/** El dossier dibuja las 88 fichas ya a medida de hoja. */
+function modoHoja(v) { IMPRIMIENDO = v; }
 
 /** Ancho interior de una tarjeta de `cols` columnas, en píxeles CSS. */
 function anchoHoja(cols) {
@@ -149,7 +151,7 @@ function mapa(geo, codmun, ambito, w, h, conLimites) {
 
 /* -------------------------------------------------------------- evolución -- */
 let EVOLUCION = null;   // geometría del último gráfico dibujado, para la lectura al pasar el ratón
-function graficoEvolucion(ev, w, h) {
+function graficoEvolucion(ev, w, h, sufijo = '') {
   /* En la hoja los márgenes y el cuerpo bajan: los mismos 52 px de margen
      izquierdo que en pantalla se comen medio gráfico de 30 mm y las etiquetas
      del eje acaban una encima de otra. */
@@ -194,16 +196,16 @@ function graficoEvolucion(ev, w, h) {
 
   return abrirSVG(w, h, `Evolución de la población entre ${X[0]} y ${X[X.length - 1]}`)
     + rejilla
-    + `<defs><linearGradient id="degradado-evolucion" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.azul}" stop-opacity=".22"/><stop offset="1" stop-color="${C.azul}" stop-opacity=".02"/></linearGradient></defs>`
-    + `<path d="${area}" fill="url(#degradado-evolucion)"/>`
+    + `<defs><linearGradient id="degradado-evolucion${sufijo}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.azul}" stop-opacity=".22"/><stop offset="1" stop-color="${C.azul}" stop-opacity=".02"/></linearGradient></defs>`
+    + `<path d="${area}" fill="url(#degradado-evolucion${sufijo})"/>`
     + `<polyline points="${curva.join(' ')}" fill="none" stroke="${C.azul}" stroke-width="2.3" stroke-linejoin="round"/>`
     + `<circle cx="${px(X[X.length - 1]).toFixed(1)}" cy="${py(Y[Y.length - 1]).toFixed(1)}" r="4" fill="${C.azul}"/>`
     + ejeY + ejeX + rotulo
-    + `<g id="guia-evolucion" opacity="0" pointer-events="none">`
+    + (sufijo ? '' : `<g id="guia-evolucion" opacity="0" pointer-events="none">`
     + `<line y1="${m.t}" y2="${h - m.b}" stroke="${C.azul}" stroke-width="1" stroke-dasharray="3 3"/>`
     + `<circle r="4.5" fill="${C.azul}" stroke="#fff" stroke-width="1.6"/></g>`
     + `<rect id="cazador-evolucion" x="${m.l}" y="${m.t}" width="${(w - m.l - m.r).toFixed(1)}" `
-    + `height="${(h - m.t - m.b).toFixed(1)}" fill="transparent"/>`
+    + `height="${(h - m.t - m.b).toFixed(1)}" fill="transparent"/>`)
     + '</svg>';
 }
 
@@ -264,7 +266,7 @@ function graficoExtranjero(ext, w, h) {
 /* --------------------------------------------------------------- pirámide -- */
 /** Construye el esqueleto y devuelve las tres vistas. El eje es común a las
  *  tres para que al cambiar solo se mueva la silueta y se puedan comparar. */
-function construirPiramide(p, w, h) {
+function construirPiramide(p, w, h, vistaFija = null) {
   const n = p.edades.length;
   const porc = (H, M) => {
     const total = H.reduce((a, b) => a + b, 0) + M.reduce((a, b) => a + b, 0);
@@ -308,11 +310,15 @@ function construirPiramide(p, w, h) {
     }
   }
 
+  const fija = vistaFija == null ? null : vistas[vistaFija];
   let barras = '', etiquetas = '';
   for (let i = 0; i < n; i++) {
     const y = fy(i).toFixed(1), alt = barra.toFixed(1);
-    barras += `<rect id="ph${i}" x="${(centro - hueco / 2).toFixed(1)}" y="${y}" width="0" height="${alt}" fill="${C.azulMedio}" rx="1.5"/>`;
-    barras += `<rect id="pm${i}" x="${(centro + hueco / 2).toFixed(1)}" y="${y}" width="0" height="${alt}" fill="${C.azulClaro}" rx="1.5"/>`;
+    const aH = fija ? escala(fija.H[i]) : 0, aM = fija ? escala(fija.M[i]) : 0;
+    const id = fija ? '' : `id="ph${i}" `;
+    const id2 = fija ? '' : `id="pm${i}" `;
+    barras += `<rect ${id}x="${(centro - hueco / 2 - aH).toFixed(1)}" y="${y}" width="${aH.toFixed(1)}" height="${alt}" fill="${C.azulMedio}" rx="1.5"/>`;
+    barras += `<rect ${id2}x="${(centro + hueco / 2).toFixed(1)}" y="${y}" width="${aM.toFixed(1)}" height="${alt}" fill="${C.azulClaro}" rx="1.5"/>`;
     etiquetas += `<text x="${centro}" y="${(fy(i) + barra / 2 + 3).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="${C.gris}">${p.edades[i]}</text>`;
   }
 
@@ -329,15 +335,20 @@ function construirPiramide(p, w, h) {
 
   // Franjas transparentes por grupo de edad: capturan el ratón para poder leer
   // los valores exactos, que es lo que una ficha en papel no puede dar.
-  let franjas = `<rect id="franja-activa" x="${m.l}" y="0" width="${(w - m.l - m.r).toFixed(1)}" `
-              + `height="${barra.toFixed(1)}" fill="${C.azul}" opacity="0" pointer-events="none"/>`;
-  for (let i = 0; i < n; i++) {
-    franjas += `<rect class="franja" data-i="${i}" x="${m.l}" y="${(fy(i) - (altoFila - barra) / 2).toFixed(1)}" `
-             + `width="${(w - m.l - m.r).toFixed(1)}" height="${altoFila.toFixed(1)}" fill="transparent"/>`;
+  let franjas = '';
+  if (!fija) {
+    franjas = `<rect id="franja-activa" x="${m.l}" y="0" width="${(w - m.l - m.r).toFixed(1)}" `
+            + `height="${barra.toFixed(1)}" fill="${C.azul}" opacity="0" pointer-events="none"/>`;
+    for (let i = 0; i < n; i++) {
+      franjas += `<rect class="franja" data-i="${i}" x="${m.l}" y="${(fy(i) - (altoFila - barra) / 2).toFixed(1)}" `
+               + `width="${(w - m.l - m.r).toFixed(1)}" height="${altoFila.toFixed(1)}" fill="transparent"/>`;
+    }
   }
 
   const svg = abrirSVG(w, h, 'Pirámide de población del municipio comparada con el perfil de Canarias')
-    + rejilla + barras + `<g id="perfil-canarias">${perfil.join('')}</g>` + etiquetas + ejeX + franjas + '</svg>';
+    + rejilla + barras
+    + (fija && !fija.canarias ? '' : `<g${fija ? '' : ' id="perfil-canarias"'}>${perfil.join('')}</g>`)
+    + etiquetas + ejeX + franjas + '</svg>';
 
   return { svg, vistas, escala, centro, hueco, edades: p.edades, fy, barra, altoFila };
 }
@@ -804,7 +815,9 @@ async function iniciar() {
   await cargar(inicial);
 }
 
-iniciar().catch((e) => {
-  document.getElementById('nombre').textContent = 'No se han podido cargar los datos';
-  console.error(e);
-});
+if (document.getElementById('sel-municipio')) {
+  iniciar().catch((e) => {
+    document.getElementById('nombre').textContent = 'No se han podido cargar los datos';
+    console.error(e);
+  });
+}

@@ -1,0 +1,103 @@
+/* =============================================================================
+   DOSSIER · CANARIAS CONVIVE
+
+   Solo el armazón del documento: la hoja, la portada, los separadores de isla y
+   el índice. Las fichas se maquetan con las mismas reglas que la ficha impresa,
+   que dossier.js copia en caliente del bloque @media print de estilos.css. No
+   se duplican aquí a propósito: dos copias de esas reglas se separarían a la
+   primera corrección.
+   ============================================================================= */
+
+@page { size: A4 portrait; margin: 0; }
+
+.d-body { background: #DCE3EB; }
+
+.d-aviso {
+  max-width: 620px; margin: 80px auto; padding: 28px 32px; text-align: center;
+  background: #fff; border: 1px solid var(--linea); border-radius: var(--r-3);
+  font-size: 14px; color: var(--gris);
+}
+
+.d-barra { position: sticky; }
+.d-cuenta { font-size: 12.5px; color: var(--gris); font-variant-numeric: tabular-nums; }
+
+/* La hoja: exactamente una A4, con los márgenes dentro para que la geometría
+   coincida con la de la ficha suelta, que los recibe de @page. */
+.hoja {
+  width: 210mm; height: 297mm; box-sizing: border-box;
+  padding: 9mm 10mm 7mm; margin: 0 auto 8mm;
+  background: #fff; overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 2px 14px rgba(20,50,80,.14);
+}
+.hoja-ficha > .rejilla { flex: none; }
+
+.d-pie {
+  margin-top: auto; padding-top: 2mm; border-top: .2mm solid var(--linea);
+  display: flex; justify-content: space-between;
+  font-size: 6.5pt; color: var(--gris);
+}
+.d-pie span:last-child { font-weight: 700; color: var(--negro); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------ cabecera de ficha -- */
+.d-cab {
+  background: var(--azul); color: #fff; padding: 4mm 6mm; margin-bottom: 2.4mm;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 6mm; flex: none;
+}
+.d-migas { font-size: 6.5pt; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--azul-sobre); }
+.d-cab h2 { font-size: 19pt; font-weight: 700; letter-spacing: -.02em; line-height: 1.08; margin-top: 1.4mm; }
+.d-cab h2 span { font-size: 12pt; font-weight: 700; color: var(--azul-sobre); }
+.d-hab { text-align: right; flex: none; }
+.d-hab b { display: block; font-size: 20pt; font-weight: 400; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.d-hab span { font-size: 6.5pt; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--azul-sobre); }
+
+/* ----------------------------------------------------------------- portada -- */
+.hoja-portada { background: var(--azul); color: #fff; padding: 22mm 18mm 14mm; }
+.d-marca { font-size: 8pt; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--azul-sobre); }
+.hoja-portada h1 { font-size: 34pt; font-weight: 700; letter-spacing: -.03em; line-height: 1.08; margin-top: 14mm; }
+.d-lede { font-size: 11pt; line-height: 1.55; color: var(--azul-sobre); margin-top: 8mm; max-width: 130mm; text-wrap: pretty; }
+.d-portada-mapa { margin: auto 0; }
+.d-portada-mapa svg path { fill: #4E8AC4 !important; stroke: var(--azul) !important; }
+.d-portada-pie { display: flex; gap: 14mm; padding-top: 8mm; border-top: .3mm solid rgba(255,255,255,.3); }
+.d-portada-pie b { display: block; font-size: 17pt; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
+.d-portada-pie span { display: block; font-size: 7.5pt; color: var(--azul-sobre); margin-top: 2mm; max-width: 42mm; }
+
+/* -------------------------------------------------------- hojas de texto --- */
+.d-titulo { font-size: 17pt; font-weight: 700; letter-spacing: -.02em; padding-bottom: 3mm; border-bottom: .5mm solid var(--azul); }
+.d-sub { font-size: 8.5pt; color: var(--gris); margin-top: 2mm; }
+.d-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 7mm; }
+.d-cols h3 { font-size: 10pt; font-weight: 700; margin-bottom: 2mm; }
+.d-cols h3 + p { margin-bottom: 5mm; }
+.d-cols p { font-size: 8.5pt; line-height: 1.55; color: var(--negro); margin-bottom: 3mm; text-wrap: pretty; }
+.d-cols p b { font-weight: 700; }
+
+.d-indice { columns: 3; column-gap: 8mm; margin-top: 6mm; }
+.d-indice-grupo { break-inside: avoid; margin-bottom: 5mm; }
+.d-indice-grupo h3 {
+  font-size: 8.5pt; font-weight: 700; color: var(--azul);
+  padding-bottom: 1mm; margin-bottom: 1.5mm; border-bottom: .2mm solid var(--linea);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.d-indice-grupo h3 em { font-style: normal; font-weight: 500; font-size: 7pt; color: var(--gris); }
+.d-indice-grupo div { display: flex; justify-content: space-between; font-size: 8pt; line-height: 1.5; }
+.d-indice-grupo b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gris); }
+
+/* ------------------------------------------------------------ separador --- */
+.hoja-separador { padding: 22mm 18mm 14mm; }
+.hoja-separador .d-migas { color: var(--gris); }
+.hoja-separador h2 { font-size: 30pt; font-weight: 700; letter-spacing: -.03em; color: var(--azul); line-height: 1.05; margin-top: 2mm; }
+.d-isla-datos { display: flex; gap: 12mm; margin-top: 8mm; padding-top: 5mm; border-top: .5mm solid var(--azul); }
+.d-isla-datos b { display: block; font-size: 15pt; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.d-isla-datos span { display: block; font-size: 7.5pt; color: var(--gris); margin-top: 1.5mm; max-width: 34mm; }
+.d-isla-mapa { margin: auto 0; }
+.d-isla-mapa svg { margin: 0 auto; }
+.d-isla-lista { display: flex; flex-wrap: wrap; gap: 2mm 6mm; padding-top: 6mm; border-top: .2mm solid var(--linea); }
+.d-isla-lista span { font-size: 8.5pt; }
+.d-isla-lista em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
+
+@media print {
+  .d-body { background: #fff; }
+  .d-barra, .d-aviso { display: none !important; }
+  .hoja { margin: 0; box-shadow: none; break-after: page; }
+  .hoja:last-child { break-after: auto; }
+}
