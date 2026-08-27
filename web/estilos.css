@@ -712,6 +712,12 @@ select {
 }
 @media (max-width: 620px) {
   .marca span { display: none; }
+  /* Cinco botones con texto dejaban la barra en 288 px de alto: casi toda la
+     pantalla antes de ver un dato. En móvil se quedan en su icono, y el nombre
+     accesible lo lleva el aria-label. */
+  .barra .btn-liso span { display: none; }
+  .barra .btn-liso.confirmado span { display: inline; }
+  .barra .btn-liso { padding: 9px 12px; }
   .campo { width: 100%; }
   select { flex: 1; min-width: 0; }
   .cabecera { padding: 22px 18px 20px; }

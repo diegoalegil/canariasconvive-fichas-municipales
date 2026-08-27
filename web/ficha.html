@@ -4,11 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ficha demográfica municipal · Canarias Convive</title>
+<meta name="description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de cualquiera de los 88 municipios de Canarias.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Canarias Convive">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Ficha demográfica municipal · Canarias Convive">
+<meta property="og:description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de cualquiera de los 88 municipios de Canarias.">
+<meta property="og:image" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/og/portada.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/ficha.html">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="img/logo-canariasconvive-menu.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=38">
+<link rel="stylesheet" href="estilos.css?v=42">
 </head>
 <body>
 
@@ -22,9 +33,10 @@
       <label for="sel-municipio">Municipio</label>
       <select id="sel-municipio"><option>Cargando…</option></select>
     </div>
-    <a class="btn btn-liso" href="guia.html" data-ico="dependencia">Cómo se lee</a>
-    <a class="btn btn-liso" href="comparar.html" id="btn-comparar" data-ico="relevo">Comparar</a>
-    <a class="btn btn-liso" href="index.html" data-ico="territorio">Todos los municipios</a>
+    <a class="btn btn-liso" href="guia.html" data-ico="dependencia" aria-label="Cómo se lee"><span>Cómo se lee</span></a>
+    <a class="btn btn-liso" href="comparar.html" id="btn-comparar" data-ico="relevo" aria-label="Comparar"><span>Comparar</span></a>
+    <a class="btn btn-liso" href="index.html" data-ico="territorio" aria-label="Todos los municipios"><span>Todos los municipios</span></a>
+    <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
     <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Descargar PDF</button>
   </div>
 </header>
@@ -142,7 +154,7 @@
 
 </main>
 
-<script src="iconos.js?v=38"></script>
-<script src="ficha.js?v=38"></script>
+<script src="iconos.js?v=42"></script>
+<script src="ficha.js?v=42"></script>
 </body>
 </html>

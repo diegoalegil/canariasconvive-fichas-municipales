@@ -727,6 +727,31 @@ function conectarLecturaEvolucion() {
   });
 }
 
+/* ------------------------------------------------------------- compartir --- */
+/* Copia el enlace de m/<código>.html en vez del de la barra de direcciones.
+   Los rastreadores de WhatsApp y de X no ejecutan JavaScript, así que las
+   etiquetas og: tienen que venir ya en el HTML servido: una sola ficha.html con
+   ?municipio= enseñaría la misma tarjeta para los 88 municipios. */
+function conectarCompartir() {
+  const b = document.getElementById('btn-compartir');
+  const rotulo = b.querySelector('span');
+  const original = rotulo.textContent;
+  b.addEventListener('click', async () => {
+    if (!FICHA) return;
+    const url = new URL(`m/${FICHA.codmun}.html`, location.href).href;
+    try {
+      await navigator.clipboard.writeText(url);
+      rotulo.textContent = 'Enlace copiado';
+      // En móvil el rótulo va oculto: se enseña un momento para confirmar.
+      b.classList.add('confirmado');
+      setTimeout(() => { rotulo.textContent = original; b.classList.remove('confirmado'); }, 2200);
+    } catch {
+      // Sin permiso de portapapeles: se abre para copiarlo a mano.
+      window.prompt('Copia el enlace para compartir:', url);
+    }
+  });
+}
+
 /* ------------------------------------------------------------------ inicio -- */
 /** Coloca el icono del set en cada rótulo y en cada botón que lo pida. Se
  *  inyecta desde aquí y no se escribe en el HTML para que los trazos vivan en
@@ -754,6 +779,7 @@ addEventListener('resize', () => {
 async function iniciar() {
   montarIconos();
   document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+  conectarCompartir();
 
   [INDICE, GEO] = await Promise.all([
     fetch('datos/indice.json').then((r) => r.json()),

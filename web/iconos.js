@@ -30,6 +30,7 @@ const TRAZOS = {
   buscar:      '<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
   flecha:      '<path d="M5 12h13M13 6l6 6-6 6"/>',
   descargar:   '<path d="M12 4v11M7.5 11L12 15.5 16.5 11"/><path d="M5 19h14"/>',
+  enlace:      '<path d="M10 13.5a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1.3 1.3"/><path d="M14 10.5a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1.3-1.3"/>',
 };
 
 /** Devuelve el icono como cadena SVG. El tamaño va en píxeles y el color lo
