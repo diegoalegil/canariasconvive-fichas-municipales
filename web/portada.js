@@ -192,23 +192,47 @@ let yaEntro = false;
 function prepararEntrada() {
   const tapa = document.querySelector('.tapa');
   if (!tapa) return;
-  if (reducido() || yaEntro) { tapa.classList.remove('espera'); return; }
+
+  const soltar = (animar) => {
+    if (yaEntro) return;
+    yaEntro = true;
+    tapa.classList.remove('espera');
+    if (!animar) return;
+    tapa.classList.add('entra');
+    // Al acabar se retira: si el mapa se redibuja por un cambio de tamaño, los
+    // municipios nuevos no repiten la oleada.
+    setTimeout(() => tapa.classList.remove('entra'), 1600);
+  };
+
+  if (reducido()) { soltar(false); return; }
 
   const objetivo = tapa.querySelector('.tapa-alto') || tapa;
   const alto = objetivo.getBoundingClientRect().height || 1;
+  // El umbral es una fracción del área del elemento observado. La tapa entera
+  // mide varios miles de píxeles, así que un 0,3 fijo no se alcanzaría nunca:
+  // se observa la cabecera y se acota a un valor alcanzable.
   const umbral = Math.min(0.3, (innerHeight * 0.5) / alto);
 
   const ob = new IntersectionObserver((entradas) => {
     if (!entradas.some((e) => e.isIntersecting)) return;
     ob.disconnect();
-    yaEntro = true;
-    tapa.classList.remove('espera');
-    tapa.classList.add('entra');
-    // Al acabar se retira la clase: si el mapa se vuelve a dibujar por un
-    // cambio de tamaño, los municipios nuevos no repiten la oleada.
-    setTimeout(() => tapa.classList.remove('entra'), 1600);
+    soltar(true);
   }, { threshold: umbral });
   ob.observe(objetivo);
+
+  /* Red de seguridad, y no es teórica: **con la pestaña en segundo plano el
+     navegador no entrega los avisos del IntersectionObserver**. Sin esto, quien
+     abriera el enlace en una pestaña de fondo se encontraría la portada en
+     blanco hasta ponerla en primer plano. La portada no puede quedarse
+     invisible por nada del mundo, así que a los 1,5 s se enseña igualmente: con
+     animación si está a la vista y el documento visible, y sin ella si no,
+     porque una animación que nadie ve solo sirve para retrasar el contenido. */
+  setTimeout(() => {
+    if (yaEntro) return;
+    ob.disconnect();
+    const r = objetivo.getBoundingClientRect();
+    soltar(!document.hidden && r.top < innerHeight && r.bottom > 0);
+  }, 1500);
 }
 
 /* ---------------------------------------------------------------- inicio --- */
