@@ -613,9 +613,8 @@ select {
 }
 
 /* ================================================= entrada de la portada === */
-/* Storyboard de Claude Design, concepto 2: los 88 municipios entran en oleada
-   de oeste a este y las divisorias cierran la secuencia. Reglas de movimiento
-   que vienen del propio storyboard y que conviene no tocar:
+/* Los 88 municipios entran en oleada de oeste a este y las divisorias cierran
+   la secuencia. Reglas de movimiento que conviene no tocar:
 
      · Desplazamiento máximo de 10 px, y de 6 px si el elemento lleva texto.
        Ningún texto escala, rota ni se desenfoca: a mitad de transición ya es
