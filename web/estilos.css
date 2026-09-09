@@ -127,15 +127,21 @@ select {
   font-size: 11.5px; font-weight: 600; letter-spacing: .9px;
   text-transform: uppercase; color: var(--gris); margin-bottom: var(--e-2);
 }
-.titular { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
+/* nowrap + min-width:0 en el h1: con un nombre largo como Santa María de Guía
+   de Gran Canaria, el año se descolgaba a la línea de abajo y cada ficha
+   colocaba el año en un sitio distinto. Ahora el nombre parte líneas por
+   dentro y el año se queda pegado al margen derecho, igual en las 88. */
+.titular { display: flex; align-items: baseline; justify-content: space-between;
+           gap: 20px; flex-wrap: nowrap; }
 .cabecera h1 {
   font-size: clamp(32px, 5.2vw, 54px); font-weight: 700;
   letter-spacing: -1.4px; line-height: 1.02; color: var(--azul);
-  text-wrap: balance;
+  text-wrap: balance; min-width: 0;
 }
 .anio {
-  font-size: clamp(28px, 4.4vw, 46px); font-weight: 700;
+  font-size: clamp(26px, 4.8vw, 50px); font-weight: 700;
   letter-spacing: -1.2px; color: var(--azul-anio); line-height: 1.02;
+  flex: none;
 }
 .habitantes { display: flex; align-items: baseline; gap: 10px; margin-top: var(--e-3); flex-wrap: wrap; }
 .habitantes b {
@@ -197,50 +203,38 @@ select {
 .tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
-/* Cada celda lleva dentro la forma de su propio dato: la serie real del
-   municipio, su edad media sobre la escala 0-100 y la proporción por sexo en
-   una retícula de puntos. Ninguna escala emite juicio: no hay umbral, ni
-   semáforo, ni línea de "lo normal". */
+/* Cuatro celdas y nada más: la cifra, lo que es y el pie que la sitúa. Antes
+   cada una llevaba debajo un micro-gráfico con su propio dato; se retiran, y el
+   espacio que dejan se lo queda el número. La cifra va en azul porque es la que
+   responde a la pregunta de la tarjeta: en toda la página el azul señala el
+   dato principal y el negro lo que lo acompaña. */
 .cifras {
   display: grid; grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--linea); border-radius: var(--r-3); overflow: hidden;
 }
 .cifra {
-  padding: var(--e-5) var(--e-5) 20px;
-  display: flex; flex-direction: column; gap: 18px;
+  padding: var(--e-6) var(--e-4) var(--e-5);
   border-left: 1px solid var(--linea);
   text-align: center;
 }
 .cifra:first-child { border-left: 0; }
-.cifra-dato b {
-  display: block; font-size: clamp(28px, 3vw, 42px); font-weight: 600;
-  line-height: 1; letter-spacing: -.02em; color: var(--negro);
+.cifra b {
+  display: block; font-size: clamp(40px, 4.6vw, 60px); font-weight: 600;
+  line-height: 1; letter-spacing: -.035em; color: var(--azul);
   font-variant-numeric: tabular-nums;
 }
-.cifra-dato b span { font-size: .55em; font-weight: 600; color: var(--azul); letter-spacing: 0; }
-.cifra-dato i {
-  font-style: normal; display: flex; align-items: flex-start;
-  justify-content: center; gap: 7px;
-  margin-top: var(--e-2);
+.cifra b span { font-size: .40em; font-weight: 600; letter-spacing: 0; margin-left: .08em; }
+.cifra i {
+  font-style: normal; display: block; margin-top: var(--e-3);
   font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--gris);
 }
-.cifra-dato i .ico { color: var(--azul); margin-top: -1px; }
-.cifra-viz { height: 42px; display: flex; align-items: center; }
-.cifra-viz svg { width: 100%; overflow: visible; }
+/* min-height para que la edad media, que no lleva pie, no descuadre la fila. */
 .cifra em {
-  font-style: normal; font-size: 11px; color: var(--gris);
+  font-style: normal; display: block; margin-top: 7px; min-height: 17px;
+  font-size: 11.5px; color: var(--gris-40);
   font-variant-numeric: tabular-nums;
 }
-.cifra em.entre { display: flex; justify-content: space-between; gap: var(--e-2); }
-
-/* Retícula de puntos: el relleno marca la proporción sobre el total. */
-.puntos {
-  position: relative; width: 100%; height: 32px;
-  background-image: radial-gradient(circle at 3px 3px, var(--linea) 2.6px, transparent 2.8px);
-  background-size: 16px 16px;
-}
-.puntos i { position: absolute; top: 0; bottom: 0; left: 0; display: block; background-size: 16px 16px; }
 
 /* -------------------------------------------------------------- mapas ------ */
 /* Franja central: los tres mapas grandes, que es donde Pedro los quiere. */
@@ -250,6 +244,10 @@ select {
 .mapa-pie { margin-top: 10px; }
 .mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .mapa-pie span { font-size: 12px; color: var(--gris); }
+/* El peso con la misma voz que el puesto: los dos son el dato de la tarjeta. */
+.mapa-pie p { margin-top: 5px; }
+.mapa-pie p b { display: inline; font-size: 15px; }
+.mapa-pie p span { font-size: 11.5px; }
 
 /* ----------------------------------------------------------- pirámide ------ */
 .vistas { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
@@ -272,20 +270,25 @@ select {
 .indice-tit { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; gap: 10px; }
 .indice-tit b { font-size: 13.5px; font-weight: 700; }
 .indice-tit em { font-style: normal; font-size: 11px; color: var(--gris-40); white-space: nowrap; }
-.escala { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e-2); }
-.peldano { text-align: center; }
-.peldano span { display: block; font-size: 10.5px; color: var(--gris); line-height: 1.25; min-height: 26px; }
+/* Tres filas, la mayor arriba, y la barra medida contra ese mayor. La pastilla
+   de color anterior ocupaba siempre todo el ancho de su columna: tenía forma de
+   barra y no medía nada, que es justo lo que despistaba al leerla. */
+.escala { display: grid; gap: 7px; }
+.peldano { display: grid; grid-template-columns: 78px 1fr auto; gap: 10px; align-items: center; }
+.peldano > span { font-size: 11px; color: var(--gris); line-height: 1.2; }
+.peldano .barra { display: block; height: 9px; border-radius: var(--r-1); background: var(--caja); overflow: hidden; }
+.peldano .barra i { display: block; height: 100%; border-radius: var(--r-1); }
 .peldano b {
-  display: block; font-size: 17px; font-weight: 700; letter-spacing: -.4px;
-  color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
+  font-size: 13.5px; font-weight: 700; letter-spacing: -.3px; text-align: right;
+  color: var(--negro); font-variant-numeric: tabular-nums; min-width: 34px;
 }
-.peldano i { display: block; height: 7px; border-radius: var(--r-1); }
+.indice-escala { font-size: 10.5px; color: var(--gris-40); margin-top: 7px; text-wrap: pretty; }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
-.mosaicos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
-.mosaico { text-align: center; }
-.mosaico h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
-.mosaico svg { margin: 0 auto; }
+.anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
+.anillo { text-align: center; }
+.anillo h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
+.anillo svg { margin: 0 auto; }
 .reparto { display: grid; gap: 5px; margin-top: var(--e-3); font-size: 11.5px; }
 .reparto div { display: grid; grid-template-columns: 11px 1fr auto; gap: var(--e-2); align-items: center; }
 .reparto i { width: 11px; height: 11px; border-radius: 2px; }
@@ -464,50 +467,34 @@ select {
 
 
 /* ================================================================== guía == */
-.guia-aviso {
-  margin-top: var(--e-4); padding: var(--e-3) var(--e-4);
-  background: var(--caja); border-left: 3px solid var(--azul); border-radius: 0 var(--r-2) var(--r-2) 0;
-  font-size: 13.5px; line-height: 1.55; color: var(--negro); max-width: 78ch; text-wrap: pretty;
-}
+/* Cada indicador cabe en tres cosas: qué mide, con qué cuenta se obtiene y en
+   qué unidad sale. La fórmula va escrita con barra de fracción de verdad, no
+   como "a / b": es como está en un libro y como la escribiría a mano quien la
+   explica en una reunión. */
 .guia-indice { display: flex; gap: var(--e-2); flex-wrap: wrap; margin-top: var(--e-4); }
 .guia-indice a {
-  font-size: 12.5px; font-weight: 500; color: var(--negro); text-decoration: none;
-  border: 1px solid var(--linea); border-radius: var(--r-full); padding: 7px 14px;
+  font-size: 12.5px; font-weight: 600; color: var(--gris);
+  border: 1px solid var(--linea); border-radius: var(--r-full);
+  padding: 6px 13px; text-decoration: none; transition: border-color .15s, color .15s;
 }
 .guia-indice a:hover { border-color: var(--azul); color: var(--azul); }
 
-.guia-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--e-5); }
-.guia-tipos > div { border-top: 2px solid var(--linea); padding-top: var(--e-3); }
-.guia-tipos b { font-size: 14px; font-weight: 700; }
-.guia-tipos p { font-size: 13px; line-height: 1.6; color: var(--gris); margin-top: 6px; text-wrap: pretty; }
-.guia-tipos p b { color: var(--negro); font-weight: 700; }
-.guia-tipos em {
-  font-style: normal; display: block; margin-top: var(--e-3);
-  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--azul);
+.guia-mide { font-size: 14px; line-height: 1.55; text-wrap: pretty; }
+.guia-formula {
+  display: flex; justify-content: center;
+  padding: var(--e-5) var(--e-2) var(--e-3); margin-top: var(--e-4);
+  border-top: 1px solid var(--linea);
 }
-.guia-nota { font-size: 12.5px; line-height: 1.6; color: var(--gris); margin-top: var(--e-5); max-width: 80ch; text-wrap: pretty; }
-
-.guia-cuerpo { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--e-6); align-items: start; }
-.guia-texto { display: flex; flex-direction: column; gap: var(--e-4); }
-.guia-bloque > b {
-  display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--azul); margin-bottom: 4px;
+.frm {
+  display: inline-flex; align-items: center; justify-content: center; gap: .55em;
+  font-size: clamp(15px, 1.7vw, 20px); line-height: 1.25; color: var(--negro); text-align: center;
 }
-.guia-bloque p b { font-weight: 700; color: var(--negro); }
-.guia-bloque p { font-size: 13.5px; line-height: 1.6; text-wrap: pretty; }
-.guia-ojo { background: var(--caja); border-radius: var(--r-2); padding: var(--e-3) var(--e-4); }
-.guia-ojo > b { color: var(--gris); }
-.guia-viz { text-align: center; }
-.guia-viz svg { margin: 0 auto; }
-.guia-ejemplo {
-  font-size: 12.5px; line-height: 1.6; color: var(--gris);
-  margin-top: var(--e-4); text-align: left; text-wrap: pretty;
-}
-.guia-ejemplo b { color: var(--negro); font-weight: 700; }
-
-@media (max-width: 780px) {
-  .guia-cuerpo { grid-template-columns: 1fr; gap: var(--e-5); }
-}
+.frac { display: inline-flex; flex-direction: column; align-items: center; }
+.frac .num { padding: 0 .8em .3em; }
+.frac .den { padding: .3em .8em 0; border-top: 2px solid var(--azul); }
+.frm .coda { font-weight: 600; white-space: nowrap; }
+.frm .lin { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: .1em; }
+.frm .lin i { font-style: normal; font-weight: 700; color: var(--azul); padding: 0 .45em; }
 
 /* ============================================================= comparador == */
 /* Comparar no es clasificar: no hay control que ordene, ni posiciones, ni
@@ -557,7 +544,7 @@ select {
   letter-spacing: 0; color: var(--gris); margin-top: 2px;
 }
 
-/* Columnas de igual ancho para pirámides y mosaicos. */
+/* Columnas de igual ancho para pirámides y gráficos circulares. */
 .cmp-cols { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 20px; align-items: start; }
 .cmp-col { text-align: center; }
 .cmp-col h3 { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
@@ -689,22 +676,12 @@ select {
   .tapa-datos { gap: var(--e-5); }
 }
 @media (max-width: 700px) {
-  /* Cifras clave: cuatro celdas en columna, con la cifra a la izquierda y su
-     micro-representación a la derecha. En cuadrícula 2x2 el número no cabe. */
-  .cifras { grid-template-columns: 1fr; }
-  .cifra {
-    border-left: 0; border-top: 1px solid var(--linea);
-    flex-direction: row; align-items: center; gap: 18px;
-    padding: var(--e-4) 18px;
-  }
-  .cifra:first-child { border-top: 0; }
-  .cifra { text-align: left; }
-  .cifra-dato { flex: 1; min-width: 0; }
-  .cifra-dato i { justify-content: flex-start; }
-  .cifra-dato b { font-size: 32px; }
-  .cifra-dato i { font-size: 11px; letter-spacing: .04em; }
-  .cifra-viz { width: 110px; flex: none; height: 34px; }
-  .cifra em, .cifra em.entre { display: none; }
+  /* Sin el micro-gráfico al lado, las cuatro celdas caben en 2x2 hasta en 320 px
+     y no hay que apilarlas en columna. */
+  .cifra { padding: var(--e-5) var(--e-2) var(--e-4); }
+  .cifra b { font-size: 34px; }
+  .cifra i { font-size: 10.5px; letter-spacing: .04em; }
+  .cifra em { font-size: 10.5px; min-height: 15px; }
   .panel { grid-template-columns: 1fr; }
   .buscador { width: 100%; }
   .columnas { columns: 2 150px; }
@@ -727,7 +704,8 @@ select {
   .portada { padding-inline: 14px; }
   .tapa-alto, .filtros, .tapa-mapa, .listado { padding-inline: 18px; }
   .escala { gap: 6px; }
-  .peldano span { font-size: 10px; }
+  .peldano { grid-template-columns: 68px 1fr auto; gap: 8px; }
+  .peldano > span { font-size: 10px; }
   .tapa-datos { grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
   .columnas { columns: 1; }
 }
@@ -761,18 +739,19 @@ select {
   .tarjeta.tercio { grid-column: span 5; }
   .tarjeta.dos-tercios { grid-column: span 7; }
 
-  /* Cabecera azul con el nombre a la izquierda y la población a la derecha. */
+  /* Cabecera azul: el año pegado al margen derecho y los habitantes debajo del
+     nombre. Antes la población ocupaba una segunda columna a la derecha, con el
+     año al lado del nombre; en la hoja quedaban los dos disputándose el sitio. */
   .cabecera {
     background: var(--azul); border: 0; border-radius: 0;
-    padding: 2.6mm 5mm; margin-bottom: 2mm;
-    display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 6mm;
+    padding: 2.6mm 5mm; margin-bottom: 2mm; display: block;
   }
-  .cabecera .migas { grid-column: 1; grid-row: 1; color: var(--azul-sobre); font-size: 6.5pt; letter-spacing: .16em; margin-bottom: 0; }
-  .titular { grid-column: 1; grid-row: 2; gap: 3mm; margin-top: 1.4mm; }
+  .cabecera .migas { color: var(--azul-sobre); font-size: 6.5pt; letter-spacing: .16em; margin-bottom: 0; }
+  .titular { gap: 4mm; margin-top: 1.2mm; }
   .cabecera h1 { font-size: 17pt; color: #fff; letter-spacing: -.02em; }
-  .anio { font-size: 13pt; color: var(--azul-sobre); }
-  .habitantes { grid-column: 2; grid-row: 1 / span 2; flex-direction: column; align-items: flex-end; gap: 1mm; margin: 0; text-align: right; }
-  .habitantes b { font-size: 20pt; font-weight: 400; color: #fff; letter-spacing: -.03em; line-height: 1; }
+  .anio { font-size: 14pt; color: var(--azul-sobre); }
+  .habitantes { flex-direction: row; align-items: baseline; gap: 2mm; margin: 1mm 0 0; text-align: left; }
+  .habitantes b { font-size: 15pt; font-weight: 400; color: #fff; letter-spacing: -.03em; line-height: 1; }
   .habitantes span { font-size: 7pt; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--azul-sobre); }
 
   /* Tarjetas: filete fino, sin sombra, sin partirse entre paginas. */
@@ -792,18 +771,12 @@ select {
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. En la hoja
      hay sitio para las cuatro aunque en pantalla, a esta anchura, irían 2x2. */
   .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
-  .cifra { padding: 2mm 4mm 1.6mm 0; gap: 1.2mm; border-left: 0; border-top: 0; flex-direction: column; align-items: stretch; text-align: center; }
-  .cifra-dato i { justify-content: center; }
-  .cifra + .cifra { padding-left: 4mm; border-left: .2mm solid var(--linea); }
-  .cifra:last-child { padding-right: 0; }
-  .cifra-viz { width: auto; }
-  .cifra em { display: block; }
-  .cifra-dato b { font-size: 14pt; color: var(--azul); }
-  .cifra-dato i { font-size: 6pt; margin-top: 1mm; letter-spacing: .04em; }
-  .cifra-dato i .ico { width: 3mm; height: 3mm; }
-  .cifra-viz { height: 4mm; }
-  .puntos { height: 4mm; }
-  .cifra em { font-size: 5.5pt; }
+  .cifra { padding: 2.2mm 3mm 2mm; border-left: 0; border-top: 0; text-align: center; }
+  .cifra + .cifra { border-left: .2mm solid var(--linea); }
+  .cifra b { font-size: 17pt; color: var(--azul); }
+  .cifra b span { font-size: .42em; }
+  .cifra i { font-size: 6pt; margin-top: 1.2mm; letter-spacing: .04em; }
+  .cifra em { display: block; font-size: 5.5pt; margin-top: .8mm; min-height: 0; }
 
   .mapas { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
   .mapa-pie { margin-top: 1mm; }
@@ -818,13 +791,15 @@ select {
   .indice-tit { margin-bottom: 1mm; }
   .indice-tit b { font-size: 7pt; }
   .indice-tit em { font-size: 6pt; }
-  .peldano span { font-size: 5.5pt; min-height: 0; line-height: 1.2; }
-  .peldano b { font-size: 8pt; margin: .3mm 0 .8mm; }
-  .peldano i { height: 1.2mm; }
-  .escala { gap: 1.4mm; }
+  .peldano { grid-template-columns: 16mm 1fr auto; gap: 1.6mm; }
+  .peldano > span { font-size: 5.5pt; line-height: 1.2; }
+  .peldano b { font-size: 7.5pt; min-width: 8mm; }
+  .peldano .barra { height: 1.4mm; }
+  .escala { gap: 1.1mm; }
+  .indice-escala { font-size: 5pt; margin-top: .8mm; }
 
-  .mosaicos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
-  .mosaico h3 { font-size: 7pt; }
+  .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
+  .anillo h3 { font-size: 7pt; }
   .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6pt; }
   .nota { font-size: 5.5pt; margin-top: 1.4mm; }
 }

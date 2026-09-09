@@ -67,30 +67,21 @@ function hojaFicha(f, pagina) {
 
   return `<article class="hoja hoja-ficha" data-pagina="${pagina}">
     <header class="d-cab">
-      <div>
-        <p class="d-migas">${escd(f.isla)} · ${escd(f.comarca.replace(/^.*? - /, ''))}</p>
-        <h2>${escd(f.nombre)} <span>${f.anio}</span></h2>
-      </div>
-      <div class="d-hab"><b>${nfd(f.poblacion)}</b><span>Habitantes · ${f.anio}</span></div>
+      <p class="d-migas">${escd(f.isla)} · ${escd(f.comarca.replace(/^.*? - /, ''))}</p>
+      <div class="d-titular"><h2>${escd(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
+      <p class="d-hab"><b>${nfd(f.poblacion)}</b><span>habitantes</span></p>
     </header>
 
     <div class="cifras">
-      ${[['variacion', `${signo}${nfd(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
-          chispa(ev.anios, ev.valores, ev.anio_base, anchoCelda(), px(5)), `<em>${ev.anio_base}–${ev.anio_fin}</em>`],
-         ['edad', nfd(c.edad_media, 1), '', 'Edad media',
-          barraEdad(c.edad_media, anchoCelda(), px(5)), `<em class="entre"><span>0</span><span>0–100 años</span><span>100</span></em>`],
-         ['mujeres', nfd(c.pct_mujeres, 1), '%', 'Mujeres',
-          puntos(c.pct_mujeres, C.azul), `<em>${nfd(c.mujeres)} personas</em>`],
-         ['hombres', nfd(c.pct_hombres, 1), '%', 'Hombres',
-          puntos(c.pct_hombres, C.azulMedio), `<em>${nfd(c.hombres)} personas</em>`],
-        ].map(([ico, cifra, uni, rot, viz, pie]) => `
+      ${[[`${signo}${nfd(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual', `${ev.anio_base}–${ev.anio_fin}`],
+         [nfd(c.edad_media, 1), 'años', 'Edad media', ''],
+         [nfd(c.pct_mujeres, 1), '%', 'Mujeres', `${nfd(c.mujeres)} personas`],
+         [nfd(c.pct_hombres, 1), '%', 'Hombres', `${nfd(c.hombres)} personas`],
+        ].map(([cifra, uni, rot, pie]) => `
         <div class="cifra">
-          <div class="cifra-dato">
-            <b>${cifra}${uni ? `<span>${uni}</span>` : ''}</b>
-            <i>${icono(ico, 12)}${rot}</i>
-          </div>
-          <div class="cifra-viz">${viz}</div>
-          ${pie}
+          <b>${cifra}${uni ? `<span>${uni}</span>` : ''}</b>
+          <i>${rot}</i>
+          <em>${pie}</em>
         </div>`).join('')}
     </div>
 
@@ -137,7 +128,7 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
           <p>De menor a mayor valor</p></div></header>
-        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.nombre, f.isla)}</div>
+        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, IDX.rangos_indices)}</div>
       </section>
 
       <section class="tarjeta mitad">
@@ -156,9 +147,9 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta mitad">
         <header class="rotulo">${icono('nacimiento', 13)}<div><h2>Lugar de nacimiento</h2>
           <p>De cada cien habitantes, dónde nacieron</p></div></header>
-        <div class="cuerpo"><div class="mosaicos">
+        <div class="cuerpo"><div class="anillos">
           ${[['Municipio', f.origen.municipio], ['Canarias', f.origen.canarias]].map(([t, v]) => `
-            <div class="mosaico"><h3>${t}</h3>${mosaicoOrigen(v, 6, 1.1)}
+            <div class="anillo"><h3>${t}</h3>${anilloOrigen(v, 30, 13)}
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
                 `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${escd(cat)}</span><b>${nfd(v[i], 1)}%</b></div>`).join('')}
               </div></div>`).join('')}

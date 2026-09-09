@@ -27,6 +27,7 @@ const TRAZOS = {
   dependencia: '<path d="M3.5 8h17"/><path d="M12 8v11M8 19h8"/><circle cx="6.5" cy="4.5" r="2.5"/><circle cx="17.5" cy="4.5" r="2.5"/>',
 
   /* Interfaz */
+  inicio:      '<path d="M3.5 10.6L12 4l8.5 6.6V19a1 1 0 01-1 1h-15a1 1 0 01-1-1v-8.4z"/><path d="M9.5 20v-5.5h5V20"/>',
   buscar:      '<circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/>',
   flecha:      '<path d="M5 12h13M13 6l6 6-6 6"/>',
   descargar:   '<path d="M12 4v11M7.5 11L12 15.5 16.5 11"/><path d="M5 19h14"/>',

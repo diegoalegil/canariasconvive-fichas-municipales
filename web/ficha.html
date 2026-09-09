@@ -35,7 +35,7 @@
     </div>
     <a class="btn btn-liso" href="guia.html" data-ico="dependencia" aria-label="Cómo se lee"><span>Cómo se lee</span></a>
     <a class="btn btn-liso" href="comparar.html" id="btn-comparar" data-ico="relevo" aria-label="Comparar"><span>Comparar</span></a>
-    <a class="btn btn-liso" href="index.html" data-ico="territorio" aria-label="Todos los municipios"><span>Todos los municipios</span></a>
+    <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
     <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
     <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Descargar PDF</button>
   </div>
@@ -80,8 +80,6 @@
       <div class="cuerpo">
         <figure id="g-extranjero"></figure>
         <div class="leyenda">
-          <span><i class="llave" style="background:#85B7EB"></i>Municipio</span>
-          <span><i class="llave" style="background:#185FA5"></i>Último dato</span>
           <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias</span>
         </div>
       </div>
@@ -90,7 +88,7 @@
     <!-- Franja central: los tres mapas a tamaño grande. -->
     <section class="tarjeta">
       <header class="rotulo" data-ico="territorio">
-        <div><h2>Dónde está el municipio</h2><p>Su posición por población en Canarias, en su isla y en su comarca</p></div>
+        <div><h2>El municipio en su entorno</h2><p>Su puesto por población y el peso que tiene en cada ámbito</p></div>
       </header>
       <div class="cuerpo">
         <div class="mapas" id="mapas"></div>
@@ -100,7 +98,7 @@
     <!-- La destacada de la página: es la única con cabecera plena. -->
     <section class="tarjeta dos-tercios destacada">
       <header class="rotulo" data-ico="edad">
-        <div><h2>Estructura de la población</h2><p id="sub-piramide"></p></div>
+        <div><h2>Estructura de la población</h2></div>
       </header>
       <div class="cuerpo">
         <div class="vistas">
@@ -121,7 +119,7 @@
 
     <section class="tarjeta tercio">
       <header class="rotulo" data-ico="dependencia">
-        <div><h2>Información geodemográfica</h2><p>Los tres ámbitos, ordenados de menor a mayor valor</p></div>
+        <div><h2>Información geodemográfica</h2><p>Los tres ámbitos, ordenados de mayor a menor valor</p></div>
       </header>
       <div class="cuerpo">
         <div id="g-indices"></div>
@@ -130,7 +128,7 @@
 
     <section class="tarjeta mitad">
       <header class="rotulo" data-ico="relevo">
-        <div><h2>Componentes del cambio poblacional</h2><p>Nacimientos menos defunciones y saldo migratorio, cada dos años</p></div>
+        <div><h2>Componentes del cambio poblacional</h2></div>
       </header>
       <div class="cuerpo">
         <figure id="g-componentes"></figure>
@@ -146,7 +144,7 @@
         <div><h2>Lugar de nacimiento</h2><p>De cada cien habitantes, dónde nacieron</p></div>
       </header>
       <div class="cuerpo">
-        <div class="mosaicos" id="g-origen"></div>
+        <div class="anillos" id="g-origen"></div>
       </div>
     </section>
 

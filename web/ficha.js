@@ -254,8 +254,17 @@ function graficoExtranjero(ext, w, h) {
     }
   });
 
-  const lineaCan = A.map((a, i) => [a, R[i]]).filter(([, v]) => v != null)
-    .map(([a, v]) => `${px(A.indexOf(a)).toFixed(1)},${py(v).toFixed(1)}`);
+  /* La línea de Canarias se dibuja sobre las mismas posiciones que las barras,
+     no sobre el índice del año en la serie completa: en los dos municipios con
+     huecos en la serie —El Pinar y Frontera— las dos escalas no coinciden y la
+     línea se salía del gráfico. Y va suavizada con la misma interpolación
+     monótona que la curva de evolución: unida a secas, saltaba de año en año. */
+  const paresCan = vivos.map(([a], i) => [i, R[A.indexOf(a)]])
+    .filter(([, v]) => v != null && isFinite(v));
+  const trazoCan = paresCan.length >= 3
+    ? suavizar(paresCan.map(([i]) => i), paresCan.map(([, v]) => v))
+    : paresCan;
+  const lineaCan = trazoCan.map(([i, v]) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`);
 
   return abrirSVG(w, h, 'Peso de la población de origen extranjero, municipio frente a Canarias')
     + rejilla + barras
@@ -354,23 +363,34 @@ function construirPiramide(p, w, h, vistaFija = null) {
 }
 
 /* --------------------------------------------- índices geodemográficos ----- */
-/** Los tres ámbitos ordenados de izquierda a derecha por valor. El tono indica
- *  la posición, no el territorio. Diseño original de Pedro. */
-function bloqueIndices(ind, codigos, nombreMun, isla) {
+/** Los tres ámbitos en tres barras, el mayor arriba. El tono sigue marcando la
+ *  posición y no el territorio, que es el diseño de Pedro; lo que cambia es que
+ *  la barra ahora mide. Va de cero al valor más alto de los 88 municipios en
+ *  ese índice, que es la misma escala que usa el comparador: contra el mayor de
+ *  los tres, la barra más larga llegaría siempre al tope y dos fichas distintas
+ *  no se podrían poner una al lado de otra.
+ *
+ *  El municipio va rotulado como "Municipio" y no con su nombre: en una columna
+ *  de cinco doceavos, "Santa María de Guía de Gran Canaria" repetido cuatro
+ *  veces no cabe en una línea. */
+function bloqueIndices(ind, codigos, isla, rangos) {
   return codigos.map((cod) => {
     const d = ind[cod];
-    const filas = [['Canarias', d.canarias], [isla, d.isla], [nombreMun, d.municipio]]
+    const filas = [['Canarias', d.canarias], [isla, d.isla], ['Municipio', d.municipio]]
       .filter(([, v]) => v != null)
-      .sort((a, b) => a[1] - b[1]);
+      .sort((a, b) => b[1] - a[1]);
     const dec = cod === 'C10' ? 2 : 1;
+    const tope = (rangos && rangos[cod] && rangos[cod].max)
+      || Math.max(...filas.map(([, v]) => v)) || 1;
     return `<div class="indice">
       <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio}${d.unidad ? ' · ' + d.unidad : ''}</em></div>
       <div class="escala">${filas.map(([n, v], i) => `
         <div class="peldano">
           <span>${esc(n)}</span>
+          <span class="barra"><i style="width:${acotar(v / tope * 100, 1, 100).toFixed(1)}%;background:${TONOS[filas.length - 1 - i]}"></i></span>
           <b>${nf(v, dec)}</b>
-          <i style="background:${TONOS[i]}"></i>
         </div>`).join('')}</div>
+      <p class="indice-escala">Escala de 0 a ${nf(tope, dec)}, el valor más alto de los 88 municipios.</p>
     </div>`;
   }).join('');
 }
@@ -422,119 +442,58 @@ function graficoComponentes(c, w, h) {
 }
 
 /* -------------------------------------------------- lugar de nacimiento ---- */
-/** Mosaico de cien casillas: de cada cien habitantes, cuántos nacieron dónde.
- *  Sustituye a las barras apiladas, donde las etiquetas no cabían dentro. */
-function mosaicoOrigen(valores, lado = 17, hueco = 3) {
+/* Antes eran cien casillas. El reparto viene con un decimal y cien casillas no
+   lo admiten: hay que redondear al entero y repartir el resto, de modo que un
+   18,8 % acababa dibujado como 19. El sector circular sí admite el decimal, que
+   es justo el motivo por el que Pedro lo pidió. */
+function anilloOrigen(valores, radio = 74, grosor = 30) {
   const total = valores.reduce((a, b) => a + (b || 0), 0);
   if (!(total > 0)) return '';
-  // Reparto de mayor resto: las cien casillas suman exactamente cien.
-  const exactos = valores.map((v) => (v || 0) / total * 100);
-  const enteros = exactos.map(Math.floor);
-  let faltan = 100 - enteros.reduce((a, b) => a + b, 0);
-  exactos.map((v, i) => [v - enteros[i], i]).sort((a, b) => b[0] - a[0])
-    .forEach(([, i]) => { if (faltan-- > 0) enteros[i]++; });
+  const w = radio * 2, cx = radio, cy = radio, re = radio - 1, ri = radio - grosor;
 
-  const orden = [];
-  enteros.forEach((n, cat) => { for (let k = 0; k < n; k++) orden.push(cat); });
-
-  const w = 10 * lado + 9 * hueco, h = w;
-  let celdas = '';
-  for (let i = 0; i < 100; i++) {
-    const x = (i % 10) * (lado + hueco), y = Math.floor(i / 10) * (lado + hueco);
-    celdas += `<rect x="${x}" y="${y}" width="${lado}" height="${lado}" rx="2.5" fill="${TONOS_ORIGEN[orden[i]] || C.rejilla}"/>`;
-  }
-  return abrirSVG(w, h, 'De cada cien habitantes, dónde nacieron', false) + celdas + '</svg>';
+  const P = (ang, rad) => `${(cx + Math.cos(ang) * rad).toFixed(2)},${(cy + Math.sin(ang) * rad).toFixed(2)}`;
+  let a0 = -Math.PI / 2, arcos = '';
+  valores.forEach((v, i) => {
+    const frac = (v || 0) / total;
+    if (!(frac > 0)) return;
+    // Un sector de vuelta entera no se puede trazar con un solo arco: los dos
+    // extremos caerían en el mismo punto y el camino saldría vacío.
+    const a1 = a0 + Math.min(frac, 0.9995) * 2 * Math.PI;
+    const grande = a1 - a0 > Math.PI ? 1 : 0;
+    arcos += `<path d="M${P(a0, re)}A${re},${re} 0 ${grande},1 ${P(a1, re)}`
+           + `L${P(a1, ri)}A${ri},${ri} 0 ${grande},0 ${P(a0, ri)}Z" `
+           + `fill="${TONOS_ORIGEN[i]}" stroke="#FFFFFF" stroke-width="${(radio > 50 ? 1.6 : 0.7)}"/>`;
+    a0 = a1;
+  });
+  return abrirSVG(w, w, 'Reparto por lugar de nacimiento', false) + arcos + '</svg>';
 }
 
 /* ------------------------------------------------------------ cifras clave -- */
-/* Cada celda lleva dentro la forma de su propio dato, dibujada con los valores
-   reales del municipio: su serie de población, su edad media sobre la escala
-   0-100 y el reparto por sexo en una retícula de puntos. Ninguna de las tres
-   marca un umbral ni una referencia de "lo normal"; solo dan escala a la cifra
-   que tienen encima.
+/* Cuatro cifras y nada más. Cada celda llevaba debajo un micro-gráfico con la
+   forma de su propio dato; se retiran, y el sitio que dejan se lo queda el
+   número, que es lo que se viene a leer.
 
-   Se dibujan al ancho exacto de la celda, igual que el resto de gráficos del
-   fichero: estirar un SVG pequeño deformaría el trazo y en móvil dejaría la
-   línea en un pelo. */
+   El azul de la cifra no es decorativo: en toda la página el azul marca el dato
+   que responde a la pregunta de la tarjeta, y el negro, lo que lo acompaña. */
 
-/** Ancho útil de una celda de cifras clave, descontando bordes y padding. */
-function anchoCelda() {
-  if (IMPRIMIENDO) return Math.floor((anchoHoja(12) - 3) / 4) - mm(4);
-  if (innerWidth <= 700) return 110;                 // el hueco fijo del móvil
-  const total = anchoDe('cifras', 1040);
-  const columnas = innerWidth <= 940 ? 2 : 4;
-  return Math.max(80, Math.floor((total - columnas + 1) / columnas) - 48);
-}
-
-/** Serie de población reducida a una línea sin ejes. La discontinua marca el
- *  valor del primer año del periodo, para ver respecto a qué se mueve. */
-function chispa(anios, valores, desde, w, h) {
-  const pares = anios.map((a, i) => [a, valores[i]])
-    .filter(([a, v]) => a >= desde && v != null && isFinite(v));
-  if (pares.length < 2) return '';
-  const xs = pares.map(([a]) => a), ys = pares.map(([, v]) => v);
-  const min = Math.min(...ys), max = Math.max(...ys), rango = max - min || 1;
-  const px = (a) => (a - xs[0]) / (xs[xs.length - 1] - xs[0]) * w;
-  const py = (v) => h - 5 - (v - min) / rango * (h - 12);
-  const pts = pares.map(([a, v]) => `${px(a).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
-  const yb = py(ys[0]).toFixed(1);
-  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">`
-       + `<line x1="0" y1="${yb}" x2="${w}" y2="${yb}" stroke="${C.linea}" stroke-width="1" stroke-dasharray="3 4"/>`
-       + `<polyline points="${pts}" fill="none" stroke="${C.azul}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
-       + `<circle cx="${px(xs[xs.length - 1]).toFixed(1)}" cy="${py(ys[ys.length - 1]).toFixed(1)}" r="3" fill="${C.azul}"/>`
-       + `</svg>`;
-}
-
-/** Edad media situada sobre el eje 0-100 años. */
-function barraEdad(edad, w, h) {
-  const m = Math.round(h / 2);
-  const x = acotar(edad / 100, 0, 1) * w;
-  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">`
-       + `<line x1="0" y1="${m}" x2="${w}" y2="${m}" stroke="${C.linea}" stroke-width="1"/>`
-       + `<rect x="0" y="${m - 4}" width="${x.toFixed(1)}" height="8" rx="4" fill="${C.azulPalido}"/>`
-       + `<rect x="${acotar(x - 2, 0, w - 4).toFixed(1)}" y="${m - 10}" width="4" height="20" rx="2" fill="${C.azul}"/>`
-       + `</svg>`;
-}
-
-/** Retícula de puntos rellena hasta la proporción indicada. El punto lleno y el
- *  vacío quedan en 4,3:1 y 3,2:1, por encima del 3:1 que pide la norma para un
- *  elemento gráfico. */
-function puntos(porcentaje, color) {
-  const p = acotar(porcentaje, 0, 100);
-  const relleno = `radial-gradient(circle at 3px 3px, ${color} 2.6px, transparent 2.8px)`;
-  return `<div class="puntos" aria-hidden="true">`
-       + `<i style="right:${(100 - p).toFixed(1)}%;background-image:${relleno}"></i></div>`;
-}
-
-/** Las cuatro celdas, cada una con su icono, su cifra y su micro-gráfico. */
+/** Las cuatro celdas: la cifra, lo que es, y el pie que la sitúa. */
 function cifrasClave(f) {
   const c = f.cifras, ev = f.evolucion;
-  const w = anchoCelda(), h = (!IMPRIMIENDO && innerWidth <= 700) ? 34 : (IMPRIMIENDO ? mm(5) : 42);
-  const signo = c.tvma >= 0 ? '+' : '−';   // menos tipográfico, no guion
+  const signo = c.tvma >= 0 ? '+' : '\u2212';   // menos tipográfico, no guion
 
-  const celda = (ico, cifra, unidad, rotulo, viz, pie) => `
+  const celda = (cifra, unidad, rotulo, pie = '') => `
     <div class="cifra">
-      <div class="cifra-dato">
-        <b>${cifra}${unidad ? `<span>${unidad}</span>` : ''}</b>
-        <i>${icono(ico, 16)}${rotulo}</i>
-      </div>
-      <div class="cifra-viz">${viz}</div>
-      ${pie}
+      <b>${cifra}${unidad ? `<span>${unidad}</span>` : ''}</b>
+      <i>${rotulo}</i>
+      <em>${pie}</em>
     </div>`;
 
   return [
-    celda('variacion', `${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
-      chispa(ev.anios, ev.valores, ev.anio_base, w, h),
-      `<em>Serie ${ev.anio_base}–${ev.anio_fin}</em>`),
-    celda('edad', nf(c.edad_media, 1), '', 'Edad media',
-      barraEdad(c.edad_media, w, h),
-      `<em class="entre"><span>0</span><span>escala 0–100 años</span><span>100</span></em>`),
-    celda('mujeres', nf(c.pct_mujeres, 1), '%', 'Mujeres',
-      puntos(c.pct_mujeres, C.azul),
-      `<em>${nf(c.mujeres)} personas</em>`),
-    celda('hombres', nf(c.pct_hombres, 1), '%', 'Hombres',
-      puntos(c.pct_hombres, C.azulMedio),
-      `<em>${nf(c.hombres)} personas</em>`),
+    celda(`${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
+      `Serie ${ev.anio_base}\u2013${ev.anio_fin}`),
+    celda(nf(c.edad_media, 1), 'años', 'Edad media'),
+    celda(nf(c.pct_mujeres, 1), '%', 'Mujeres', `${nf(c.mujeres)} personas`),
+    celda(nf(c.pct_hombres, 1), '%', 'Hombres', `${nf(c.hombres)} personas`),
   ].join('');
 }
 
@@ -624,7 +583,6 @@ function pintar(f) {
   doc.getElementById('sub-cifras').textContent = `Datos a 1 de enero de ${f.anio}`;
   doc.getElementById('sub-evolucion').textContent =
     `Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}`;
-  doc.getElementById('sub-piramide').textContent = `Grupos de cinco años · ${f.anio}`;
 
   // --- mapas, en franja central y a tamaño grande ---
   const wMapa = IMPRIMIENDO
@@ -641,7 +599,8 @@ function pintar(f) {
       ${mapa(GEO, f.codmun, filtro, wMapa, hMapa, lim)}
       <figcaption class="mapa-pie">
         <b>${r.puesto}º de ${r.total}</b>
-        <span>en ${esc(tit)} · ${pct(r.peso, 2)} de su población</span>
+        <span>en ${esc(tit)}</span>
+        <p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>
       </figcaption>
     </figure>`).join('');
 
@@ -661,7 +620,7 @@ function pintar(f) {
   mostrarVista(VISTA, false);
 
   doc.getElementById('g-indices').innerHTML =
-    bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.nombre, f.isla);
+    bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, INDICE.rangos_indices);
 
   const anom = f.componentes.anomalias || [];
   doc.getElementById('g-componentes').innerHTML =
@@ -675,9 +634,9 @@ function pintar(f) {
   doc.getElementById('g-origen').innerHTML = [
     ['Municipio', o.municipio], ['Canarias', o.canarias],
   ].map(([tit, vals]) => `
-    <div class="mosaico">
+    <div class="anillo">
       <h3>${tit}</h3>
-      ${IMPRIMIENDO ? mosaicoOrigen(vals, 6, 1.1) : mosaicoOrigen(vals)}
+      ${IMPRIMIENDO ? anilloOrigen(vals, 30, 13) : anilloOrigen(vals)}
       <div class="reparto">${o.categorias.map((cat, i) => `
         <div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(vals[i], 1)}%</b></div>`).join('')}
       </div>
