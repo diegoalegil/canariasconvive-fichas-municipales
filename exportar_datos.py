@@ -10,6 +10,7 @@
 #           web/datos/mun/<codmun>.json · una ficha por municipio
 # =============================================================================
 import json
+import math
 import unicodedata
 from pathlib import Path
 
@@ -463,6 +464,37 @@ indice = {
 }
 with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
+
+# ---------------------------------------------------------------------------
+# El eje de la pirámide está fijado a mano en web/ficha.js (EJE_PIRAMIDE) para
+# que las 88 fichas se puedan poner una al lado de otra: con un tope calculado
+# municipio a municipio, Arico dibujaba su grupo modal al 88 % del semiancho y
+# Artenara, con un valor mayor, al 44 %.
+#
+# La contrapartida es que la constante depende de los datos, y la holgura es
+# escasa: Artenara tiene mil habitantes y allí una persona vale casi una décima
+# de punto. Si la próxima edición del padrón se pasa del tope, esto lo dice aquí
+# y no lo descubre nadie mirando una barra cortada.
+EJE_PIRAMIDE = 7.0
+
+_modales = []
+for f in todas_las_fichas:
+    pi = f["piramide"]
+    tot = sum(pi["hombres"]) + sum(pi["mujeres"])
+    if tot:
+        _modales.append((max(max(pi["hombres"]), max(pi["mujeres"])) / tot * 100, f["nombre"]))
+_modales.sort(reverse=True)
+if _modales:
+    _peor, _quien = _modales[0]
+    print(f"\nEje de la pirámide: {EJE_PIRAMIDE:.0f} % · grupo más numeroso {_peor:.3f} % "
+          f"({_quien}) · holgura {EJE_PIRAMIDE / _peor:.3f}x")
+    _fuera = [(v, n) for v, n in _modales if v > EJE_PIRAMIDE]
+    if _fuera:
+        raise SystemExit(
+            "\nEl eje de la pirámide se ha quedado corto y las barras saldrían cortadas.\n"
+            + "\n".join(f"  {n}: {v:.3f} %" for v, n in _fuera)
+            + f"\n\nSube EJE_PIRAMIDE en web/ficha.js y aquí a {math.ceil(_fuera[0][0])} "
+              "para los 88 a la vez, y vuelve a exportar.")
 
 _peso = sum(p.stat().st_size for p in (SALIDA / "mun").glob("*.json"))
 print(f"\n{len(fichas)} fichas escritas en {SALIDA/'mun'}")

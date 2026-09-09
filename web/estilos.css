@@ -282,7 +282,6 @@ select {
   font-size: 13.5px; font-weight: 700; letter-spacing: -.3px; text-align: right;
   color: var(--negro); font-variant-numeric: tabular-nums; min-width: 34px;
 }
-.indice-escala { font-size: 10.5px; color: var(--gris-40); margin-top: 7px; text-wrap: pretty; }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
@@ -300,17 +299,50 @@ select {
 .leyenda span { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--negro); }
 .llave { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
+.llave.linea { height: 2px; border-radius: 0; background: var(--negro); }
 
 .nota { margin-top: var(--e-3); font-size: 11px; color: var(--gris); line-height: 1.5; text-align: center; }
 
 /* ------------------------------------------------------------- lecturas --- */
-/* Valor exacto del punto sobre el que está el ratón. Altura reservada para que
-   el contenido de abajo no dé un salto al aparecer y desaparecer. */
+/* Valor exacto del punto señalado. Altura reservada para que el contenido de
+   abajo no dé un salto al aparecer y desaparecer.
+
+   La de la pirámide es un bloque fijo debajo del dibujo y no un globo
+   flotante: un globo se pierde en el móvil, lo tapa el dedo y no existe en
+   papel. Nunca está vacío; en reposo enseña el total del municipio. */
 .lectura {
   min-height: 20px; margin-top: 10px; text-align: center;
   font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums;
 }
 .lectura b { color: var(--azul); font-weight: 700; }
+
+#lectura-piramide {
+  display: grid; grid-template-columns: auto 1fr; gap: var(--e-3) var(--e-6);
+  align-items: start; text-align: left; margin-top: var(--e-4);
+  padding-top: var(--e-4); border-top: 1px solid var(--linea);
+  min-height: 96px; font-size: 12px;
+}
+.lec-izq > b, .lec-cab {
+  display: block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--gris); margin-bottom: 6px;
+}
+.lec-izq > b { color: var(--negro); text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+.lec-izq > div { display: grid; grid-template-columns: 60px auto auto; gap: var(--e-3); align-items: baseline; }
+.lec-izq > div > b { color: var(--negro); font-weight: 700; }
+.lec-izq em, .lec-fila em { font-style: normal; color: var(--gris-40); }
+.lec-cab { text-align: right; }
+.lec-fila {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  gap: var(--e-3); align-items: baseline; margin-bottom: 4px;
+}
+.lec-fila > b { color: var(--negro); font-weight: 700; white-space: nowrap; }
+.lec-fila > em { white-space: nowrap; }
+.lec-llave { width: 11px; height: 11px; border-radius: 2px; align-self: center; }
+.lec-llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
+.lec-llave.vacia { background: transparent; }
+
+#g-piramide { outline: none; }
+#g-piramide:focus-visible { outline: 2px solid var(--azul); outline-offset: 3px; border-radius: var(--r-1); }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
 
@@ -654,6 +686,10 @@ select {
   .envoltorio { padding-inline: 14px; }
   .portada { padding-inline: 14px; }
   .tapa-alto, .filtros, .atajos { padding-inline: 18px; }
+  #lectura-piramide { grid-template-columns: 1fr; gap: var(--e-3); min-height: 150px; }
+  .lec-cab { text-align: left; }
+  .lec-fila { grid-template-columns: 14px minmax(0, 1fr) auto; }
+  .lec-fila > em { grid-column: 2 / -1; text-align: left; }
   .escala { gap: 6px; }
   .peldano { grid-template-columns: 68px 1fr auto; gap: 8px; }
   .peldano > span { font-size: 10px; }
@@ -674,7 +710,25 @@ select {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
-  .barra, .vistas, .lectura, .vista-info, .filtros, .atajos { display: none !important; }
+  /* La lectura y el pie de vista sí se imprimen: son la única cifra exacta que
+     la hoja puede dar. Lo que se oculta es el control, que en papel no hace
+     nada. */
+  .barra, .vistas, .filtros, .atajos { display: none !important; }
+  .lectura:not(#lectura-piramide) { display: none !important; }
+  /* Anchos fijos en milímetros: con columnas elásticas, en los 98 mm de la
+     tarjeta cada fila se doblaba en dos y el bloque pasaba de 10 a 22 mm. */
+  #lectura-piramide {
+    grid-template-columns: 33mm 1fr; gap: .6mm 3mm; margin-top: 1.2mm;
+    padding-top: 1mm; min-height: 0; font-size: 5.5pt; line-height: 1.25;
+  }
+  .lec-izq > b { font-size: 6pt; margin-bottom: .5mm; }
+  .lec-cab { font-size: 5pt; margin-bottom: .5mm; }
+  .lec-izq > div { grid-template-columns: 9mm 10mm auto; gap: 1mm; }
+  .lec-fila { grid-template-columns: 2.2mm 20mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
+  .lec-llave { width: 1.8mm; height: 1.8mm; }
+  .vista-info { font-size: 5pt; line-height: 1.3; margin: .8mm 0 0; min-height: 0; }
+  .leyenda { margin-top: 1.2mm; gap: 3mm; }
+  .indice { margin-bottom: 1.3mm; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
 
@@ -737,15 +791,14 @@ select {
   .llave { width: 2mm; height: 2mm; }
 
   .indice { margin-bottom: 1.6mm; }
-  .indice-tit { margin-bottom: 1mm; }
+  .indice-tit { margin-bottom: .8mm; }
   .indice-tit b { font-size: 7pt; }
   .indice-tit em { font-size: 6pt; }
-  .peldano { grid-template-columns: 16mm 1fr auto; gap: 1.6mm; }
-  .peldano > span { font-size: 5.5pt; line-height: 1.2; }
-  .peldano b { font-size: 7.5pt; min-width: 8mm; }
-  .peldano .barra { height: 1.4mm; }
-  .escala { gap: 1.1mm; }
-  .indice-escala { font-size: 5pt; margin-top: .8mm; }
+  .peldano { grid-template-columns: 15mm 1fr auto; gap: 1.4mm; }
+  .peldano > span { font-size: 5.5pt; line-height: 1.15; }
+  .peldano b { font-size: 7pt; min-width: 7.5mm; }
+  .peldano .barra { height: 1.3mm; }
+  .escala { gap: .9mm; }
 
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .anillo h3 { font-size: 7pt; }

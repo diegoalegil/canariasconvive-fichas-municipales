@@ -102,24 +102,22 @@
       </header>
       <div class="cuerpo">
         <div class="vistas">
-          <button class="vista" type="button" aria-pressed="true">Población total</button>
-          <button class="vista" type="button" aria-pressed="false">Nacida en España</button>
-          <button class="vista" type="button" aria-pressed="false">De origen extranjero</button>
+          <button class="vista" type="button" aria-pressed="true">Solo municipio</button>
+          <button class="vista" type="button" aria-pressed="false">Municipio y Canarias</button>
         </div>
-        <p class="vista-info" id="vista-info"></p>
         <figure id="g-piramide"></figure>
-        <p class="lectura" id="lectura-piramide"></p>
-        <div class="leyenda">
-          <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
-          <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
-          <span><i class="llave hueca"></i>Canarias</span>
-        </div>
+        <div class="lectura" id="lectura-piramide"></div>
+        <!-- La leyenda la escribe el JS a partir de lo que la pirámide ha
+             pintado de verdad: escrita aquí a mano, el PDF anunciaba un
+             Canarias que el dibujo no llevaba. -->
+        <div class="leyenda" id="leyenda-piramide"></div>
+        <p class="vista-info" id="vista-info"></p>
       </div>
     </section>
 
     <section class="tarjeta tercio">
       <header class="rotulo" data-ico="dependencia">
-        <div><h2>Información geodemográfica</h2><p>Los tres ámbitos, ordenados de mayor a menor valor</p></div>
+        <div><h2>Información geodemográfica</h2><p>De mayor a menor, cada barra desde cero hasta el valor más alto de los 88 municipios</p></div>
       </header>
       <div class="cuerpo">
         <div id="g-indices"></div>

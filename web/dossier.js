@@ -104,7 +104,7 @@ function hojaFicha(f, pagina) {
       </section>
 
       <section class="tarjeta">
-        <header class="rotulo">${icono('territorio', 13)}<div><h2>Dónde está el municipio</h2>
+        <header class="rotulo">${icono('territorio', 13)}<div><h2>El municipio en su entorno</h2>
           <p>Su posición por población en Canarias, en su isla y en su comarca</p></div></header>
         <div class="cuerpo"><div class="mapas">
           ${niveles.map(([tit, filtro, r, lim]) => `
@@ -115,19 +115,22 @@ function hojaFicha(f, pagina) {
       </section>
 
       <section class="tarjeta dos-tercios">
-        <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2>
-          <p>Grupos de cinco años · ${f.anio}</p></div></header>
-        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, px(60), 0).svg}</figure>
+        <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
+        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0).svg}</figure>
+          <!-- La leyenda dice lo que la hoja dibuja y nada más. En 2,56 mm de
+               fila cabe una sola capa negra hueca, y la que lleva es la de
+               origen extranjero; por eso aquí no aparece Canarias, que antes se
+               anunciaba sin estar. -->
           <div class="leyenda">
             <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
             <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
-            <span><i class="llave hueca"></i>Canarias</span>
+            <span><i class="llave hueca"></i>De origen extranjero</span>
           </div></div>
       </section>
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
-          <p>De menor a mayor valor</p></div></header>
+          <p>De mayor a menor, desde cero hasta el mayor de los 88</p></div></header>
         <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, IDX.rangos_indices)}</div>
       </section>
 

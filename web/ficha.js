@@ -273,93 +273,223 @@ function graficoExtranjero(ext, w, h) {
 }
 
 /* --------------------------------------------------------------- pirámide -- */
-/** Construye el esqueleto y devuelve las tres vistas. El eje es común a las
- *  tres para que al cambiar solo se mueva la silueta y se puedan comparar. */
+/* EJE ÚNICO. De 0 a 7 % a cada lado, igual en las 88 fichas, en las dos
+   pestañas y en los tres soportes. Antes el tope se calculaba municipio a
+   municipio, y de ahí la queja de Pedro: Santa Cruz salía de dos en dos y San
+   Bartolomé de cinco en cinco. Lo grave no era el rótulo, era que el dibujo
+   mentía. Arico, con un grupo modal del 5,27 %, llenaba el 88 % del semiancho;
+   Artenara, con 6,62 %, el 44 %. Una barra el doble de larga para un valor
+   menor.
+
+   El 7 sale de los datos, no del gusto: el grupo más numeroso de los 88
+   municipios es el de Artenara, 6,621 % de su población. Con tope 6 ó 6,5
+   quedaría cortado, y un eje que corta una barra es un eje que miente. La
+   holgura es escasa —en Artenara, con 1.027 habitantes, una persona vale 0,097
+   puntos— así que exportar_datos.py la comprueba en cada exportación y falla
+   nombrando al municipio si alguno se pasa.
+
+   Lo que cuesta: 46 de las 88 se ven más estrechas que antes. Se ven más
+   estrechas porque lo son; su población está más repartida entre edades. */
+const EJE_PIRAMIDE = 7;
+
+/* Alto de la pirámide en la hoja A4. Si al medir la hoja real no cupiera, esta
+   es la única constante que se toca: toda la geometría se recalcula sola. Por
+   debajo de mm(52) el marco negro deja de poder dibujarse. */
+const ALTO_PIRAMIDE_A4 = mm(57);
+
+/* Tres interruptores. Los tres corresponden a cosas que Pedro dejó abiertas, y
+   se dejan a la vista para poder enseñarle las dos versiones sin tocar nada:
+
+   CANARIAS_FORMA  'barras' son las barras negras huecas que pidió ver;
+                   'silueta' es la escalera negra de antes.
+   A4_CANARIAS     en la hoja cabe una sola capa negra por fila —2,56 mm— y la
+                   que lleva es la de origen extranjero. Con 'silueta', Canarias
+                   vuelve al papel como escalera gris.
+   BASE_CANARIAS   contra qué se compara Canarias. El perfil de Canarias viene
+                   en porcentaje sobre el total del archipiélago, extranjeros
+                   incluidos; enfrentarlo a la parte nacida en España del
+                   municipio sesgaría justo a los de mucha población extranjera. */
+const CANARIAS_FORMA = 'barras';   // 'barras' | 'silueta'
+const A4_CANARIAS    = 'no';       // 'no' | 'silueta'
+const BASE_CANARIAS  = 'total';    // 'total' | 'espanola'
+
+/** Los tres juegos de medidas. El SVG se redibuja a cada ancho; nunca se estira
+ *  uno pequeño, que dejaría el trazo deformado y la letra en un pelo. */
+function medidasPiramide(w) {
+  if (IMPRIMIENDO) return { m: { t: 11, r: 10, b: 13, l: 10 }, hueco: 22, s: 0.7, fe: 8,   rej: 0.6, decadas: false };
+  if (w < 430)     return { m: { t: 12, r: 8,  b: 26, l: 8  }, hueco: 28, s: 1.0, fe: 8.5, rej: 1,   decadas: true };
+  return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 36, s: 1.1, fe: 9.5, rej: 1,   decadas: true };
+}
+
+/** Sólo el límite inferior del grupo: "0 a 4" es 0 y "100 o más" es 100. La
+ *  etiqueta larga obligaba a un canal central de 47 px; así baja a 22 en papel
+ *  y cada lado gana casi 13 px de dato. */
+const limiteEdad = (e) => String(e).split(' ')[0];
+
+/** El glifo negro: un camino de tres lados, abierto contra el eje. Cerrado
+ *  dibujaría también su lado del eje, y las 21 marcas apiladas cerrarían dos
+ *  columnas negras continuas pegadas a los números de edad.
+ *
+ *  El trazo se mete media anchura hacia dentro para que el borde exterior de la
+ *  tinta caiga sobre el dato y no medio píxel más allá. Por debajo de dos
+ *  anchuras de trazo la caja no se puede dibujar, y en vez de ensancharla
+ *  —que sería mentir más que omitir— se deja una marca vertical que fija la
+ *  posición sin fabricar longitud. */
+function glifoNegro(x0, signo, largo, y, alto, s) {
+  if (!(largo > 0)) return '';
+  const xd = x0 + signo * largo;                       // donde cae el dato
+  if (largo < s * 2) return `M${xd.toFixed(2)},${y.toFixed(2)}V${(y + alto).toFixed(2)}`;
+  const xe = x0 + signo * (largo - s / 2);
+  return `M${x0.toFixed(2)},${(y + s / 2).toFixed(2)}`
+       + `H${xe.toFixed(2)}V${(y + alto - s / 2).toFixed(2)}H${x0.toFixed(2)}`;
+}
+
+/** Construye el esqueleto y devuelve las dos vistas más la geometría que
+ *  necesitan la animación y la lectura. `capas` dice qué se ha pintado de
+ *  verdad, y de ahí sale la leyenda: escrita a mano, la leyenda del PDF anunciaba
+ *  un Canarias que el dibujo no llevaba. */
 function construirPiramide(p, w, h, vistaFija = null) {
   const n = p.edades.length;
-  const porc = (H, M) => {
-    const total = H.reduce((a, b) => a + b, 0) + M.reduce((a, b) => a + b, 0);
-    return total > 0
-      ? { H: H.map((v) => v / total * 100), M: M.map((v) => v / total * 100), total }
-      : { H: H.map(() => 0), M: M.map(() => 0), total: 0 };
-  };
+  const { m, hueco, s, fe, rej, decadas } = medidasPiramide(w);
+
+  const total = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0);
+  /* Denominador único: la población total del municipio, los dos sexos, para el
+     relleno y para el marco. Es lo que hace que la superposición sea aritmética
+     y no decorativa: nacida en España % + de origen extranjero % = total % en
+     cada semifila, así que el marco mide exactamente cuánto crece la barra al
+     cambiar de pestaña. */
+  const pc = (V) => total > 0 ? V.map((v) => v / total * 100) : V.map(() => 0);
 
   const ext = p.extranjera_hombres
-    ? { h: p.extranjera_hombres, m: p.extranjera_mujeres }
-    : { h: p.hombres.map(() => 0), m: p.mujeres.map(() => 0) };
-  const espH = p.hombres.map((v, i) => Math.max(0, v - ext.h[i]));
-  const espM = p.mujeres.map((v, i) => Math.max(0, v - ext.m[i]));
+    ? { H: p.extranjera_hombres, M: p.extranjera_mujeres }
+    : { H: p.hombres.map(() => 0), M: p.mujeres.map(() => 0) };
+  const esp = {
+    H: p.hombres.map((v, i) => Math.max(0, v - ext.H[i])),
+    M: p.mujeres.map((v, i) => Math.max(0, v - ext.M[i])),
+  };
+  const conCanarias = BASE_CANARIAS === 'total'
+    ? { H: p.hombres, M: p.mujeres }
+    : esp;
 
   const vistas = [
-    { clave: 'total', etiqueta: 'Población total', ...porc(p.hombres, p.mujeres), canarias: true },
-    { clave: 'espanola', etiqueta: 'Nacida en España', ...porc(espH, espM), canarias: false },
-    { clave: 'extranjera', etiqueta: 'De origen extranjero', ...porc(ext.h, ext.m), canarias: false },
+    {
+      clave: 'municipio', etiqueta: 'Solo municipio',
+      relleno: { H: pc(esp.H), M: pc(esp.M) },
+      negro: { H: pc(ext.H), M: pc(ext.M) },
+      rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
+      cuentaRelleno: esp, cuentaNegro: ext,
+      base: `porcentaje sobre la población total del municipio (${nf(total)} personas)`,
+    },
+    {
+      clave: 'canarias', etiqueta: 'Municipio y Canarias',
+      relleno: { H: pc(conCanarias.H), M: pc(conCanarias.M) },
+      negro: { H: p.canarias_hombres, M: p.canarias_mujeres },
+      rotRelleno: BASE_CANARIAS === 'total' ? 'Población del municipio' : 'Nacida en España',
+      rotNegro: 'Canarias',
+      cuentaRelleno: conCanarias, cuentaNegro: null,
+      base: `el municipio sobre su propia población (${nf(total)} personas), Canarias sobre la del archipiélago`,
+    },
   ];
 
-  const tope = Math.ceil(Math.max(
-    ...vistas.flatMap((v) => [...v.H, ...v.M]),
-    ...p.canarias_hombres, ...p.canarias_mujeres) * 1.08);
-
-  const m = { t: 14, r: 12, b: 30, l: 12 };
-  const hueco = acotar(w * 0.12, 40, 62);
+  // ---- geometría ----
   const centro = w / 2;
   const anchoLado = centro - hueco / 2 - m.l;
   const altoFila = (h - m.t - m.b) / n;
-  const barra = altoFila * 0.76;
-  const fy = (i) => m.t + (n - 1 - i) * altoFila;
-  const escala = (v) => v / tope * anchoLado;
+  const relleno = altoFila * 0.70;          // 0,76 dejaba la calle de papel en 0,36 mm
+  const marco = altoFila * 0.36;
+  const off = (relleno - marco) / 2;
+  const fy = (i) => m.t + (n - 1 - i) * altoFila + (altoFila - relleno) / 2;
+  const escala = (v) => acotar(v, 0, EJE_PIRAMIDE) / EJE_PIRAMIDE * anchoLado;
+  const LADOS = [['h', -1], ['m', 1]];
 
+  // ---- rejilla y eje ----
   let rejilla = '', ejeX = '';
-  for (let v = 0; v <= tope; v += pasoRedondo(tope, 3)) {
-    for (const s of [-1, 1]) {
-      const x = centro + s * (hueco / 2 + escala(v));
-      rejilla += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${h - m.b}" stroke="${C.rejilla}"/>`;
-      // El 0% se rotula a los dos lados, como pidió Pedro.
-      ejeX += `<text x="${x.toFixed(1)}" y="${h - 14}" text-anchor="middle" font-size="9.5" fill="${C.gris}">${v}%</text>`;
+  for (let v = 0; v <= EJE_PIRAMIDE; v++) {
+    for (const [, signo] of LADOS) {
+      const x = centro + signo * (hueco / 2 + escala(v));
+      rejilla += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
+      // Se rotula de dos en dos; el 0 a los dos lados, como pidió Pedro.
+      if (v % 2 === 0) {
+        ejeX += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
+              + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}%</text>`;
+      }
+    }
+  }
+  /* Cuatro horizontales en los cortes de década. Entregan "a partir de los 20"
+     sin ratón y sin una sola palabra que interprete. En la hoja no caben. */
+  if (decadas) {
+    for (const k of [4, 8, 12, 16]) {
+      const y = m.t + (n - k) * altoFila;
+      rejilla += `<line x1="${m.l}" y1="${y.toFixed(1)}" x2="${(w - m.r).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
     }
   }
 
   const fija = vistaFija == null ? null : vistas[vistaFija];
-  let barras = '', etiquetas = '';
+  const dibujarSilueta = fija ? A4_CANARIAS === 'silueta' : CANARIAS_FORMA === 'silueta';
+
+  // ---- barras, glifos y edades ----
+  let barras = '', negros = '', etiquetas = '';
   for (let i = 0; i < n; i++) {
-    const y = fy(i).toFixed(1), alt = barra.toFixed(1);
-    const aH = fija ? escala(fija.H[i]) : 0, aM = fija ? escala(fija.M[i]) : 0;
-    const id = fija ? '' : `id="ph${i}" `;
-    const id2 = fija ? '' : `id="pm${i}" `;
-    barras += `<rect ${id}x="${(centro - hueco / 2 - aH).toFixed(1)}" y="${y}" width="${aH.toFixed(1)}" height="${alt}" fill="${C.azulMedio}" rx="1.5"/>`;
-    barras += `<rect ${id2}x="${(centro + hueco / 2).toFixed(1)}" y="${y}" width="${aM.toFixed(1)}" height="${alt}" fill="${C.azulClaro}" rx="1.5"/>`;
-    etiquetas += `<text x="${centro}" y="${(fy(i) + barra / 2 + 3).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="${C.gris}">${p.edades[i]}</text>`;
-  }
-
-  // Perfil de Canarias: línea negra continua, escalonada.
-  const perfil = [];
-  for (const [serie, signo] of [[p.canarias_hombres, -1], [p.canarias_mujeres, 1]]) {
-    const pts = [];
-    for (let i = 0; i < n; i++) {
-      const x = centro + signo * (hueco / 2 + escala(serie[i]));
-      pts.push(`${x.toFixed(1)},${(fy(i) + barra).toFixed(1)}`, `${x.toFixed(1)},${fy(i).toFixed(1)}`);
+    const y = fy(i);
+    for (const [lado, signo] of LADOS) {
+      const clave = lado === 'h' ? 'H' : 'M';
+      const col = lado === 'h' ? C.azulMedio : C.azulClaro;
+      const x0 = centro + signo * hueco / 2;
+      const aR = fija ? escala(fija.relleno[clave][i]) : 0;
+      barras += `<rect ${fija ? '' : `id="p${lado}${i}" `}`
+              + `x="${(signo < 0 ? x0 - aR : x0).toFixed(2)}" y="${y.toFixed(2)}" `
+              + `width="${aR.toFixed(2)}" height="${relleno.toFixed(2)}" fill="${col}"/>`;
+      if (!dibujarSilueta) {
+        const d = fija ? glifoNegro(x0, signo, escala(fija.negro[clave][i]), y + off, marco, s) : '';
+        negros += `<path ${fija ? '' : `id="n${lado}${i}" `}d="${d}" fill="none" `
+                + `stroke="${C.negro}" stroke-width="${s}" stroke-linejoin="miter"/>`;
+      }
     }
-    perfil.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="${C.negro}" stroke-width="1.3" stroke-linejoin="round"/>`);
+    etiquetas += `<text x="${centro.toFixed(1)}" y="${(y + relleno / 2 + fe * 0.36).toFixed(1)}" `
+               + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${limiteEdad(p.edades[i])}</text>`;
   }
 
-  // Franjas transparentes por grupo de edad: capturan el ratón para poder leer
-  // los valores exactos, que es lo que una ficha en papel no puede dar.
+  // ---- silueta de repuesto, si se pide ----
+  let silueta = '';
+  if (dibujarSilueta) {
+    const v = fija || vistas[1];
+    for (const [lado, signo] of LADOS) {
+      const serie = v.negro[lado === 'h' ? 'H' : 'M'];
+      const pts = [];
+      for (let i = 0; i < n; i++) {
+        const x = centro + signo * (hueco / 2 + escala(serie[i]));
+        pts.push(`${x.toFixed(1)},${(fy(i) + relleno).toFixed(1)}`, `${x.toFixed(1)},${fy(i).toFixed(1)}`);
+      }
+      silueta += `<polyline points="${pts.join(' ')}" fill="none" stroke="${IMPRIMIENDO ? C.gris : C.negro}" `
+               + `stroke-width="${IMPRIMIENDO ? 0.9 : 1.3}" stroke-linejoin="round"/>`;
+    }
+  }
+
+  // ---- franjas de lectura ----
   let franjas = '';
   if (!fija) {
     franjas = `<rect id="franja-activa" x="${m.l}" y="0" width="${(w - m.l - m.r).toFixed(1)}" `
-            + `height="${barra.toFixed(1)}" fill="${C.azul}" opacity="0" pointer-events="none"/>`;
+            + `height="${altoFila.toFixed(1)}" fill="${C.azul}" opacity="0" pointer-events="none"/>`
+            + `<g id="marcas-activas" opacity="0" pointer-events="none"></g>`;
     for (let i = 0; i < n; i++) {
-      franjas += `<rect class="franja" data-i="${i}" x="${m.l}" y="${(fy(i) - (altoFila - barra) / 2).toFixed(1)}" `
+      franjas += `<rect class="franja" data-i="${i}" x="${m.l}" y="${(m.t + (n - 1 - i) * altoFila).toFixed(1)}" `
                + `width="${(w - m.l - m.r).toFixed(1)}" height="${altoFila.toFixed(1)}" fill="transparent"/>`;
     }
   }
 
-  const svg = abrirSVG(w, h, 'Pirámide de población del municipio comparada con el perfil de Canarias')
-    + rejilla + barras
-    + (fija && !fija.canarias ? '' : `<g${fija ? '' : ' id="perfil-canarias"'}>${perfil.join('')}</g>`)
-    + etiquetas + ejeX + franjas + '</svg>';
+  const svg = abrirSVG(w, h, `Pirámide de población en porcentaje, eje de 0 a ${EJE_PIRAMIDE} %`)
+    + rejilla + barras + negros + silueta + etiquetas + ejeX + franjas + '</svg>';
 
-  return { svg, vistas, escala, centro, hueco, edades: p.edades, fy, barra, altoFila };
+  return {
+    svg, vistas, escala, centro, hueco, edades: p.edades, total,
+    fy, relleno, marco, off, altoFila, trazo: s, glifo: glifoNegro,
+    silueta: dibujarSilueta,
+    // La franja de lectura cubre la fila entera, no sólo la barra.
+    fyFranja: (i) => m.t + (n - 1 - i) * altoFila,
+    // El municipio completo, que es lo que enseña la lectura en reposo.
+    municipio: { pct: { H: pc(p.hombres), M: pc(p.mujeres) },
+                 cuenta: { H: p.hombres, M: p.mujeres } },
+  };
 }
 
 /* --------------------------------------------- índices geodemográficos ----- */
@@ -379,18 +509,21 @@ function bloqueIndices(ind, codigos, isla, rangos) {
     const filas = [['Canarias', d.canarias], [isla, d.isla], ['Municipio', d.municipio]]
       .filter(([, v]) => v != null)
       .sort((a, b) => b[1] - a[1]);
+    /* El chip no lleva el "%" que trae el diccionario del Excel: juventud,
+       dependencia y reemplazo son "por cien", no porcentajes, y el divisor no
+       es el total de la población. Lleva en su lugar el recorrido de la escala,
+       que es lo que hace falta para leer la barra. */
     const dec = cod === 'C10' ? 2 : 1;
     const tope = (rangos && rangos[cod] && rangos[cod].max)
       || Math.max(...filas.map(([, v]) => v)) || 1;
     return `<div class="indice">
-      <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio}${d.unidad ? ' · ' + d.unidad : ''}</em></div>
+      <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio} · 0 a ${nf(tope, dec)}</em></div>
       <div class="escala">${filas.map(([n, v], i) => `
         <div class="peldano">
           <span>${esc(n)}</span>
           <span class="barra"><i style="width:${acotar(v / tope * 100, 1, 100).toFixed(1)}%;background:${TONOS[filas.length - 1 - i]}"></i></span>
           <b>${nf(v, dec)}</b>
         </div>`).join('')}</div>
-      <p class="indice-escala">Escala de 0 a ${nf(tope, dec)}, el valor más alto de los 88 municipios.</p>
     </div>`;
   }).join('');
 }
@@ -499,6 +632,7 @@ function cifrasClave(f) {
 
 /* ================================================================= montaje == */
 let GEO = null, INDICE = null, FICHA = null, PIRAMIDE = null, VISTA = 0;
+let FILA = null;   // grupo de edad señalado en la pirámide, o null
 
 async function cargar(codmun) {
   const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
@@ -509,34 +643,81 @@ async function cargar(codmun) {
 
 const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Transición entre pirámides: interpola las anchuras de cada barra. */
+/** Transición entre pestañas. Interpola a la vez el ancho del relleno azul y el
+ *  largo del glifo negro, que es lo que hace que el cambio signifique algo: al
+ *  pasar de "Solo municipio" a "Municipio y Canarias", cada barra crece
+ *  exactamente el largo del marco que llevaba dentro, porque ese marco es la
+ *  población de origen extranjero. El movimiento es la cantidad. */
 let animacion = null;
+const LADOS_PI = [['h', -1, 'H'], ['m', 1, 'M']];
+
+/** La leyenda sale de lo que la pirámide ha pintado de verdad. Escrita a mano
+ *  en el HTML, el PDF anunciaba un Canarias que el dibujo no llevaba. */
+function pintarLeyendaPiramide(vista) {
+  const cont = document.getElementById('leyenda-piramide');
+  if (!cont) return;
+  const llaves = [
+    `<span><i class="llave" style="background:${C.azulMedio}"></i>Hombres</span>`,
+    `<span><i class="llave" style="background:${C.azulClaro}"></i>Mujeres</span>`,
+  ];
+  if (vista.negro) {
+    const forma = PIRAMIDE && PIRAMIDE.silueta ? 'llave linea' : 'llave hueca';
+    llaves.push(`<span><i class="${forma}"></i>${esc(vista.rotNegro)}</span>`);
+  }
+  cont.innerHTML = llaves.join('');
+}
+
 function mostrarVista(i, animar = true) {
   if (!PIRAMIDE) return;
+  const P = PIRAMIDE;
   VISTA = i;
-  const v = PIRAMIDE.vistas[i];
-  const { escala, centro, hueco } = PIRAMIDE;
-  const n = v.H.length;
+  const v = P.vistas[i];
+  const n = v.relleno.H.length;
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
-  const perfil = document.getElementById('perfil-canarias');
-  if (perfil) perfil.style.display = v.canarias ? '' : 'none';
-  document.getElementById('vista-info').innerHTML =
-    `<b>${esc(v.etiqueta)}</b> · ${nf(v.total)} personas · porcentaje sobre este total`;
+  pintarLeyendaPiramide(v);
+  const info = document.getElementById('vista-info');
+  if (info) {
+    info.innerHTML = `<b>${esc(v.etiqueta)}</b> · ${esc(v.base)} · `
+                   + `eje de 0 a ${EJE_PIRAMIDE} %, el mismo en las 88 fichas`;
+  }
 
-  const rh = [], rm = [];
-  for (let k = 0; k < n; k++) { rh.push(document.getElementById('ph' + k)); rm.push(document.getElementById('pm' + k)); }
-  if (!rh[0]) return;
+  if (!P.nodos) {
+    P.nodos = {}; P.actual = {};
+    for (const [lado] of LADOS_PI) {
+      P.nodos[lado] = { r: [], n: [] };
+      for (let k = 0; k < n; k++) {
+        P.nodos[lado].r.push(document.getElementById(`p${lado}${k}`));
+        P.nodos[lado].n.push(document.getElementById(`n${lado}${k}`));
+      }
+      P.actual[lado] = { r: new Array(n).fill(0), n: new Array(n).fill(0) };
+    }
+  }
+  if (!P.nodos.h.r[0]) return;
 
-  const desdeH = rh.map((r) => parseFloat(r.getAttribute('width')) || 0);
-  const desdeM = rm.map((r) => parseFloat(r.getAttribute('width')) || 0);
-  const haciaH = v.H.map(escala), haciaM = v.M.map(escala);
+  const hacia = {}, desde = {};
+  for (const [lado, , cl] of LADOS_PI) {
+    hacia[lado] = {
+      r: v.relleno[cl].map(P.escala),
+      n: (v.negro ? v.negro[cl] : v.relleno[cl].map(() => 0)).map(P.escala),
+    };
+    desde[lado] = { r: P.actual[lado].r.slice(), n: P.actual[lado].n.slice() };
+  }
 
-  const aplicar = (H, M) => {
-    for (let k = 0; k < n; k++) {
-      rh[k].setAttribute('width', H[k].toFixed(1));
-      rh[k].setAttribute('x', (centro - hueco / 2 - H[k]).toFixed(1));
-      rm[k].setAttribute('width', M[k].toFixed(1));
+  const aplicar = (t) => {
+    for (const [lado, sg] of LADOS_PI) {
+      const x0 = P.centro + sg * P.hueco / 2;
+      for (let k = 0; k < n; k++) {
+        const aR = desde[lado].r[k] + (hacia[lado].r[k] - desde[lado].r[k]) * t;
+        const aN = desde[lado].n[k] + (hacia[lado].n[k] - desde[lado].n[k]) * t;
+        const rect = P.nodos[lado].r[k];
+        rect.setAttribute('width', Math.max(0, aR).toFixed(2));
+        rect.setAttribute('x', (sg < 0 ? x0 - aR : x0).toFixed(2));
+        const cam = P.nodos[lado].n[k];
+        if (cam) cam.setAttribute('d', P.glifo(x0, sg, aN, P.fy(k) + P.off, P.marco, P.trazo));
+        P.actual[lado].r[k] = aR;
+        P.actual[lado].n[k] = aN;
+      }
     }
   };
 
@@ -544,17 +725,17 @@ function mostrarVista(i, animar = true) {
   // Sin animación si el usuario la ha desactivado en el sistema, y tampoco si la
   // pestaña está oculta: ahí el navegador congela requestAnimationFrame y la
   // pirámide se quedaría a medio camino.
-  if (!animar || reducido() || document.hidden) { aplicar(haciaH, haciaM); return; }
+  if (!animar || reducido() || document.hidden) { aplicar(1); pintarLectura(FILA); return; }
 
   const dur = 620, t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
     const e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // easeInOutCubic
-    aplicar(desdeH.map((d, k) => d + (haciaH[k] - d) * e),
-            desdeM.map((d, k) => d + (haciaM[k] - d) * e));
+    aplicar(e);
     if (p < 1) animacion = requestAnimationFrame(paso);
   };
   animacion = requestAnimationFrame(paso);
+  pintarLectura(FILA);
 }
 
 // Si la pestaña se oculta a mitad de una transición, al volver se fija el
@@ -615,7 +796,10 @@ function pintar(f) {
   doc.getElementById('g-extranjero').innerHTML =
     graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
 
-  PIRAMIDE = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? mm(60) : acotar(wPi * 0.70, 360, 470));
+  // En la hoja se imprime siempre la primera pestaña: en 2,56 mm de fila cabe
+  // una sola capa negra hueca, y la que lleva es la de origen extranjero.
+  if (IMPRIMIENDO) VISTA = 0;
+  PIRAMIDE = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : acotar(wPi * 0.70, 360, 470));
   doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
   mostrarVista(VISTA, false);
 
@@ -647,27 +831,140 @@ function pintar(f) {
 }
 
 /* ------------------------------------------------------- lecturas al vuelo -- */
-/* Un gráfico impreso no puede dar el valor exacto de una barra. Este sí. */
+/* Un gráfico impreso no puede dar el valor exacto de una barra. Este sí, y lo
+   da sin globo flotante: un globo se pierde en el móvil, lo tapa el dedo y no
+   existe en papel. El bloque va fijo debajo del dibujo, con la altura
+   reservada para que nada salte, y nunca está vacío: en reposo enseña el total
+   del municipio, que es la única cifra exacta que la ficha impresa no llevaba.
+
+   Ni una palabra que califique. No hay "más que", ni "por encima de", ni
+   flechas, ni diferencias con signo: un signo delante de una diferencia se lee
+   como una nota. */
+
+const LLAVE_RELLENA = `<i class="lec-llave" style="background:${C.azulMedio}"></i>`;
+const LLAVE_HUECA   = `<i class="lec-llave hueca"></i>`;
+const LLAVE_SIN     = `<i class="lec-llave vacia"></i>`;
+
+function pintarLectura(i) {
+  const salida = document.getElementById('lectura-piramide');
+  if (!salida || !PIRAMIDE) return;
+  const P = PIRAMIDE, v = P.vistas[VISTA], base = P.vistas[0];
+  const todo = i == null;
+  const suma = (V) => V.reduce((a, b) => a + (b || 0), 0);
+  const val = (V) => !V ? 0 : (todo ? suma(V) : (V[i] || 0));
+
+  const pH = val(P.municipio.pct.H), pM = val(P.municipio.pct.M);
+  const cH = val(P.municipio.cuenta.H), cM = val(P.municipio.cuenta.M);
+
+  /* Dos decimales siempre: con 0,74 % un solo decimal borra la diferencia
+     entre dos grupos de edad contiguos. */
+  const fila = (llave, rot, a, b, na, nb) => `
+    <div class="lec-fila">${llave}<span>${esc(rot)}</span>
+      <b>${nf(a, 2)} % · ${nf(b, 2)} %</b>
+      ${na == null ? '<em></em>' : `<em>${nf(na)} · ${nf(nb)}</em>`}
+    </div>`;
+
+  /* La desagregación entre nacida en España y de origen extranjero no
+     desaparece al cambiar de pestaña; lo que cambia es si tiene marca propia en
+     el dibujo. Las filas sin marca van sin símbolo, precisamente por eso. */
+  const filas = [];
+  if (VISTA === 1) filas.push(fila(LLAVE_HUECA, 'Canarias', val(v.negro.H), val(v.negro.M), null, null));
+  filas.push(fila(VISTA === 0 ? LLAVE_RELLENA : LLAVE_SIN, 'Nacida en España',
+    val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)));
+  filas.push(fila(VISTA === 0 ? LLAVE_HUECA : LLAVE_SIN, 'De origen extranjero',
+    val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)));
+
+  salida.innerHTML = `
+    <div class="lec-izq">
+      <b>${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</b>
+      <div><span>Hombres</span><b>${nf(pH, 2)} %</b><em>${nf(cH)}</em></div>
+      <div><span>Mujeres</span><b>${nf(pM, 2)} %</b><em>${nf(cM)}</em></div>
+    </div>
+    <div class="lec-der">
+      <p class="lec-cab">hombres · mujeres</p>
+      ${filas.join('')}
+    </div>`;
+}
 
 function conectarLecturaPiramide() {
-  const svg = document.querySelector('#g-piramide svg');
-  const salida = document.getElementById('lectura-piramide');
-  if (!svg || !salida || !PIRAMIDE) return;
+  const fig = document.getElementById('g-piramide');
+  const svg = fig && fig.querySelector('svg');
+  if (!svg || !PIRAMIDE) return;
   const activa = svg.querySelector('#franja-activa');
+  const marcas = svg.querySelector('#marcas-activas');
+  if (!activa || !marcas) return;
+  let fijada = false;
+
+  /* Los cuatro marcadores: círculo relleno en la punta de cada barra y cuadro
+     negro hueco en la punta de cada marca negra. Es lo que Pedro pedía cuando
+     dijo "que se mueva de un punto a otro a municipio y de uno a otro a
+     Canarias". El nombre va en la lectura y no pegado al punto: pegado al
+     punto cambia de serie según la edad y acaba leyéndose como un veredicto de
+     quién gana en cada grupo. */
+  const pintarMarcas = (i) => {
+    const P = PIRAMIDE;
+    let out = '';
+    for (const [lado, sg] of LADOS_PI) {
+      const x0 = P.centro + sg * P.hueco / 2;
+      const y = P.fy(i) + P.relleno / 2;
+      const xr = x0 + sg * P.actual[lado].r[i];
+      out += `<circle cx="${xr.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="${C.azul}" stroke="#FFFFFF" stroke-width="1.2"/>`;
+      if (P.vistas[VISTA].negro) {
+        const xn = x0 + sg * P.actual[lado].n[i];
+        out += `<rect x="${(xn - 3.1).toFixed(1)}" y="${(y - 3.1).toFixed(1)}" width="6.2" height="6.2" `
+             + `fill="#FFFFFF" stroke="${C.negro}" stroke-width="1.3"/>`;
+      }
+    }
+    marcas.innerHTML = out;
+  };
+
+  const senalar = (i) => {
+    FILA = i;
+    if (i == null) {
+      activa.setAttribute('opacity', '0');
+      marcas.setAttribute('opacity', '0');
+    } else {
+      activa.setAttribute('y', PIRAMIDE.fyFranja(i).toFixed(1));
+      activa.setAttribute('opacity', '.07');
+      pintarMarcas(i);
+      marcas.setAttribute('opacity', '1');
+    }
+    pintarLectura(i);
+  };
+  PIRAMIDE.senalar = senalar;
 
   svg.querySelectorAll('.franja').forEach((fr) => {
-    fr.addEventListener('mouseenter', () => {
-      const i = +fr.dataset.i, v = PIRAMIDE.vistas[VISTA];
-      activa.setAttribute('y', (PIRAMIDE.fy(i)).toFixed(1));
-      activa.setAttribute('opacity', '.07');
-      salida.innerHTML = `<b>${esc(PIRAMIDE.edades[i])} años</b> · `
-        + `Hombres ${nf(v.H[i], 2)}% · Mujeres ${nf(v.M[i], 2)}%`;
+    const i = +fr.dataset.i;
+    // pointerenter cubre ratón y lápiz; con mouseenter a secas, en el móvil no
+    // se podía leer ni una cifra.
+    fr.addEventListener('pointerenter', () => { if (!fijada) senalar(i); });
+    fr.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      fijada = !(fijada && FILA === i);
+      senalar(fijada ? i : null);
     });
   });
-  svg.addEventListener('mouseleave', () => {
-    activa.setAttribute('opacity', '0');
-    salida.textContent = '';
+
+  svg.addEventListener('pointerleave', () => { if (!fijada) senalar(null); });
+
+  fig.setAttribute('tabindex', '0');
+  fig.addEventListener('keydown', (e) => {
+    const n = PIRAMIDE.edades.length;
+    let i = FILA;
+    switch (e.key) {
+      case 'ArrowUp':   i = i == null ? 0 : Math.min(n - 1, i + 1); break;
+      case 'ArrowDown': i = i == null ? n - 1 : Math.max(0, i - 1); break;
+      case 'Home':      i = 0; break;
+      case 'End':       i = n - 1; break;
+      case 'Escape':    i = null; fijada = false; break;
+      default: return;
+    }
+    e.preventDefault();
+    if (i != null) fijada = true;
+    senalar(i);
   });
+
+  senalar(FILA);
 }
 
 function conectarLecturaEvolucion() {
@@ -735,8 +1032,22 @@ function montarIconos() {
 
 /* Chrome, Safari y Firefox disparan beforeprint antes de maquetar la hoja, así
    que da tiempo a redibujar. Vale igual para Ctrl+P que para el botón. */
-addEventListener('beforeprint', () => { if (FICHA) { IMPRIMIENDO = true; pintar(FICHA); } });
-addEventListener('afterprint', () => { if (FICHA) { IMPRIMIENDO = false; pintar(FICHA); } });
+/* La hoja imprime siempre la primera pestaña, pero la que estuviera abierta en
+   pantalla se devuelve al terminar: quien imprimía desde "Municipio y Canarias"
+   se encontraba con la otra al volver. */
+let VISTA_ANTES = 0;
+addEventListener('beforeprint', () => {
+  if (!FICHA) return;
+  VISTA_ANTES = VISTA;
+  IMPRIMIENDO = true;
+  pintar(FICHA);
+});
+addEventListener('afterprint', () => {
+  if (!FICHA) return;
+  IMPRIMIENDO = false;
+  VISTA = VISTA_ANTES;
+  pintar(FICHA);
+});
 
 let temporizador = null, anchoPrevio = window.innerWidth;
 addEventListener('resize', () => {
