@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=49">
+<link rel="stylesheet" href="estilos.css?v=50">
 </head>
 <body>
 
@@ -34,9 +34,7 @@
       <div class="tapa-cuerpo">
         <div class="tapa-texto ent">
           <h1>Una ficha por cada municipio de Canarias</h1>
-          <p>La estructura de su población, su evolución desde 1996, su lugar de nacimiento
-             y su posición dentro de la isla y del archipiélago.
-             <span id="tapa-anio"></span></p>
+          <p id="tapa-anio"></p>
         </div>
         <div class="tapa-datos" id="tapa-datos"></div>
       </div>
@@ -45,46 +43,25 @@
     <div class="filtros">
       <div class="buscador ent" data-ico="buscar">
         <label class="oculto" for="buscar">Buscar municipio por nombre</label>
-        <input type="search" id="buscar" placeholder="Buscar municipio por nombre" autocomplete="off">
+        <input type="search" id="buscar" placeholder="Buscar municipio por nombre"
+               autocomplete="off" role="combobox" aria-expanded="false"
+               aria-controls="resultados" aria-autocomplete="list">
+        <div class="desplegable" id="resultados" role="listbox"
+             aria-label="Municipios encontrados" hidden></div>
       </div>
-      <div class="islas" id="chips"><b>Por isla</b></div>
-      <span class="cmp-acceso">
-        <a class="btn btn-liso" href="guia.html" data-ico="dependencia">Cómo se lee</a>
-        <a class="btn btn-liso" href="comparar.html" data-ico="relevo">Comparar municipios</a>
-        <a class="btn btn-liso" href="dossier.html" data-ico="descargar">Dossier de las 88</a>
-      </span>
+      <div class="islas" id="islas"><b>Por isla</b></div>
     </div>
 
-    <div class="tapa-mapa">
-      <div class="islario" id="islario"></div>
-
-      <div class="panel ent">
-        <div class="panel-ficha">
-          <p class="kicker">Municipio</p>
-          <h2 id="panel-nombre">—</h2>
-          <p id="panel-isla"></p>
-          <a class="btn" id="panel-enlace" href="ficha.html" data-ico-fin="flecha" data-px="16">Abrir ficha demográfica</a>
-        </div>
-        <div class="ayuda">
-          <b>Cómo leer el mapa</b>
-          <p>Cada isla se dibuja a su propia escala para que en todas se pueda pinchar
-             cualquier municipio. Los tamaños no son comparables entre islas.</p>
-          <div><i style="background:#B5D4F4"></i>Municipio</div>
-          <div><i style="background:#2E75B6"></i>Bajo el cursor</div>
-          <div><i style="background:#185FA5"></i>Seleccionado</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="listado">
-      <h2 id="cuenta">Los 88 municipios</h2>
-      <div class="columnas" id="listado"></div>
+    <div class="atajos">
+      <a class="btn btn-liso" href="guia.html" data-ico="dependencia">Cómo se lee</a>
+      <a class="btn btn-liso" href="comparar.html" data-ico="relevo">Comparar municipios</a>
+      <a class="btn btn-liso" href="dossier.html" data-ico="descargar">Dossier de las 88</a>
     </div>
 
   </div>
 </main>
 
-<script src="iconos.js?v=49"></script>
-<script src="portada.js?v=49"></script>
+<script src="iconos.js?v=50"></script>
+<script src="portada.js?v=50"></script>
 </body>
 </html>

@@ -316,24 +316,32 @@ select {
 
 /* =============================================================== portada === */
 .portada { max-width: 1180px; margin: 0 auto; padding: 22px 20px 70px; }
+/* Sin overflow:hidden. Lo llevaba para recortar el azul en las esquinas, pero
+   también recortaba los desplegables de las islas, que tienen que poder salirse
+   de la tarjeta. El redondeo lo ponen ahora la primera y la última franja. */
 .tapa {
   border: 1px solid var(--linea); border-radius: var(--r-3);
-  overflow: hidden; box-shadow: var(--s-1); background: var(--fondo);
+  box-shadow: var(--s-1); background: var(--fondo);
 }
+.tapa > :first-child { border-radius: var(--r-3) var(--r-3) 0 0; }
+.tapa > :last-child  { border-radius: 0 0 var(--r-3) var(--r-3); }
 .tapa-alto {
   background: var(--azul); color: #fff;
-  padding: 30px var(--e-7) 34px;
-  display: flex; flex-direction: column; gap: 26px;
+  padding: 26px var(--e-7) 30px;
+  display: flex; flex-direction: column; gap: 22px;
 }
-.tapa-marca { display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
-.tapa-marca img { height: 38px; width: auto; display: block; }
+/* Juntos y a la izquierda, como en la cabecera del resto de páginas: sueltos
+   en los dos extremos, la placa blanca quedaba flotando sobre el azul. */
+.tapa-marca { display: flex; align-items: center; gap: var(--e-4); flex-wrap: wrap; }
+.tapa-marca img { height: 32px; width: auto; display: block; }
 .tapa-marca .placa {
-  background: #fff; border-radius: var(--r-2); padding: 10px 14px;
+  background: #fff; border-radius: var(--r-2); padding: 8px 12px;
   display: inline-flex; box-shadow: var(--s-1);
 }
-.tapa-marca span {
+.tapa-marca > span:last-child {
   font-size: 12px; font-weight: 600; letter-spacing: .18em;
   text-transform: uppercase; color: var(--azul-sobre);
+  padding-left: var(--e-4); border-left: 1px solid rgba(255, 255, 255, .3);
 }
 .tapa-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
 .tapa-cuerpo h1 {
@@ -361,11 +369,13 @@ select {
   display: flex; align-items: center; gap: var(--e-5); flex-wrap: wrap;
 }
 .buscador {
+  position: relative;
   width: 320px; display: flex; align-items: center; gap: var(--e-3);
   background: var(--fondo); border: 1px solid var(--linea);
   border-radius: var(--r-2); padding: 0 var(--e-4); height: 46px;
   color: var(--gris);
 }
+.buscador .desplegable { width: 100%; }
 .buscador input {
   border: 0; outline: none; font: inherit; font-size: 14px;
   color: var(--negro); width: 100%; height: 100%; background: transparent;
@@ -377,81 +387,46 @@ select {
 }
 .chip {
   font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
   color: var(--negro); background: var(--fondo);
   border: 1px solid var(--linea); border-radius: var(--r-full);
-  padding: 8px 15px; white-space: nowrap;
+  padding: 8px 13px 8px 15px; white-space: nowrap;
 }
 .chip em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
 .chip:hover { border-color: var(--azul); }
-.chip[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
-.chip[aria-pressed="true"] em { color: var(--azul-sobre); }
 
-.tapa-mapa { padding: 30px var(--e-7); display: grid; grid-template-columns: 1fr 300px; gap: var(--e-6); align-items: start; }
+/* Desplegable: lo comparten el buscador y las siete islas. Alto fijo para que
+   la caja no cambie de tamaño de una isla a otra, y la lista que no cabe se
+   desplaza por dentro. */
+.desplegable {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
+  width: 268px; max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--fondo); border: 1px solid var(--linea);
+  border-radius: var(--r-2); box-shadow: var(--s-2); padding: 6px;
+}
+.desplegable a {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-3);
+  font-size: 13.5px; color: var(--negro); text-decoration: none;
+  padding: 9px var(--e-3); border-radius: var(--r-1); line-height: 1.3;
+}
+.desplegable a em {
+  font-style: normal; font-size: 11.5px; color: var(--gris-40); white-space: nowrap;
+}
+.desplegable a:hover, .desplegable a:focus {
+  outline: none; background: var(--azul); color: #fff;
+}
+.desplegable a:hover em, .desplegable a:focus em { color: var(--azul-sobre); }
+.desplegable .vacio { padding: var(--e-3); }
 
-.islario { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); }
-.isla {
-  border: 1px solid var(--linea); border-radius: var(--r-3);
-  padding: var(--e-3) var(--e-4) var(--e-4);
-  /* El reparto lo calcula el JS, que es quien conoce el ancho real con el que
-     ha dibujado cada isla. Si lo decidiera una media query, el SVG quedaría
-     dibujado a una anchura y colocado en otra. */
-  grid-column: span var(--cols, 4); background: var(--fondo);
-  display: flex; flex-direction: column;
-}
-.isla h2 {
-  font-size: 11px; font-weight: 700; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--azul); margin-bottom: var(--e-2);
-  display: flex; justify-content: space-between; align-items: baseline;
-  gap: var(--e-2); flex-wrap: wrap;
-}
-.isla h2 span, .isla h2 em { white-space: nowrap; }
-.isla h2 em { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--gris); font-size: 11px; }
-.isla.apagada { opacity: .34; }
-.isla svg { width: 100%; margin: auto; }
-.isla path { fill: var(--azul-palido); stroke: var(--fondo); stroke-width: .8; cursor: pointer; transition: fill .12s; }
-.isla a:hover path { fill: var(--azul-medio); }
-.isla a:focus { outline: none; }
-.isla a:focus-visible path { fill: var(--azul-medio); stroke: var(--negro); stroke-width: 1.4; }
-.isla path.marcado { fill: var(--azul); }
+.isla-menu { position: relative; }
+.chip .galon { transition: transform .15s; margin-left: 1px; color: var(--gris); }
+.chip[aria-expanded="true"] { border-color: var(--azul); color: var(--azul); }
+.chip[aria-expanded="true"] .galon { transform: rotate(180deg); color: var(--azul); }
 
-.panel { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 86px; }
-.panel-ficha {
-  border: 1px solid var(--linea); border-radius: var(--r-3);
-  padding: 22px var(--e-5) var(--e-5); background: var(--fondo); box-shadow: var(--s-2);
+.atajos {
+  padding: var(--e-5) var(--e-7); display: flex; gap: var(--e-2); flex-wrap: wrap;
 }
-.panel-ficha .kicker {
-  font-size: 11px; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--azul);
-}
-.panel-ficha h2 { font-size: 24px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; margin-top: var(--e-3); text-wrap: balance; }
-.panel-ficha p { font-size: 13px; color: var(--gris); margin-top: 6px; }
-.panel-ficha .btn { margin-top: 20px; font-size: 14px; padding: var(--e-3) 20px; }
-.ayuda {
-  background: var(--caja); border: 1px solid var(--linea); border-radius: var(--r-3);
-  padding: 20px 22px; display: flex; flex-direction: column; gap: var(--e-3);
-}
-.ayuda b { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--azul); }
-.ayuda p { font-size: 13px; line-height: 1.6; text-wrap: pretty; }
-.ayuda div { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--gris); }
-.ayuda i { width: 16px; height: 16px; border-radius: 3px; flex: none; }
 
-.listado { padding: 0 var(--e-7) var(--e-7); }
-.listado > h2 {
-  font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--azul); padding-top: var(--e-5); border-top: 1px solid var(--linea);
-  margin-bottom: var(--e-4);
-}
-.columnas { columns: 4 200px; column-gap: var(--e-6); }
-.grupo { break-inside: avoid; margin-bottom: var(--e-5); }
-.grupo h3 {
-  font-size: 12px; font-weight: 700; color: var(--negro);
-  padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--linea);
-}
-.grupo a {
-  display: block; font-size: 13px; color: var(--negro); text-decoration: none;
-  padding: 4px 0; line-height: 1.35;
-}
-.grupo a:hover { color: var(--azul); text-decoration: underline; }
 .vacio { font-size: 13px; color: var(--gris); }
 
 /* --------------------------------------------------------------- entrada --- */
@@ -600,69 +575,47 @@ select {
 }
 
 /* ================================================= entrada de la portada === */
-/* Los 88 municipios entran en oleada de oeste a este y las divisorias cierran
-   la secuencia. Reglas de movimiento que conviene no tocar:
+/* Reglas de movimiento que conviene no tocar:
 
      · Desplazamiento máximo de 10 px, y de 6 px si el elemento lleva texto.
        Ningún texto escala, rota ni se desenfoca: a mitad de transición ya es
        legible.
      · Las cuatro cifras aparecen escritas. No cuentan hacia arriba ni rebotan:
        eso dramatizaría el dato, y aquí el dato son personas.
-     · Los 88 municipios comparten duración, color y escala. Ninguno lleva
-       acento ni orden de importancia; lo único que los ordena es la longitud
-       geográfica, que no dice nada de ellos.
 
-   El total es de 1.440 ms. Solo se usan opacity y transform. */
+   Antes la secuencia terminaba con los 88 municipios del mapa entrando en
+   oleada de oeste a este. Sin mapa se acaba en las islas, y la entrada dura
+   ahora unos 700 ms en vez de 1.440. Solo se usan opacity y transform. */
 
 @keyframes entrar {
   from { opacity: 0; transform: translateY(var(--y, 6px)); }
   to   { opacity: 1; transform: none; }
 }
-@keyframes surgir-municipio {
-  from { opacity: 0; transform: scale(.96); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes surgir-divisoria {
-  from { stroke-opacity: 0; }
-  to   { stroke-opacity: 1; }
-}
 
 /* A la espera de que la sección entre en pantalla. Sin ninguna de las dos
    clases, todo se ve: si el JS fallara, la portada no se queda en blanco. */
 .tapa.espera .ent { opacity: 0; }
-.tapa.espera .isla a path { stroke-opacity: 0; }
 
 .tapa.entra .ent {
   animation: entrar var(--d, 260ms) cubic-bezier(0,0,.2,1) both;
   animation-delay: var(--t, 0ms);
 }
-.tapa.entra .isla a path {
-  transform-box: fill-box; transform-origin: center;
-  animation: surgir-municipio 240ms cubic-bezier(0,0,.2,1) both,
-             surgir-divisoria 260ms ease-out both;
-  animation-delay: calc(360ms + var(--i, 0) * 9ms), 1180ms;
-}
 
-/* Tiempos de cada elemento, tal cual la tabla del storyboard. */
+/* Tiempos de cada elemento. */
 .tapa .tapa-alto  { --t: 0ms;   --d: 140ms; --y: 8px; }
 .tapa .tapa-texto { --t: 100ms; --d: 280ms; --y: 6px; }
 .tapa .tapa-datos > div { --t: calc(160ms + var(--n) * 40ms); --d: 260ms; --y: 4px; }
 .tapa .buscador   { --t: 220ms; --d: 280ms; --y: 4px; }
-.tapa .chip       { --t: calc(260ms + var(--n) * 25ms); --d: 240ms; --y: 3px; }
-.tapa .isla       { --t: calc(300ms + var(--n) * 20ms); --d: 220ms; --y: 0px; }
-.tapa .panel      { --t: 300ms; --d: 280ms; --y: 10px; }
+.tapa .isla-menu  { --t: calc(280ms + var(--n) * 30ms); --d: 240ms; --y: 3px; }
 
 /* Con movimiento reducido no hay animación ni observador: se ve directamente
    el fotograma del 100 %. Ni versión corta ni desvanecido de cortesía. */
 @media (prefers-reduced-motion: reduce) {
   .tapa.espera .ent, .tapa.entra .ent { opacity: 1; animation: none; transform: none; }
-  .tapa.espera .isla a path, .tapa.entra .isla a path { stroke-opacity: 1; animation: none; }
 }
 
 /* --------------------------------------------------------- responsive ------ */
 @media (max-width: 1080px) {
-  .tapa-mapa { grid-template-columns: 1fr; }
-  .panel { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-4); align-items: start; }
 }
 @media (max-width: 940px) {
   .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
@@ -671,8 +624,7 @@ select {
   .cifra:nth-child(odd) { border-left: 0; }
   .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
   .mapas { grid-template-columns: 1fr; gap: 26px; }
-  .tapa-alto, .filtros, .tapa-mapa, .listado { padding-inline: var(--e-5); }
-  .listado { padding-bottom: var(--e-5); }
+  .tapa-alto, .filtros, .atajos { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
 }
 @media (max-width: 700px) {
@@ -682,9 +634,7 @@ select {
   .cifra b { font-size: 34px; }
   .cifra i { font-size: 10.5px; letter-spacing: .04em; }
   .cifra em { font-size: 10.5px; min-height: 15px; }
-  .panel { grid-template-columns: 1fr; }
   .buscador { width: 100%; }
-  .columnas { columns: 2 150px; }
 }
 @media (max-width: 620px) {
   .marca span { display: none; }
@@ -702,16 +652,14 @@ select {
   .tarjeta.destacada .rotulo { padding: var(--e-4); }
   .envoltorio { padding-inline: 14px; }
   .portada { padding-inline: 14px; }
-  .tapa-alto, .filtros, .tapa-mapa, .listado { padding-inline: 18px; }
+  .tapa-alto, .filtros, .atajos { padding-inline: 18px; }
   .escala { gap: 6px; }
   .peldano { grid-template-columns: 68px 1fr auto; gap: 8px; }
   .peldano > span { font-size: 10px; }
   .tapa-datos { grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
-  .columnas { columns: 1; }
 }
 @media (pointer: coarse) {
   select, .btn, .vista, .chip { min-height: 44px; }
-  .grupo a { padding: 10px 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 
@@ -725,7 +673,7 @@ select {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
-  .barra, .vistas, .lectura, .vista-info, .listado, .filtros, .panel { display: none !important; }
+  .barra, .vistas, .lectura, .vista-info, .filtros, .atajos { display: none !important; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
 
