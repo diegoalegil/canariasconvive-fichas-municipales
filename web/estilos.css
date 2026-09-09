@@ -472,9 +472,10 @@ select {
 .frm .lin i { font-style: normal; font-weight: 700; color: var(--azul); padding: 0 .45em; }
 
 /* ============================================================= comparador == */
-/* Comparar no es clasificar: no hay control que ordene, ni posiciones, ni
-   destacados. El color distingue columnas, nunca valores; el azul intenso es la
-   primera columna elegida, no la mejor. */
+/* Comparar no es clasificar: se puede ordenar las columnas por habitantes o por
+   nombre, pero no por ningún indicador, y no hay posiciones ni destacados. El
+   color distingue columnas, nunca valores, y viaja con el municipio: el azul
+   intenso es el primero que se eligió, no el mejor. */
 .cmp-acceso { margin-left: auto; display: flex; gap: var(--e-2); flex-wrap: wrap; }
 .cmp-intro { font-size: 14px; color: var(--gris); margin-top: var(--e-3); max-width: 70ch; text-wrap: pretty; }
 .cmp-elegidos-caja {

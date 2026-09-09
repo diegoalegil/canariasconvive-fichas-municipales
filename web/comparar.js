@@ -6,9 +6,12 @@
 
    1. Ningún color de alerta sobre personas.
    2. La ficha muestra datos y no los interpreta.
-   3. **Comparar no es clasificar.** Las columnas conservan el orden en que se
-      añadieron. No hay control que ordene, ni posiciones, ni destacados, ni
-      umbrales. El color distingue columnas, nunca valores.
+   3. **Comparar no es clasificar.** Sí hay ahora un control que ordena las
+      columnas —por habitantes o por nombre, que Pedro pidió— pero no hay
+      posiciones, ni destacados, ni umbrales, ni se ordena por ninguno de los
+      indicadores. El color distingue columnas, nunca valores, y va pegado al
+      municipio: al reordenar, cada uno se lleva el suyo. Si el color cambiara
+      de sitio, el orden parecería significar algo.
 
    La decisión de escala: todo lo que describe cómo se reparte una población va
    en porcentaje sobre su propio total, así que Betancuria (805 habitantes) y
@@ -33,6 +36,19 @@ const plano = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 let INDICE = null;
 let ELEGIDOS = [];        // fichas completas, en el orden en que las añadió el usuario
+let ORDEN = 'eleccion';
+
+/** Las fichas en el orden de presentación. `ELEGIDOS` guarda siempre el orden
+ *  de elección, que es el que decide qué color le toca a cada una. */
+function ordenados() {
+  const l = [...ELEGIDOS];
+  if (ORDEN === 'poblacion') l.sort((a, b) => b.poblacion - a.poblacion);
+  if (ORDEN === 'nombre') l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return l;
+}
+
+/** El color de un municipio es el del hueco que ocupó al elegirlo. */
+const tono = (f) => TONOS_COL[ELEGIDOS.findIndex((x) => x.codmun === f.codmun)] || GRIS_REF;
 
 /* --------------------------------------------------------------- pirámide -- */
 /** Pirámide en porcentaje sobre el total del propio municipio. El eje es común
@@ -46,7 +62,9 @@ function piramide(f, tope, w) {
 
   const m = { t: 6, b: 20, l: 4, r: 4 };
   const h = 250;
-  const hueco = acotar(w * 0.13, 26, 44);
+  // El hueco central deja sitio al eje de edad. Las etiquetas van compactas
+  // —"0–4", "100+"— porque a tres columnas no cabe "100 o más".
+  const hueco = acotar(w * 0.16, 36, 54);
   const centro = w / 2, lado = centro - hueco / 2 - m.l;
   const fila = (h - m.t - m.b) / n, barra = fila * 0.78;
   const x = (v) => v / tope * lado;
@@ -63,15 +81,19 @@ function piramide(f, tope, w) {
            + `font-size="8.5" fill="#5F5E5A">${nf(v, v % 1 ? 1 : 0)}%</text>`;
     }
   }
+  let edades = '';
   for (let i = 0; i < n; i++) {
     barras += `<rect x="${(centro - hueco / 2 - x(H[i])).toFixed(1)}" y="${y(i).toFixed(1)}" `
             + `width="${x(H[i]).toFixed(1)}" height="${barra.toFixed(1)}" fill="#2E75B6" rx="1"/>`
             + `<rect x="${(centro + hueco / 2).toFixed(1)}" y="${y(i).toFixed(1)}" `
             + `width="${x(M[i]).toFixed(1)}" height="${barra.toFixed(1)}" fill="#85B7EB" rx="1"/>`;
+    edades += `<text x="${centro.toFixed(1)}" y="${(y(i) + barra / 2 + 2.6).toFixed(1)}" `
+            + `text-anchor="middle" font-size="7.5" fill="#5F5E5A">`
+            + `${esc(p.edades[i].replace(' a ', '\u2013').replace(' o más', '+'))}</text>`;
   }
   return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" `
        + `aria-label="Pirámide de ${esc(f.nombre)} en porcentaje sobre su propia población">`
-       + rejilla + barras + eje + '</svg>';
+       + rejilla + barras + edades + eje + '</svg>';
 }
 
 /* ------------------------------------------------------- barra de un índice */
@@ -127,10 +149,10 @@ function seccionCifras() {
   ];
   return `<div class="cmp-tabla" style="--cols:${ELEGIDOS.length}">
     <div class="cmp-cab"></div>
-    ${ELEGIDOS.map((f, i) => `<div class="cmp-cab"><b style="color:${TONOS_COL[i]}">${esc(f.nombre)}</b><span>${esc(f.isla)}</span></div>`).join('')}
+    ${ordenados().map((f) => `<div class="cmp-cab"><b style="color:${tono(f)}">${esc(f.nombre)}</b><span>${esc(f.isla)}</span></div>`).join('')}
     ${filas.map(([rot, uni, fn]) => `
       <div class="cmp-rot"><b>${rot}</b><span>${uni}</span></div>
-      ${ELEGIDOS.map((f, i) => `<div class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${TONOS_COL[i]}">${fn(f)}</div>`).join('')}
+      ${ordenados().map((f) => `<div class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${tono(f)}">${fn(f)}</div>`).join('')}
     `).join('')}
   </div>`;
 }
@@ -142,10 +164,9 @@ function seccionPiramides(ancho) {
   })) * 2) / 2;   // a la media unidad superior
 
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
-    ${ELEGIDOS.map((f, i) => `
+    ${ordenados().map((f) => `
       <div class="cmp-col">
-        <h3 style="color:${TONOS_COL[i]}">${esc(f.nombre)}</h3>
-        <p>Edad media ${nf(f.cifras.edad_media, 1)} años</p>
+        <h3 style="color:${tono(f)}">${esc(f.nombre)}</h3>
         ${piramide(f, tope, ancho)}
         ${f.poblacion < 5000 ? `<p class="cmp-aviso">Con ${nf(f.poblacion)} habitantes, cada franja de cinco años reúne pocas personas y la silueta sale irregular. No se ha suavizado.</p>` : ''}
       </div>`).join('')}
@@ -173,11 +194,11 @@ function seccionIndices() {
         <b>${esc(rango.etiqueta)}</b>
         <span>${comoSeLee[cod]}</span>
       </div>
-      ${ELEGIDOS.map((f, i) => `
+      ${ordenados().map((f) => `
         <div class="cmp-barra">
           <span class="cmp-barra-rot">${esc(f.nombre)}</span>
           <span class="cmp-barra-val">${nf(f.indices[cod].municipio, dec)}</span>
-          ${barraIndice(f.indices[cod].municipio, rango, TONOS_COL[i])}
+          ${barraIndice(f.indices[cod].municipio, rango, tono(f))}
         </div>`).join('')}
       <div class="cmp-barra cmp-ref">
         <span class="cmp-barra-rot">Canarias</span>
@@ -198,7 +219,7 @@ function seccionNacimiento() {
       <span class="cmp-barra-val">${vals.map((v) => nf(v, 1)).join(' · ')}</span>
     </div>`;
   return `
-    ${ELEGIDOS.map((f, i) => fila(f.nombre, f.origen.municipio, TONOS_COL[i])).join('')}
+    ${ordenados().map((f) => fila(f.nombre, f.origen.municipio, tono(f))).join('')}
     ${fila('Canarias', ELEGIDOS[0].origen.canarias, null)}
     <div class="leyenda">
       ${cats.map((c, i) => `<span><i class="llave" style="background:${TONOS_ORIGEN[i]}"></i>${esc(c)}</span>`).join('')}
@@ -211,12 +232,12 @@ function ultimo(v) { for (let i = v.length - 1; i >= 0; i--) if (v[i] != null) r
 function seccionExtranjero() {
   const canarias = ultimo(ELEGIDOS[0].extranjero.canarias);
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
-      ${ELEGIDOS.map((f, i) => {
+      ${ordenados().map((f) => {
         const v = ultimo(f.extranjero.municipio);
         return `<div class="cmp-col">
-          <h3 style="color:${TONOS_COL[i]}">${esc(f.nombre)}</h3>
+          <h3 style="color:${tono(f)}">${esc(f.nombre)}</h3>
           <p><b>${pct(v)}</b> de su población</p>
-          ${mosaico(v, TONOS_COL[i])}
+          ${mosaico(v, tono(f))}
         </div>`;
       }).join('')}
     </div>
@@ -248,8 +269,8 @@ function pintar() {
 
 function pintarElegidos() {
   const cont = document.getElementById('cmp-elegidos');
-  cont.innerHTML = ELEGIDOS.map((f, i) => `
-    <span class="cmp-ficha" style="--c:${TONOS_COL[i]}">
+  cont.innerHTML = ELEGIDOS.map((f) => `
+    <span class="cmp-ficha" style="--c:${tono(f)}">
       <b>${esc(f.nombre)}</b>
       <button type="button" data-quitar="${f.codmun}" aria-label="Quitar ${esc(f.nombre)} de la comparación">×</button>
     </span>`).join('') || '<span class="cmp-ninguno">Ningún municipio elegido todavía</span>';
@@ -297,6 +318,11 @@ async function iniciar() {
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 
   INDICE = await (await fetch('datos/indice.json')).json();
+
+  document.getElementById('sel-orden').addEventListener('change', (e) => {
+    ORDEN = e.target.value;
+    if (ELEGIDOS.length) pintar();
+  });
 
   const sel = document.getElementById('sel-anadir');
   sel.innerHTML = '<option value="">Añadir municipio…</option>'
