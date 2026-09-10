@@ -30,8 +30,13 @@ jobs:
           path: web
       - id: despliegue
         uses: actions/deploy-pages@v4
-        # Pages tardó más de los 10 minutos por defecto en dos intentos
-        # seguidos y abortó el despliegue con el sitio ya subido. Se le da
-        # margen en vez de dar por fallido algo que solo iba lento.
+        # 600000 ms es el máximo que admite la acción: pedirle más no da más
+        # margen, solo un aviso de que lo ha recortado. Diez minutos.
+        #
+        # Si un despliegue falla, NO se relanza desde la web de Actions: el
+        # relanzamiento vuelve a ejecutar la subida del artefacto, se queda con
+        # dos llamados "github-pages" en la misma ejecución y deploy-pages se
+        # niega a elegir. Se arregla empujando un commit nuevo, que arranca una
+        # ejecución limpia.
         with:
-          timeout: 1200000
+          timeout: 600000
