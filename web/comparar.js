@@ -8,10 +8,13 @@
    2. La ficha muestra datos y no los interpreta.
    3. **Comparar no es clasificar.** Sí hay ahora un control que ordena las
       columnas —por habitantes o por nombre, que Pedro pidió— pero no hay
-      posiciones, ni destacados, ni umbrales, ni se ordena por ninguno de los
-      indicadores. El color distingue columnas, nunca valores, y va pegado al
-      municipio: al reordenar, cada uno se lleva el suyo. Si el color cambiara
-      de sitio, el orden parecería significar algo.
+      posiciones, ni destacados, ni umbrales. En el bloque de índices las filas
+      sí van de mayor a menor —Pedro lo pidió: "el mayor arriba"— pero eso
+      ordena una lista, no puntúa a nadie: no hay puesto, ni medalla, y
+      Canarias se queda abajo en gris, de referencia y no de competidor. El
+      color distingue columnas, nunca valores, y va pegado al municipio: al
+      reordenar, cada uno se lleva el suyo. Si el color cambiara de sitio, el
+      orden parecería significar algo.
 
    La decisión de escala: todo lo que describe cómo se reparte una población va
    en porcentaje sobre su propio total, así que Betancuria (805 habitantes) y
@@ -189,12 +192,19 @@ function seccionIndices() {
     const rango = INDICE.rangos_indices[cod];
     const ref = ELEGIDOS[0].indices[cod].canarias;
     const dec = cod === 'C10' ? 2 : 1;
+    /* Aquí, y solo aquí, las filas van de mayor a menor valor en vez de en el
+       orden de las columnas: es lo que pidió Pedro, "el mayor arriba, dejarlo
+       ordenado". Se ordena la fila, no se puntúa: no hay puesto, ni medalla, ni
+       destacado, y el color de cada municipio no se mueve. Canarias sigue
+       abajo, en gris, como referencia y no como competidor. */
+    const filas = [...ELEGIDOS].sort((a, b) =>
+      (b.indices[cod].municipio ?? -Infinity) - (a.indices[cod].municipio ?? -Infinity));
     return `<div class="cmp-indice">
       <div class="cmp-indice-tit">
         <b>${esc(rango.etiqueta)}</b>
         <span>${comoSeLee[cod]}</span>
       </div>
-      ${ordenados().map((f) => `
+      ${filas.map((f) => `
         <div class="cmp-barra">
           <span class="cmp-barra-rot">${esc(f.nombre)}</span>
           <span class="cmp-barra-val">${nf(f.indices[cod].municipio, dec)}</span>

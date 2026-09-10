@@ -97,8 +97,6 @@ function hojaFicha(f, pagina) {
           <p>Porcentaje sobre el total</p></div></header>
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, px(26))}</figure>
           <div class="leyenda">
-            <span><i class="llave" style="background:#85B7EB"></i>Municipio</span>
-            <span><i class="llave" style="background:#185FA5"></i>Último dato</span>
             <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias</span>
           </div></div>
       </section>
@@ -117,14 +115,13 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
         <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0).svg}</figure>
-          <!-- La leyenda dice lo que la hoja dibuja y nada más. En 2,56 mm de
-               fila cabe una sola capa negra hueca, y la que lleva es la de
-               origen extranjero; por eso aquí no aparece Canarias, que antes se
-               anunciaba sin estar. -->
+          <!-- La leyenda dice lo que la hoja dibuja. Antes anunciaba un Canarias
+               que la pirámide no llegaba a pintar; ahora Canarias está, en
+               barras negras huecas. -->
           <div class="leyenda">
             <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
             <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
-            <span><i class="llave hueca"></i>De origen extranjero</span>
+            <span><i class="llave hueca"></i>Canarias</span>
           </div></div>
       </section>
 

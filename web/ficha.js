@@ -301,16 +301,14 @@ const ALTO_PIRAMIDE_A4 = mm(57);
    se dejan a la vista para poder enseñarle las dos versiones sin tocar nada:
 
    CANARIAS_FORMA  'barras' son las barras negras huecas que pidió ver;
-                   'silueta' es la escalera negra de antes.
-   A4_CANARIAS     en la hoja cabe una sola capa negra por fila —2,56 mm— y la
-                   que lleva es la de origen extranjero. Con 'silueta', Canarias
-                   vuelve al papel como escalera gris.
+                   'silueta' es la escalera negra de antes. Vale para pantalla
+                   y para papel: cada pestaña lleva una sola capa negra, así que
+                   en la hoja no se entretejen dos contornos en la misma fila.
    BASE_CANARIAS   contra qué se compara Canarias. El perfil de Canarias viene
                    en porcentaje sobre el total del archipiélago, extranjeros
                    incluidos; enfrentarlo a la parte nacida en España del
                    municipio sesgaría justo a los de mucha población extranjera. */
 const CANARIAS_FORMA = 'barras';   // 'barras' | 'silueta'
-const A4_CANARIAS    = 'no';       // 'no' | 'silueta'
 const BASE_CANARIAS  = 'total';    // 'total' | 'espanola'
 
 /** Los tres juegos de medidas. El SVG se redibuja a cada ancho; nunca se estira
@@ -371,15 +369,11 @@ function construirPiramide(p, w, h, vistaFija = null) {
     ? { H: p.hombres, M: p.mujeres }
     : esp;
 
+  /* El orden importa: la primera es la que sale al abrir la ficha y la que se
+     imprime. Pedro dijo "poner Canarias en barras negras vacías" y luego
+     "poder AÑADIR una pestaña que contemple solo lo de nacida en España y
+     origen extranjero": la base lleva Canarias y la otra es la añadida. */
   const vistas = [
-    {
-      clave: 'municipio', etiqueta: 'Solo municipio',
-      relleno: { H: pc(esp.H), M: pc(esp.M) },
-      negro: { H: pc(ext.H), M: pc(ext.M) },
-      rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
-      cuentaRelleno: esp, cuentaNegro: ext,
-      base: `porcentaje sobre la población total del municipio (${nf(total)} personas)`,
-    },
     {
       clave: 'canarias', etiqueta: 'Municipio y Canarias',
       relleno: { H: pc(conCanarias.H), M: pc(conCanarias.M) },
@@ -388,6 +382,14 @@ function construirPiramide(p, w, h, vistaFija = null) {
       rotNegro: 'Canarias',
       cuentaRelleno: conCanarias, cuentaNegro: null,
       base: `el municipio sobre su propia población (${nf(total)} personas), Canarias sobre la del archipiélago`,
+    },
+    {
+      clave: 'municipio', etiqueta: 'Solo municipio',
+      relleno: { H: pc(esp.H), M: pc(esp.M) },
+      negro: { H: pc(ext.H), M: pc(ext.M) },
+      rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
+      cuentaRelleno: esp, cuentaNegro: ext,
+      base: `porcentaje sobre la población total del municipio (${nf(total)} personas)`,
     },
   ];
 
@@ -425,7 +427,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
   }
 
   const fija = vistaFija == null ? null : vistas[vistaFija];
-  const dibujarSilueta = fija ? A4_CANARIAS === 'silueta' : CANARIAS_FORMA === 'silueta';
+  const dibujarSilueta = CANARIAS_FORMA === 'silueta' && (fija || vistas[0]).clave === 'canarias';
 
   // ---- barras, glifos y edades ----
   let barras = '', negros = '', etiquetas = '';
@@ -452,7 +454,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
   // ---- silueta de repuesto, si se pide ----
   let silueta = '';
   if (dibujarSilueta) {
-    const v = fija || vistas[1];
+    const v = fija || vistas[0];
     for (const [lado, signo] of LADOS) {
       const serie = v.negro[lado === 'h' ? 'H' : 'M'];
       const pts = [];
@@ -796,8 +798,10 @@ function pintar(f) {
   doc.getElementById('g-extranjero').innerHTML =
     graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
 
-  // En la hoja se imprime siempre la primera pestaña: en 2,56 mm de fila cabe
-  // una sola capa negra hueca, y la que lleva es la de origen extranjero.
+  /* La hoja imprime la primera pestaña, la de Canarias. Es la que Pedro echaba
+     en falta: en el PDF salía Canarias en la leyenda y no en el dibujo. Y no
+     puede llevar las dos, porque en 2,56 mm de fila dos contornos negros se
+     entretejen y no se puede seguir ninguno. */
   if (IMPRIMIENDO) VISTA = 0;
   PIRAMIDE = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : acotar(wPi * 0.70, 360, 470));
   doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
@@ -848,7 +852,10 @@ const LLAVE_SIN     = `<i class="lec-llave vacia"></i>`;
 function pintarLectura(i) {
   const salida = document.getElementById('lectura-piramide');
   if (!salida || !PIRAMIDE) return;
-  const P = PIRAMIDE, v = P.vistas[VISTA], base = P.vistas[0];
+  const P = PIRAMIDE, v = P.vistas[VISTA];
+  // Las dos filas de nacida en España y origen extranjero salen siempre de la
+  // vista del municipio, esté abierta o no: Pedro no las condicionó a la pestaña.
+  const base = P.vistas.find((x) => x.clave === 'municipio');
   const todo = i == null;
   const suma = (V) => V.reduce((a, b) => a + (b || 0), 0);
   const val = (V) => !V ? 0 : (todo ? suma(V) : (V[i] || 0));
@@ -868,10 +875,11 @@ function pintarLectura(i) {
      desaparece al cambiar de pestaña; lo que cambia es si tiene marca propia en
      el dibujo. Las filas sin marca van sin símbolo, precisamente por eso. */
   const filas = [];
-  if (VISTA === 1) filas.push(fila(LLAVE_HUECA, 'Canarias', val(v.negro.H), val(v.negro.M), null, null));
-  filas.push(fila(VISTA === 0 ? LLAVE_RELLENA : LLAVE_SIN, 'Nacida en España',
+  const enCanarias = v.clave === 'canarias';
+  if (enCanarias) filas.push(fila(LLAVE_HUECA, 'Canarias', val(v.negro.H), val(v.negro.M), null, null));
+  filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_RELLENA, 'Nacida en España',
     val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)));
-  filas.push(fila(VISTA === 0 ? LLAVE_HUECA : LLAVE_SIN, 'De origen extranjero',
+  filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_HUECA, 'De origen extranjero',
     val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)));
 
   salida.innerHTML = `
