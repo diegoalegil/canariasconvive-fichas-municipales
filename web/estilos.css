@@ -226,13 +226,13 @@ select {
 .cifra b span { font-size: .40em; font-weight: 600; letter-spacing: 0; }
 .cifra i {
   font-style: normal; display: block; margin-top: var(--e-3);
-  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .05em;
   text-transform: uppercase; color: var(--gris);
 }
 /* min-height para que la edad media, que no lleva pie, no descuadre la fila. */
 .cifra em {
-  font-style: normal; display: block; margin-top: 7px; min-height: 17px;
-  font-size: 11.5px; color: var(--gris-40);
+  font-style: normal; display: block; margin-top: 8px; min-height: 18px;
+  font-size: 12.5px; color: var(--gris-40);
   font-variant-numeric: tabular-nums;
 }
 
@@ -297,7 +297,7 @@ select {
 /* ------------------------------------------------------------ leyenda ------ */
 .leyenda { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: var(--e-4); }
 .leyenda span { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--negro); }
-.leyenda b { font-weight: 700; color: var(--azul); font-variant-numeric: tabular-nums; }
+.leyenda b { font-weight: 700; color: var(--negro); font-variant-numeric: tabular-nums; }
 .llave { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
 .llave.linea { height: 2px; border-radius: 0; background: var(--negro); }
@@ -665,8 +665,8 @@ select {
      y no hay que apilarlas en columna. */
   .cifra { padding: var(--e-5) var(--e-2) var(--e-4); }
   .cifra b { font-size: 34px; }
-  .cifra i { font-size: 10.5px; letter-spacing: .04em; }
-  .cifra em { font-size: 10.5px; min-height: 15px; }
+  .cifra i { font-size: 11.5px; letter-spacing: .04em; }
+  .cifra em { font-size: 11.5px; min-height: 16px; }
   .buscador { width: 100%; }
 }
 @media (max-width: 620px) {
@@ -778,8 +778,8 @@ select {
   .cifra + .cifra { border-left: .2mm solid var(--linea); }
   .cifra b { font-size: 17pt; color: var(--azul); }
   .cifra b span { font-size: .42em; }
-  .cifra i { font-size: 6pt; margin-top: 1.2mm; letter-spacing: .04em; }
-  .cifra em { display: block; font-size: 5.5pt; margin-top: .8mm; min-height: 0; }
+  .cifra i { font-size: 6.5pt; margin-top: 1.2mm; letter-spacing: .04em; }
+  .cifra em { display: block; font-size: 6pt; margin-top: .8mm; min-height: 0; }
 
   .mapas { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
   .mapa-pie { margin-top: 1mm; }
