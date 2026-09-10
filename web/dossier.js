@@ -132,8 +132,7 @@ function hojaFicha(f, pagina) {
       </section>
 
       <section class="tarjeta mitad">
-        <header class="rotulo">${icono('relevo', 13)}<div><h2>Componentes del cambio poblacional</h2>
-          <p>Nacimientos menos defunciones y saldo migratorio</p></div></header>
+        <header class="rotulo">${icono('relevo', 13)}<div><h2>Componentes del cambio poblacional</h2></div></header>
         <div class="cuerpo"><figure>${graficoComponentes(f.componentes, wCo, px(24))}</figure>
           <div class="leyenda">
             <span><i class="llave" style="background:#85B7EB"></i>Crecimiento vegetativo</span>
@@ -195,18 +194,15 @@ function hojaGuia() {
            vegetativo y saldo migratorio llegan hasta 2024, que es el último año cerrado.</p>
       </div>
       <div>
-        <h3>Cómo leer los indicadores</h3>
-        <p><b>Ningún indicador de estas fichas tiene un valor deseable.</b> Todos describen
-           cómo se reparte una población; ninguno la califica.</p>
-        <p>El envejecimiento es una <b>razón</b>: personas de 65 y más por cada persona menor
-           de 15. Un 1 significa que los dos grupos son iguales; un 2, que el primero es el
-           doble.</p>
-        <p>Juventud, dependencia y reemplazo laboral van <b>por cien</b>: menores de 15 por
-           cada cien personas de 15 a 64; menores de 15 y mayores de 64 juntos por cada cien
-           de 15 a 64; y personas de 15 a 19 por cada cien de 60 a 64.</p>
-        <p>Comparar un municipio con su isla o con Canarias sirve para situarlo, no para
-           calificarlo. En los municipios de pocos habitantes, unas pocas personas mueven
-           mucho un índice.</p>
+        <h3>Qué mide cada indicador</h3>
+        <p><b>Envejecimiento.</b> Personas de 65 años o más por cada persona menor de 15.
+           Se expresa como una razón.</p>
+        <p><b>Juventud.</b> Menores de 15 años por cada cien personas de 15 a 64.</p>
+        <p><b>Dependencia.</b> Menores de 15 y mayores de 64 juntos, por cada cien personas
+           de 15 a 64.</p>
+        <p><b>Reemplazo laboral.</b> Personas de 15 a 19 años por cada cien de 60 a 64.</p>
+        <p>En los municipios de pocos habitantes, unas pocas personas mueven mucho un
+           índice.</p>
       </div>
     </div>
     <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>2</span></footer>
