@@ -97,7 +97,7 @@ function hojaFicha(f, pagina) {
           <p>Porcentaje sobre el total</p></div></header>
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, px(26))}</figure>
           <div class="leyenda">
-            <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias</span>
+            <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias <b>${nfd(ultimoValido(f.extranjero.canarias), 1)} %</b></span>
           </div></div>
       </section>
 

@@ -297,6 +297,7 @@ select {
 /* ------------------------------------------------------------ leyenda ------ */
 .leyenda { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: var(--e-4); }
 .leyenda span { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--negro); }
+.leyenda b { font-weight: 700; color: var(--azul); font-variant-numeric: tabular-nums; }
 .llave { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
 .llave.linea { height: 2px; border-radius: 0; background: var(--negro); }

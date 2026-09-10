@@ -808,6 +808,13 @@ function pintar(f) {
     graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(30) : acotar(wEv * 0.42, 190, 260));
   doc.getElementById('g-extranjero').innerHTML =
     graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
+  /* La leyenda lleva el valor de Canarias, no solo su nombre: es la referencia
+     contra la que se lee la barra del municipio, y sin la cifra hay que
+     adivinarla mirando dónde cae la línea. */
+  const ultimaCan = ultimoValido(f.extranjero.canarias);
+  doc.getElementById('leyenda-extranjero').innerHTML =
+    `<span><i class="llave" style="background:${C.negro};height:2px;border-radius:0"></i>`
+    + `Canarias <b>${pct(ultimaCan)}</b></span>`;
 
   /* La hoja imprime la primera pestaña, la de Canarias. Es la que Pedro echaba
      en falta: en el PDF salía Canarias en la leyenda y no en el dibujo. Y no
