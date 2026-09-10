@@ -388,7 +388,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       base: 'Porcentaje sobre la población de cada territorio',
     },
     {
-      clave: 'municipio', etiqueta: 'Solo municipio',
+      clave: 'municipio', etiqueta: 'Por lugar de nacimiento',
       relleno: { H: pc(esp.H), M: pc(esp.M) },
       negro: { H: pc(ext.H), M: pc(ext.M) },
       rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
@@ -402,8 +402,13 @@ function construirPiramide(p, w, h, vistaFija = null) {
   const anchoLado = centro - hueco / 2 - m.l;
   const altoFila = (h - m.t - m.b) / n;
   const relleno = altoFila * 0.70;          // 0,76 dejaba la calle de papel en 0,36 mm
-  const marco = altoFila * 0.36;
-  const off = (relleno - marco) / 2;
+  /* La capa negra tiene la MISMA altura que la barra azul, porque lo que Pedro
+     pidió es una barra: "que las barras sean negras", "poner Canarias en barras
+     negras vacías". A media altura se leía como una marca o un bigote, que es
+     justo la familia de la silueta de la que quería salir, así que la prueba
+     que pidió no era la que estaba viendo. */
+  const marco = relleno;
+  const off = 0;
   const fy = (i) => m.t + (n - 1 - i) * altoFila + (altoFila - relleno) / 2;
   const escala = (v) => acotar(v, 0, EJE_PIRAMIDE) / EJE_PIRAMIDE * anchoLado;
   const LADOS = [['h', -1], ['m', 1]];
@@ -881,8 +886,13 @@ function pintarLectura(i) {
      desaparece al cambiar de pestaña; lo que cambia es si tiene marca propia en
      el dibujo. Las filas sin marca van sin símbolo, precisamente por eso. */
   const filas = [];
+  /* Canarias sale en las dos pestañas: "lo mismo con la nueva pestaña que vamos
+     a implementar". Lleva símbolo solo donde está dibujada; en la otra es un
+     dato de referencia que no tiene marca propia en el gráfico. */
   const enCanarias = v.clave === 'canarias';
-  if (enCanarias) filas.push(fila(LLAVE_HUECA, 'Canarias', val(v.negro.H), val(v.negro.M), null, null));
+  const vc = P.vistas.find((x) => x.clave === 'canarias');
+  filas.push(fila(enCanarias ? LLAVE_HUECA : LLAVE_SIN, 'Canarias',
+    val(vc.negro.H), val(vc.negro.M), null, null));
   filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_RELLENA, 'Nacida en España',
     val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)));
   filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_HUECA, 'De origen extranjero',
