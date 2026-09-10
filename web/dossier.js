@@ -79,7 +79,7 @@ function hojaFicha(f, pagina) {
          [nfd(c.pct_hombres, 1), '%', 'Hombres', `${nfd(c.hombres)} personas`],
         ].map(([cifra, uni, rot, pie]) => `
         <div class="cifra">
-          <b>${cifra}${uni ? `<span>${uni}</span>` : ''}</b>
+          <b>${cifra}${uni ? `<span>\u00a0${uni}</span>` : ''}</b>
           <i>${rot}</i>
           <em>${pie}</em>
         </div>`).join('')}
@@ -150,7 +150,7 @@ function hojaFicha(f, pagina) {
           ${[['Municipio', f.origen.municipio], ['Canarias', f.origen.canarias]].map(([t, v]) => `
             <div class="anillo"><h3>${t}</h3>${anilloOrigen(v, 30, 13)}
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
-                `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${escd(cat)}</span><b>${nfd(v[i], 1)}%</b></div>`).join('')}
+                `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${escd(cat)}</span><b>${nfd(v[i], 1)}\u00a0%</b></div>`).join('')}
               </div></div>`).join('')}
         </div></div>
       </section>

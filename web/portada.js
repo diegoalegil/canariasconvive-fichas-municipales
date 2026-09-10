@@ -220,7 +220,7 @@ async function iniciar() {
     [nf(INDICE.poblacion_canarias), 'Habitantes'],
     ['88', 'Municipios'],
     ['7', 'Islas'],
-    [nf(pctCan, 1) + ' %', 'Origen extranjero'],
+    [nf(pctCan, 1) + '\u00a0%', 'Origen extranjero'],
   ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
 
   document.getElementById('tapa-anio').textContent =

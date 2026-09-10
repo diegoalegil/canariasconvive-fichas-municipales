@@ -223,7 +223,7 @@ select {
   line-height: 1; letter-spacing: -.035em; color: var(--azul);
   font-variant-numeric: tabular-nums;
 }
-.cifra b span { font-size: .40em; font-weight: 600; letter-spacing: 0; margin-left: .08em; }
+.cifra b span { font-size: .40em; font-weight: 600; letter-spacing: 0; }
 .cifra i {
   font-style: normal; display: block; margin-top: var(--e-3);
   font-size: 12px; font-weight: 600; letter-spacing: .06em;
@@ -508,7 +508,6 @@ select {
    nombre, pero no por ningún indicador, y no hay posiciones ni destacados. El
    color distingue columnas, nunca valores, y viaja con el municipio: el azul
    intenso es el primero que se eligió, no el mejor. */
-.cmp-acceso { margin-left: auto; display: flex; gap: var(--e-2); flex-wrap: wrap; }
 .cmp-intro { font-size: 14px; color: var(--gris); margin-top: var(--e-3); max-width: 70ch; text-wrap: pretty; }
 .cmp-elegidos-caja {
   display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap;

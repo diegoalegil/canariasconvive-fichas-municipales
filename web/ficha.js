@@ -26,7 +26,11 @@ const ANIO_INICIO_COMPONENTES = 2002;   // la serie de saldo migratorio arranca 
 const nf = (v, d = 0) => v == null || !isFinite(v)
   ? '—'
   : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + '%';
+/* El símbolo va separado de la cifra, como manda la RAE, y con espacio duro
+   para que nunca se quede solo al final de una línea. Vale para el %, para
+   "años" y para cualquier unidad: la ficha lo escribía de tres maneras. */
+const UNI = '\u00a0';
+const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
 const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -183,7 +187,7 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
   // del texto, así que el texto baja a una segunda línea en vez de salirse.
   const v = ev.variacion_acumulada;
   const leyendaVar = `Variación acumulada entre ${ev.anio_base} y ${ev.anio_fin}`;
-  const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}%`;
+  const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}${UNI}%`;
   const alto = P ? 13 : 20, fc = P ? 8 : 11, fl = P ? 7 : 10.5;
   const anchoCapsula = Math.max(P ? 40 : 58, textoVar.length * (P ? 4.7 : 6.4) + (P ? 10 : 16));
   const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * (P ? 3.8 : 5.6);
@@ -235,7 +239,7 @@ function graficoExtranjero(ext, w, h) {
   let rejilla = '', ejeY = '';
   for (let v = 0; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}%</text>`;
+    ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}${UNI}%</text>`;
   }
 
   let barras = '', ejeX = '';
@@ -247,7 +251,7 @@ function graficoExtranjero(ext, w, h) {
       barras += `<text x="${px(i).toFixed(1)}" y="${(py(v) - (P ? 4 : 8)).toFixed(1)}" text-anchor="middle" `
               + `font-size="${P ? 9 : 13}" font-weight="700" fill="${C.negro}" `
               + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
-              + `paint-order="stroke fill">${nf(v, 1)}%</text>`;
+              + `paint-order="stroke fill">${nf(v, 1)}${UNI}%</text>`;
     }
     if (a % 5 === 0 || ultima) {
       ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
@@ -413,7 +417,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       // Se rotula de dos en dos; el 0 a los dos lados, como pidió Pedro.
       if (v % 2 === 0) {
         ejeX += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
-              + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}%</text>`;
+              + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
       }
     }
   }
@@ -618,7 +622,7 @@ function cifrasClave(f) {
 
   const celda = (cifra, unidad, rotulo, pie = '') => `
     <div class="cifra">
-      <b>${cifra}${unidad ? `<span>${unidad}</span>` : ''}</b>
+      <b>${cifra}${unidad ? `<span>${UNI}${unidad}</span>` : ''}</b>
       <i>${rotulo}</i>
       <em>${pie}</em>
     </div>`;
@@ -826,7 +830,7 @@ function pintar(f) {
       <h3>${tit}</h3>
       ${IMPRIMIENDO ? anilloOrigen(vals, 30, 13) : anilloOrigen(vals)}
       <div class="reparto">${o.categorias.map((cat, i) => `
-        <div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(vals[i], 1)}%</b></div>`).join('')}
+        <div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(vals[i], 1)}${UNI}%</b></div>`).join('')}
       </div>
     </div>`).join('');
 

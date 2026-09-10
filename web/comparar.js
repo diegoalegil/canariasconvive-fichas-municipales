@@ -32,7 +32,8 @@ const GRIS_REF = '#9AA0A6';
 const nf = (v, d = 0) => v == null || !isFinite(v)
   ? '—'
   : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + ' %';
+const UNI = '\u00a0';   // espacio duro entre la cifra y su unidad
+const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const acotar = (v, a, b) => Math.max(a, Math.min(b, v));
 const plano = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -81,7 +82,7 @@ function piramide(f, tope, w) {
       rejilla += `<line x1="${px.toFixed(1)}" y1="${m.t}" x2="${px.toFixed(1)}" y2="${h - m.b}" stroke="#D9D9D9"/>`;
       eje += `<text x="${px.toFixed(1)}" y="${h - 7}" `
            + `text-anchor="${extremo ? (s < 0 ? 'start' : 'end') : 'middle'}" `
-           + `font-size="8.5" fill="#5F5E5A">${nf(v, v % 1 ? 1 : 0)}%</text>`;
+           + `font-size="8.5" fill="#5F5E5A">${nf(v, v % 1 ? 1 : 0)}${UNI}%</text>`;
     }
   }
   let edades = '';
@@ -145,7 +146,7 @@ function seccionCifras() {
     ['Habitantes', 'personas', (f) => nf(f.poblacion), null],
     ['Edad media', 'años', (f) => nf(f.cifras.edad_media, 1), null],
     ['Variación media anual', '% medio por año',
-      (f) => `${f.cifras.tvma >= 0 ? '+' : '−'}${nf(Math.abs(f.cifras.tvma), 1)} %`
+      (f) => `${f.cifras.tvma >= 0 ? '+' : '−'}${nf(Math.abs(f.cifras.tvma), 1)}${UNI}%`
            + `<em>${f.evolucion.anio_base}–${f.evolucion.anio_fin}</em>`, null],
     ['Mujeres', '% del total', (f) => pct(f.cifras.pct_mujeres), null],
     ['Hombres', '% del total', (f) => pct(f.cifras.pct_hombres), null],
