@@ -693,7 +693,15 @@ select {
   .escala { gap: 6px; }
   .peldano { grid-template-columns: 68px 1fr auto; gap: 8px; }
   .peldano > span { font-size: 10px; }
-  .tapa-datos { grid-template-columns: repeat(2, 1fr); gap: var(--e-4); }
+  /* minmax(0,1fr) y no 1fr a secas: el mínimo por defecto de una pista de
+     rejilla es el ancho de su contenido, así que "2.258.866" a 26 px
+     empujaba la columna a 138 px y las dos juntas se salían 4 px por la
+     derecha en una pantalla de 320. Con minmax pueden encogerse. */
+  .tapa-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); }
+  /* clamp y no un tamaño fijo: "2.258.866" a 23 px pide 118 px y la columna
+     mide 111 en una pantalla de 320. */
+  .tapa-datos b { font-size: clamp(18px, 5.8vw, 23px); letter-spacing: -.02em; }
+  .tapa-datos span { font-size: 10px; letter-spacing: .06em; }
 }
 @media (pointer: coarse) {
   select, .btn, .vista, .chip { min-height: 44px; }

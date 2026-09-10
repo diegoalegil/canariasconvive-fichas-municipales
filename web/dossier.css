@@ -103,3 +103,12 @@
   .hoja { margin: 0; box-shadow: none; break-after: page; }
   .hoja:last-child { break-after: auto; }
 }
+
+/* ---------------------------------------------------------- en pantalla --- */
+/* Este documento son hojas A4 de 210 mm: en un móvil no caben y hacían que la
+   página entera se arrastrara de lado. El desplazamiento se encierra en su
+   propio contenedor, que es donde debe estar, y al imprimir no se aplica. */
+@media screen and (max-width: 820px) {
+  #dossier { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .hoja { flex: none; }
+}
