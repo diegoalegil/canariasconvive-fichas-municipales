@@ -385,7 +385,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       rotRelleno: BASE_CANARIAS === 'total' ? 'Población del municipio' : 'Nacida en España',
       rotNegro: 'Canarias',
       cuentaRelleno: conCanarias, cuentaNegro: null,
-      base: `el municipio sobre su propia población (${nf(total)} personas), Canarias sobre la del archipiélago`,
+      base: 'Porcentaje sobre la población de cada territorio',
     },
     {
       clave: 'municipio', etiqueta: 'Solo municipio',
@@ -393,7 +393,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       negro: { H: pc(ext.H), M: pc(ext.M) },
       rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
       cuentaRelleno: esp, cuentaNegro: ext,
-      base: `porcentaje sobre la población total del municipio (${nf(total)} personas)`,
+      base: 'Porcentaje sobre la población total del municipio',
     },
   ];
 
@@ -684,8 +684,10 @@ function mostrarVista(i, animar = true) {
   pintarLeyendaPiramide(v);
   const info = document.getElementById('vista-info');
   if (info) {
-    info.innerHTML = `<b>${esc(v.etiqueta)}</b> · ${esc(v.base)} · `
-                   + `eje de 0 a ${EJE_PIRAMIDE} %, el mismo en las 88 fichas`;
+    // Ni el nombre de la pestaña, que ya está en el botón pulsado, ni el total,
+    // que está en la línea de arriba de la lectura, ni que el eje sea el mismo
+    // en las 88: eso es cosa nuestra y no del que lee la ficha.
+    info.textContent = `${v.base} · eje de 0 a ${EJE_PIRAMIDE}\u00a0%`;
   }
 
   if (!P.nodos) {
