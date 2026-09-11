@@ -299,7 +299,7 @@ const EJE_PIRAMIDE = 7;
 /* Alto de la pirámide en la hoja A4. Si al medir la hoja real no cupiera, esta
    es la única constante que se toca: toda la geometría se recalcula sola. Por
    debajo de mm(52) el marco negro deja de poder dibujarse. */
-const ALTO_PIRAMIDE_A4 = mm(57);
+const ALTO_PIRAMIDE_A4 = mm(54);
 
 /* Tres interruptores. Los tres corresponden a cosas que Pedro dejó abiertas, y
    se dejan a la vista para poder enseñarle las dos versiones sin tocar nada:
@@ -517,7 +517,10 @@ function construirPiramide(p, w, h, vistaFija = null) {
 function bloqueIndices(ind, codigos, isla, rangos) {
   return codigos.map((cod) => {
     const d = ind[cod];
-    const filas = [['Canarias', d.canarias], [isla, d.isla], ['Municipio', d.municipio]]
+    /* "en todos pondría municipios, islas y canarias": los tres ámbitos con la
+       palabra genérica y no con el nombre propio. De qué isla se habla lo dice
+       la línea de arriba de la ficha. */
+    const filas = [['Canarias', d.canarias], ['Isla', d.isla], ['Municipio', d.municipio]]
       .filter(([, v]) => v != null)
       .sort((a, b) => b[1] - a[1]);
     /* El chip no lleva el "%" que trae el diccionario del Excel: juventud,
@@ -782,7 +785,7 @@ function pintar(f) {
   const wMapa = IMPRIMIENDO
     ? Math.floor((anchoHoja(12) - 2 * mm(4)) / 3)
     : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
-  const hMapa = IMPRIMIENDO ? mm(20) : Math.round(wMapa * 0.74);
+  const hMapa = IMPRIMIENDO ? mm(16) : Math.round(wMapa * 0.74);
   const niveles = [
     ['Canarias', () => true, f.rankings.canarias, false],
     [f.isla, (g) => g.properties.isla === f.isla, f.rankings.isla, true],
@@ -805,7 +808,7 @@ function pintar(f) {
   const wCo = IMPRIMIENDO ? anchoHoja(6) : anchoDe('g-componentes');
 
   doc.getElementById('g-evolucion').innerHTML =
-    graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(30) : acotar(wEv * 0.42, 190, 260));
+    graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(27) : acotar(wEv * 0.42, 190, 260));
   doc.getElementById('g-extranjero').innerHTML =
     graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
   /* La leyenda lleva el valor de Canarias, no solo su nombre: es la referencia
@@ -905,9 +908,15 @@ function pintarLectura(i) {
   filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_HUECA, 'De origen extranjero',
     val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)));
 
+  /* El grupo de edad encabeza las dos columnas, y cada una lleva de quién
+     habla: a la izquierda el municipio, a la derecha las capas, con Canarias
+     entre ellas. Así cada franja queda rematada con municipio y Canarias, que
+     es lo que pidió Pedro. Antes la columna izquierda no decía en ninguna
+     parte que fuera el municipio: había que deducirlo. */
   salida.innerHTML = `
+    <p class="lec-titulo">${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</p>
     <div class="lec-izq">
-      <b>${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</b>
+      <p class="lec-cab">Municipio</p>
       <div><span>Hombres</span><b>${nf(pH, 2)} %</b><em>${nf(cH)}</em></div>
       <div><span>Mujeres</span><b>${nf(pM, 2)} %</b><em>${nf(cM)}</em></div>
     </div>

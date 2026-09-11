@@ -318,16 +318,19 @@ select {
 .lectura b { color: var(--azul); font-weight: 700; }
 
 #lectura-piramide {
-  display: grid; grid-template-columns: auto 1fr; gap: var(--e-3) var(--e-6);
+  display: grid; grid-template-columns: auto 1fr; gap: 2px var(--e-6);
   align-items: start; text-align: left; margin-top: var(--e-4);
   padding-top: var(--e-4); border-top: 1px solid var(--linea);
   min-height: 96px; font-size: 12px;
 }
-.lec-izq > b, .lec-cab {
+.lec-titulo {
+  grid-column: 1 / -1; font-size: 12.5px; font-weight: 700;
+  color: var(--negro); margin-bottom: var(--e-2);
+}
+.lec-cab {
   display: block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
   text-transform: uppercase; color: var(--gris); margin-bottom: 6px;
 }
-.lec-izq > b { color: var(--negro); text-transform: none; letter-spacing: 0; font-size: 12.5px; }
 .lec-izq > div { display: grid; grid-template-columns: 60px auto auto; gap: var(--e-3); align-items: baseline; }
 .lec-izq > div > b { color: var(--negro); font-weight: 700; }
 .lec-izq em, .lec-fila em { font-style: normal; color: var(--gris-40); }
@@ -729,7 +732,7 @@ select {
     grid-template-columns: 33mm 1fr; gap: .6mm 3mm; margin-top: 1.2mm;
     padding-top: 1mm; min-height: 0; font-size: 5.5pt; line-height: 1.25;
   }
-  .lec-izq > b { font-size: 6pt; margin-bottom: .5mm; }
+  .lec-titulo { font-size: 6pt; margin-bottom: .5mm; }
   .lec-cab { font-size: 5pt; margin-bottom: .5mm; }
   .lec-izq > div { grid-template-columns: 9mm 10mm auto; gap: 1mm; }
   .lec-fila { grid-template-columns: 2.2mm 20mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
@@ -755,7 +758,7 @@ select {
      año al lado del nombre; en la hoja quedaban los dos disputándose el sitio. */
   .cabecera {
     background: var(--azul); border: 0; border-radius: 0;
-    padding: 2.6mm 5mm; margin-bottom: 2mm; display: block;
+    padding: 2mm 5mm; margin-bottom: 2mm; display: block;
   }
   .cabecera .migas { color: var(--azul-sobre); font-size: 6.5pt; letter-spacing: .16em; margin-bottom: 0; }
   .titular { gap: 4mm; margin-top: 1.2mm; }
@@ -782,7 +785,7 @@ select {
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. En la hoja
      hay sitio para las cuatro aunque en pantalla, a esta anchura, irían 2x2. */
   .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
-  .cifra { padding: 2.2mm 3mm 2mm; border-left: 0; border-top: 0; text-align: center; }
+  .cifra { padding: 1.8mm 3mm 1.6mm; border-left: 0; border-top: 0; text-align: center; }
   .cifra + .cifra { border-left: .2mm solid var(--linea); }
   .cifra b { font-size: 17pt; color: var(--azul); }
   .cifra b span { font-size: .42em; }

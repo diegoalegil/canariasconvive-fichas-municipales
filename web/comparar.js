@@ -40,7 +40,7 @@ const plano = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 let INDICE = null;
 let ELEGIDOS = [];        // fichas completas, en el orden en que las añadió el usuario
-let ORDEN = 'eleccion';
+let ORDEN = 'poblacion';   // lo que molestaba a Pedro era el orden de selección
 
 /** Las fichas en el orden de presentación. `ELEGIDOS` guarda siempre el orden
  *  de elección, que es el que decide qué color le toca a cada una. */

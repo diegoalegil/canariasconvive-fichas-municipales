@@ -20,17 +20,17 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 /* ------------------------------------------------------------- fórmulas --- */
 /** División con barra horizontal, escrita como en un libro y no como "a / b".
- *  `coda` es lo que va detrás de la fracción, normalmente el × 100. */
+ *  `coda` es lo que va detrás de la fracción, normalmente el × 100.
+ *
+ *  Los dos indicadores que son una resta —crecimiento vegetativo y saldo
+ *  migratorio— no llevan fórmula: escrita, repetía palabra por palabra la
+ *  frase de encima. Pedro los separó del resto por eso mismo: "en crecimiento
+ *  vegetativo solo el enunciado con su descripción cortita". */
 function fraccion(arriba, abajo, coda = '') {
   return `<span class="frm">
     <span class="frac"><span class="num">${esc(arriba)}</span><span class="den">${esc(abajo)}</span></span>
     ${coda ? `<span class="coda">${esc(coda)}</span>` : ''}
   </span>`;
-}
-
-/** Para los dos indicadores que son una resta y no una división. */
-function resta(a, b) {
-  return `<span class="frm"><span class="lin">${esc(a)}<i>−</i>${esc(b)}</span></span>`;
 }
 
 /* ----------------------------------------------------------- indicadores --- */
@@ -63,13 +63,11 @@ const INDICADORES = [
     id: 'vegetativo', ico: 'variacion', nombre: 'Crecimiento vegetativo',
     unidad: 'Se expresa en personas',
     mide: 'Los nacimientos de un año menos las defunciones de ese mismo año.',
-    formula: resta('Nacimientos del año', 'Defunciones del año'),
   },
   {
     id: 'migratorio', ico: 'variacion', nombre: 'Saldo migratorio',
     unidad: 'Se expresa en personas',
     mide: 'Las altas en el padrón del municipio en un año menos las bajas.',
-    formula: resta('Altas en el padrón', 'Bajas en el padrón'),
   },
   {
     id: 'nacimiento', ico: 'nacimiento', nombre: 'Lugar de nacimiento',
@@ -97,7 +95,7 @@ function pintar() {
       </header>
       <div class="cuerpo">
         <p class="guia-mide">${esc(x.mide)}</p>
-        <div class="guia-formula">${x.formula}</div>
+        ${x.formula ? `<div class="guia-formula">${x.formula}</div>` : ''}
       </div>
     </section>`).join('');
 
