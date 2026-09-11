@@ -103,18 +103,23 @@ function hojaFicha(f, pagina) {
 
       <section class="tarjeta">
         <header class="rotulo">${icono('territorio', 13)}<div><h2>El municipio en su entorno</h2>
-          <p>Su posición por población en Canarias, en su isla y en su comarca</p></div></header>
+          <p>Su puesto por población y el peso que tiene en cada ámbito</p></div></header>
         <div class="cuerpo"><div class="mapas">
           ${niveles.map(([tit, filtro, r, lim]) => `
             <figure class="mapa">${mapa(GEOD, f.codmun, filtro, wMapa, px(20), lim)}
               <figcaption class="mapa-pie"><b>${r.puesto}º de ${r.total}</b>
-                <span>en ${escd(tit)} · ${nfd(r.peso, 2)} % de su población</span></figcaption></figure>`).join('')}
+                <span>en ${escd(tit)}</span>
+                <p><b>${nfd(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
         </div></div>
       </section>
 
+      <!-- La piramide va 13 mm mas alta que en la ficha suelta, que es el hueco
+           que dejaba libre la tarjeta de indices a su lado. Medido: indices
+           82,6 mm, piramide 67,1. La hoja no crece ni un milimetro y la pieza
+           que Pedro llama la estrella se lee mejor. -->
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
-        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0).svg}</figure>
+        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + px(13), 0).svg}</figure>
           <!-- La leyenda dice lo que la hoja dibuja. Antes anunciaba un Canarias
                que la pirámide no llegaba a pintar; ahora Canarias está, en
                barras negras huecas. -->
@@ -127,7 +132,7 @@ function hojaFicha(f, pagina) {
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
-          <p>De mayor a menor, desde cero hasta el mayor de los 88</p></div></header>
+          <p>Ordenados, de cero al mayor de los 88</p></div></header>
         <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, IDX.rangos_indices)}</div>
       </section>
 
@@ -232,7 +237,7 @@ function hojaSeparador(g) {
     <div class="d-isla-datos">
       <div><b>${nfd(g.habitantes)}</b><span>Habitantes en ${IDX.anio}</span></div>
       <div><b>${g.n}</b><span>Municipios</span></div>
-      <div><b>${nfd(g.peso, 1)} %</b><span>De la población de Canarias</span></div>
+      <div><b>${nfd(g.peso, 1)} %</b><span>De la población de Canarias</span></div>
       <div><b>${nfd(g.envejecimiento, 2)}</b><span>Envejecimiento de la isla</span></div>
     </div>
     <div class="d-isla-mapa">${mapa(GEOD, null, (x) => x.properties.isla === g.nombre, px(120), px(62), true)}</div>

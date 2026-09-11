@@ -739,7 +739,6 @@ select {
   .lec-llave { width: 1.8mm; height: 1.8mm; }
   .vista-info { font-size: 5pt; line-height: 1.3; margin: .8mm 0 0; min-height: 0; }
   .leyenda { margin-top: 1.2mm; gap: 3mm; }
-  .indice { margin-bottom: 1.3mm; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
 
@@ -796,20 +795,26 @@ select {
   .mapa-pie { margin-top: 1mm; }
   .mapa-pie b { font-size: 8.5pt; }
   .mapa-pie span { font-size: 6pt; }
+  /* El peso lleva su propia regla porque `.mapa-pie p b` de pantalla pesa mas
+     en la cascada que `.mapa-pie b` de aqui: sin esto, el porcentaje se
+     imprimia a 15 px, mas grande que el puesto que va encima. */
+  .mapa-pie p { margin-top: .6mm; }
+  .mapa-pie p b { font-size: 7.5pt; }
+  .mapa-pie p span { font-size: 6pt; }
 
   .leyenda { gap: 3mm; margin-top: 1.2mm; }
   .leyenda span { font-size: 6pt; }
   .llave { width: 2mm; height: 2mm; }
 
-  .indice { margin-bottom: 1.6mm; }
-  .indice-tit { margin-bottom: .8mm; }
+  .indice { margin-bottom: 1.2mm; }
+  .indice-tit { margin-bottom: .6mm; }
   .indice-tit b { font-size: 7pt; }
   .indice-tit em { font-size: 6pt; }
   .peldano { grid-template-columns: 15mm 1fr auto; gap: 1.4mm; }
   .peldano > span { font-size: 5.5pt; line-height: 1.15; }
   .peldano b { font-size: 7pt; min-width: 7.5mm; }
   .peldano .barra { height: 1.3mm; }
-  .escala { gap: .9mm; }
+  .escala { gap: .7mm; }
 
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .anillo h3 { font-size: 7pt; }

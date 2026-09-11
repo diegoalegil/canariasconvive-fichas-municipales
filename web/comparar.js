@@ -107,7 +107,10 @@ function piramide(f, tope, w) {
  *  porcentaje que llega a 103. No hay umbrales ni franjas de referencia: se ve
  *  dónde cae cada municipio, no si está dentro o fuera de nada. */
 function barraIndice(valor, rango, color, w = 200) {
-  const h = 18, tope = rango.max * 1.04;
+  /* El tope es el maximo de los 88 exactamente, sin holgura: es el numero que
+     la cartela del indice anuncia, y es el mismo que usa la ficha. Con un 4 %
+     de margen la barra no llegaba nunca al final y el eje escrito mentia. */
+  const h = 18, tope = rango.max;
   const x = (v) => acotar(v / tope, 0, 1) * w;
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">`
        + `<rect x="0" y="3" width="${w}" height="${h - 6}" fill="#E8EEF5" rx="2"/>`
@@ -127,17 +130,29 @@ function barraApilada(valores, w = 280) {
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">${out}</svg>`;
 }
 
-/* ------------------------------------------------------- mosaico de cien ---- */
-function mosaico(porcentaje, color, lado = 13, hueco = 3) {
-  const p = acotar(Math.round(porcentaje), 0, 100);
-  const paso = lado + hueco, w = paso * 10 - hueco;
-  let celdas = '';
-  for (let i = 0; i < 100; i++) {
-    const fila = 9 - Math.floor(i / 10), col = i % 10;
-    celdas += `<rect x="${col * paso}" y="${fila * paso}" width="${lado}" height="${lado}" rx="2" `
-            + `fill="${i < p ? color : '#DDE5EE'}"/>`;
-  }
-  return `<svg viewBox="0 0 ${w} ${w}" width="${w}" height="${w}" aria-hidden="true">${celdas}</svg>`;
+/* ------------------------------------------------------------- anillo ------ */
+/** El mismo gráfico circular que la ficha, aquí con dos sectores. Sustituye al
+ *  mosaico de cien cuadros por la razón que dio Pedro del lugar de nacimiento:
+ *  "al ser porcentajes con decimal, en gráfico circular sería más preciso". El
+ *  mosaico redondeaba —un 12,4 % se dibujaba con doce cuadros— y encima decía
+ *  al pie que cada cuadro era un uno por ciento, que no era verdad. */
+function anillo(porcentaje, color, radio = 62, grosor = 22) {
+  const w = radio * 2, cx = radio, cy = radio, re = radio - 1, ri = radio - grosor;
+  const Pt = (a, r) => `${(cx + Math.cos(a) * r).toFixed(2)},${(cy + Math.sin(a) * r).toFixed(2)}`;
+  const sector = (a0, a1, fill) => {
+    const g = a1 - a0 > Math.PI ? 1 : 0;
+    return `<path d="M${Pt(a0, re)}A${re},${re} 0 ${g},1 ${Pt(a1, re)}`
+         + `L${Pt(a1, ri)}A${ri},${ri} 0 ${g},0 ${Pt(a0, ri)}Z" `
+         + `fill="${fill}" stroke="#FFFFFF" stroke-width="1.4"/>`;
+  };
+  // Un sector de vuelta entera no se traza con un solo arco: los dos extremos
+  // caerían en el mismo punto y el camino saldría vacío.
+  const f = acotar((porcentaje || 0) / 100, 0, 1);
+  const a0 = -Math.PI / 2, aq = a0 + Math.min(f, 0.9995) * 2 * Math.PI;
+  let out = '';
+  if (f > 0.0005) out += sector(a0, aq, color);
+  if (f < 0.9995) out += sector(aq, a0 + 2 * Math.PI, '#DDE5EE');
+  return `<svg viewBox="0 0 ${w} ${w}" width="${w}" height="${w}" aria-hidden="true">${out}</svg>`;
 }
 
 /* ------------------------------------------------------------- secciones --- */
@@ -203,7 +218,7 @@ function seccionIndices() {
     return `<div class="cmp-indice">
       <div class="cmp-indice-tit">
         <b>${esc(rango.etiqueta)}</b>
-        <span>${comoSeLee[cod]}</span>
+        <span>${comoSeLee[cod]} · 0 a ${nf(rango.max, dec)}</span>
       </div>
       ${filas.map((f) => `
         <div class="cmp-barra">
@@ -216,7 +231,6 @@ function seccionIndices() {
         <span class="cmp-barra-val">${nf(ref, dec)}</span>
         ${barraIndice(ref, rango, GRIS_REF)}
       </div>
-      <p class="cmp-escala">Escala de 0 a ${nf(rango.max, dec)}, que es el valor más alto de los 88 municipios en este índice.</p>
     </div>`;
   }).join('');
 }
@@ -235,7 +249,7 @@ function seccionNacimiento() {
     <div class="leyenda">
       ${cats.map((c, i) => `<span><i class="llave" style="background:${TONOS_ORIGEN[i]}"></i>${esc(c)}</span>`).join('')}
     </div>
-    <p class="cmp-escala">Cada barra suma el 100 % de la población de su municipio, así que se pueden comparar entre sí sea cual sea su tamaño.</p>`;
+    <p class="cmp-escala">Cada barra suma el 100 % de la población de su municipio, así que se pueden comparar entre sí sea cual sea su tamaño.</p>`;
 }
 
 function ultimo(v) { for (let i = v.length - 1; i >= 0; i--) if (v[i] != null) return v[i]; return null; }
@@ -248,11 +262,11 @@ function seccionExtranjero() {
         return `<div class="cmp-col">
           <h3 style="color:${tono(f)}">${esc(f.nombre)}</h3>
           <p><b>${pct(v)}</b> de su población</p>
-          ${mosaico(v, tono(f))}
+          ${anillo(v, tono(f))}
         </div>`;
       }).join('')}
     </div>
-    <p class="cmp-escala">Cada cuadro es un uno por ciento de la población del municipio. En el conjunto de Canarias son ${pct(canarias)}.</p>`;
+    <p class="cmp-escala">En el conjunto de Canarias son ${pct(canarias)}.</p>`;
 }
 
 /* ---------------------------------------------------------------- montaje -- */

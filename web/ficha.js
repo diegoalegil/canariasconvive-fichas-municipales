@@ -488,7 +488,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
     }
   }
 
-  const svg = abrirSVG(w, h, `Pirámide de población en porcentaje, eje de 0 a ${EJE_PIRAMIDE} %`)
+  const svg = abrirSVG(w, h, `Pirámide de población en porcentaje, eje de 0 a ${EJE_PIRAMIDE}${UNI}%`)
     + rejilla + barras + negros + silueta + etiquetas + ejeX + franjas + '</svg>';
 
   return {
@@ -888,7 +888,7 @@ function pintarLectura(i) {
      entre dos grupos de edad contiguos. */
   const fila = (llave, rot, a, b, na, nb) => `
     <div class="lec-fila">${llave}<span>${esc(rot)}</span>
-      <b>${nf(a, 2)} % · ${nf(b, 2)} %</b>
+      <b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>
       ${na == null ? '<em></em>' : `<em>${nf(na)} · ${nf(nb)}</em>`}
     </div>`;
 
@@ -917,8 +917,8 @@ function pintarLectura(i) {
     <p class="lec-titulo">${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</p>
     <div class="lec-izq">
       <p class="lec-cab">Municipio</p>
-      <div><span>Hombres</span><b>${nf(pH, 2)} %</b><em>${nf(cH)}</em></div>
-      <div><span>Mujeres</span><b>${nf(pM, 2)} %</b><em>${nf(cM)}</em></div>
+      <div><span>Hombres</span><b>${nf(pH, 2)}${UNI}%</b><em>${nf(cH)}</em></div>
+      <div><span>Mujeres</span><b>${nf(pM, 2)}${UNI}%</b><em>${nf(cM)}</em></div>
     </div>
     <div class="lec-der">
       <p class="lec-cab">hombres · mujeres</p>
