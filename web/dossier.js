@@ -132,8 +132,8 @@ function hojaFicha(f, pagina) {
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
-          <p>Ordenados, de cero al mayor de los 88</p></div></header>
-        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, IDX.rangos_indices)}</div>
+          <p>Los tres ámbitos, de menor a mayor valor</p></div></header>
+        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>
       </section>
 
       <section class="tarjeta mitad">

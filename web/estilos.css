@@ -259,8 +259,6 @@ select {
 }
 .vista:hover { border-color: var(--azul-claro); color: var(--azul); }
 .vista[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
-.vista-info { text-align: center; font-size: 12px; color: var(--gris); min-height: 18px; margin: 10px 0 2px; }
-.vista-info b { color: var(--negro); font-weight: 600; }
 
 /* ------------------------------------------- índices geodemográficos ------- */
 /* Diseño de Pedro: los tres ámbitos ordenados de izquierda a derecha por valor,
@@ -270,18 +268,18 @@ select {
 .indice-tit { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; gap: 10px; }
 .indice-tit b { font-size: 13.5px; font-weight: 700; }
 .indice-tit em { font-style: normal; font-size: 11px; color: var(--gris-40); white-space: nowrap; }
-/* Tres filas, la mayor arriba, y la barra medida contra ese mayor. La pastilla
-   de color anterior ocupaba siempre todo el ancho de su columna: tenía forma de
-   barra y no medía nada, que es justo lo que despistaba al leerla. */
-.escala { display: grid; gap: 7px; }
-.peldano { display: grid; grid-template-columns: 78px 1fr auto; gap: 10px; align-items: center; }
-.peldano > span { font-size: 11px; color: var(--gris); line-height: 1.2; }
-.peldano .barra { display: block; height: 9px; border-radius: var(--r-1); background: var(--caja); overflow: hidden; }
-.peldano .barra i { display: block; height: 100%; border-radius: var(--r-1); }
+/* Tres columnas: el rótulo, el valor grande y debajo la pastilla de color.
+   `--n` permite al comparador poner cuatro (tres municipios y Canarias). Estuvo
+   cambiado a filas con barra medida; Pedro lo vio y escribió "no está como
+   estaba antes". Está como estaba antes. */
+.escala { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: var(--e-2); }
+.peldano { text-align: center; min-width: 0; }
+.peldano span { display: block; font-size: 10.5px; color: var(--gris); line-height: 1.25; min-height: 26px; }
 .peldano b {
-  font-size: 13.5px; font-weight: 700; letter-spacing: -.3px; text-align: right;
-  color: var(--negro); font-variant-numeric: tabular-nums; min-width: 34px;
+  display: block; font-size: 17px; font-weight: 700; letter-spacing: -.4px;
+  color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
 }
+.peldano i { display: block; height: 7px; border-radius: var(--r-1); }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
@@ -335,15 +333,14 @@ select {
 .lec-izq > div > b { color: var(--negro); font-weight: 700; }
 .lec-izq em, .lec-fila em { font-style: normal; color: var(--gris-40); }
 .lec-cab { text-align: right; }
+/* Sin columna de símbolo: la leyenda de debajo ya los lleva, y Pedro tachó
+   las filas que los repetían. */
 .lec-fila {
-  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
   gap: var(--e-3); align-items: baseline; margin-bottom: 4px;
 }
 .lec-fila > b { color: var(--negro); font-weight: 700; white-space: nowrap; }
 .lec-fila > em { white-space: nowrap; }
-.lec-llave { width: 11px; height: 11px; border-radius: 2px; align-self: center; }
-.lec-llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
-.lec-llave.vacia { background: transparent; }
 
 #g-piramide { outline: none; }
 #g-piramide:focus-visible { outline: 2px solid var(--azul); outline-offset: 3px; border-radius: var(--r-1); }
@@ -576,7 +573,9 @@ select {
 }
 .cmp-barra-rot { font-size: 12.5px; font-weight: 600; }
 .cmp-barra-val { font-size: 14px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-.cmp-ref .cmp-barra-rot, .cmp-ref .cmp-barra-val { color: var(--gris); font-weight: 600; }
+.cmp-ref span, .cmp-ref b { color: var(--gris); }
+.cmp-ref b { font-weight: 600; }
+.escala .peldano span { font-weight: 600; }
 .cmp-escala { font-size: 11px; color: var(--gris); margin-top: var(--e-2); line-height: 1.5; text-wrap: pretty; }
 
 .cmp-apilada {
@@ -691,11 +690,10 @@ select {
   .tapa-alto, .filtros, .atajos { padding-inline: 18px; }
   #lectura-piramide { grid-template-columns: 1fr; gap: var(--e-3); min-height: 150px; }
   .lec-cab { text-align: left; }
-  .lec-fila { grid-template-columns: 14px minmax(0, 1fr) auto; }
-  .lec-fila > em { grid-column: 2 / -1; text-align: left; }
+  .lec-fila { grid-template-columns: minmax(0, 1fr) auto; }
+  .lec-fila > em { grid-column: 1 / -1; text-align: left; }
   .escala { gap: 6px; }
-  .peldano { grid-template-columns: 68px 1fr auto; gap: 8px; }
-  .peldano > span { font-size: 10px; }
+  .peldano span { font-size: 10px; }
   /* minmax(0,1fr) y no 1fr a secas: el mínimo por defecto de una pista de
      rejilla es el ancho de su contenido, así que "2.258.866" a 26 px
      empujaba la columna a 138 px y las dos juntas se salían 4 px por la
@@ -735,9 +733,7 @@ select {
   .lec-titulo { font-size: 6pt; margin-bottom: .5mm; }
   .lec-cab { font-size: 5pt; margin-bottom: .5mm; }
   .lec-izq > div { grid-template-columns: 9mm 10mm auto; gap: 1mm; }
-  .lec-fila { grid-template-columns: 2.2mm 20mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
-  .lec-llave { width: 1.8mm; height: 1.8mm; }
-  .vista-info { font-size: 5pt; line-height: 1.3; margin: .8mm 0 0; min-height: 0; }
+  .lec-fila { grid-template-columns: 16mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
   .leyenda { margin-top: 1.2mm; gap: 3mm; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
@@ -806,15 +802,14 @@ select {
   .leyenda span { font-size: 6pt; }
   .llave { width: 2mm; height: 2mm; }
 
-  .indice { margin-bottom: 1.2mm; }
-  .indice-tit { margin-bottom: .6mm; }
+  .indice { margin-bottom: 1.6mm; }
+  .indice-tit { margin-bottom: 1mm; }
   .indice-tit b { font-size: 7pt; }
   .indice-tit em { font-size: 6pt; }
-  .peldano { grid-template-columns: 15mm 1fr auto; gap: 1.4mm; }
-  .peldano > span { font-size: 5.5pt; line-height: 1.15; }
-  .peldano b { font-size: 7pt; min-width: 7.5mm; }
-  .peldano .barra { height: 1.3mm; }
-  .escala { gap: .7mm; }
+  .peldano span { font-size: 5.5pt; min-height: 0; line-height: 1.2; }
+  .peldano b { font-size: 8pt; margin: .3mm 0 .8mm; }
+  .peldano i { height: 1.2mm; }
+  .escala { gap: 1.4mm; }
 
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .anillo h3 { font-size: 7pt; }

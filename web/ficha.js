@@ -277,24 +277,28 @@ function graficoExtranjero(ext, w, h) {
 }
 
 /* --------------------------------------------------------------- pirámide -- */
-/* EJE ÚNICO. De 0 a 7 % a cada lado, igual en las 88 fichas, en las dos
-   pestañas y en los tres soportes. Antes el tope se calculaba municipio a
-   municipio, y de ahí la queja de Pedro: Santa Cruz salía de dos en dos y San
-   Bartolomé de cinco en cinco. Lo grave no era el rótulo, era que el dibujo
-   mentía. Arico, con un grupo modal del 5,27 %, llenaba el 88 % del semiancho;
-   Artenara, con 6,62 %, el 44 %. Una barra el doble de larga para un valor
-   menor.
+/* EJE FIJO POR PESTAÑA, igual en las 88 fichas y en los tres soportes. Antes
+   el tope se calculaba municipio a municipio, y de ahí la queja de Pedro: Santa
+   Cruz salía de dos en dos y San Bartolomé de cinco en cinco. Lo grave no era
+   el rótulo, era que el dibujo mentía: Arico, con un grupo modal del 5,27 %,
+   llenaba el 88 % del semiancho; Artenara, con 6,62 %, el 44 %.
 
-   El 7 sale de los datos, no del gusto: el grupo más numeroso de los 88
-   municipios es el de Artenara, 6,621 % de su población. Con tope 6 ó 6,5
-   quedaría cortado, y un eje que corta una barra es un eje que miente. La
-   holgura es escasa —en Artenara, con 1.027 habitantes, una persona vale 0,097
-   puntos— así que exportar_datos.py la comprueba en cada exportación y falla
-   nombrando al municipio si alguno se pasa.
+   Los dos números salen de los datos, no del gusto, y un eje que corta una
+   barra es un eje que miente:
+   · "Municipio y Canarias": municipio y Canarias, cada uno sobre su población
+     total. El grupo más numeroso de los 88 es el de Artenara, 6,621 %. Tope 7.
+   · "Por lugar de nacimiento": nacidos en España sobre el total de nacidos en
+     España, y de origen extranjero sobre el total de origen extranjero, que es
+     como lo calcula Pedro. Sobre base propia el modal de los extranjeros de
+     Artenara (65 personas) es 13,85 %, Agulo 11,32 %, Teror 9,95 %; trece
+     municipios pasan del 7 y dos del 10. Tope 14, el primer par que no corta a
+     nadie. Que la pestaña se vea más estrecha en un municipio grande es el
+     precio de no mentir en uno pequeño; si Pedro prefiere un 10 que corte a
+     Artenara y Agulo, es este número y nada más.
 
-   Lo que cuesta: 46 de las 88 se ven más estrechas que antes. Se ven más
-   estrechas porque lo son; su población está más repartida entre edades. */
-const EJE_PIRAMIDE = 7;
+   exportar_datos.py comprueba las dos holguras en cada exportación y falla
+   nombrando al municipio si alguna se pasa. */
+const EJE_PIRAMIDE = { canarias: 7, municipio: 14 };
 
 /* Alto de la pirámide en la hoja A4. Si al medir la hoja real no cupiera, esta
    es la única constante que se toca: toda la geometría se recalcula sola. Por
@@ -317,16 +321,17 @@ const BASE_CANARIAS  = 'total';    // 'total' | 'espanola'
 
 /** Los tres juegos de medidas. El SVG se redibuja a cada ancho; nunca se estira
  *  uno pequeño, que dejaría el trazo deformado y la letra en un pelo. */
+/* El canal central lleva el grupo de edad entero —"0 a 4", "100 o más"—, que es
+   como estaba y como Pedro lo quiere: "el eje de edad debe ser en grupos
+   quinquenales". Estuvo reducido al límite inferior (0, 5, 10…) para estrechar
+   el canal a 22 px; `feEdad` es el cuerpo de esa etiqueta y `hueco` el ancho
+   que necesita "100 o más" a ese cuerpo, con un poco de aire. */
 function medidasPiramide(w) {
-  if (IMPRIMIENDO) return { m: { t: 11, r: 10, b: 13, l: 10 }, hueco: 22, s: 0.7, fe: 8,   rej: 0.6, decadas: false };
-  if (w < 430)     return { m: { t: 12, r: 8,  b: 26, l: 8  }, hueco: 28, s: 1.0, fe: 8.5, rej: 1,   decadas: true };
-  return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 36, s: 1.1, fe: 9.5, rej: 1,   decadas: true };
+  if (IMPRIMIENDO) return { m: { t: 11, r: 10, b: 13, l: 10 }, hueco: 36, s: 0.7, fe: 8,   feEdad: 6.5, rej: 0.6, decadas: false };
+  if (w < 430)     return { m: { t: 12, r: 8,  b: 26, l: 8  }, hueco: 44, s: 1.0, fe: 8.5, feEdad: 8,   rej: 1,   decadas: true };
+  return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 50, s: 1.1, fe: 9.5, feEdad: 8.5, rej: 1,   decadas: true };
 }
 
-/** Sólo el límite inferior del grupo: "0 a 4" es 0 y "100 o más" es 100. La
- *  etiqueta larga obligaba a un canal central de 47 px; así baja a 22 en papel
- *  y cada lado gana casi 13 px de dato. */
-const limiteEdad = (e) => String(e).split(' ')[0];
 
 /** El glifo negro: un camino de tres lados, abierto contra el eje. Cerrado
  *  dibujaría también su lado del eje, y las 21 marcas apiladas cerrarían dos
@@ -352,15 +357,20 @@ function glifoNegro(x0, signo, largo, y, alto, s) {
  *  un Canarias que el dibujo no llevaba. */
 function construirPiramide(p, w, h, vistaFija = null) {
   const n = p.edades.length;
-  const { m, hueco, s, fe, rej, decadas } = medidasPiramide(w);
+  const { m, hueco, s, fe, feEdad, rej, decadas } = medidasPiramide(w);
 
-  const total = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0);
-  /* Denominador único: la población total del municipio, los dos sexos, para el
-     relleno y para el marco. Es lo que hace que la superposición sea aritmética
-     y no decorativa: nacida en España % + de origen extranjero % = total % en
-     cada semifila, así que el marco mide exactamente cuánto crece la barra al
-     cambiar de pestaña. */
-  const pc = (V) => total > 0 ? V.map((v) => v / total * 100) : V.map(() => 0);
+  const suma = (V) => V.reduce((a, b) => a + b, 0);
+  const total = suma(p.hombres) + suma(p.mujeres);
+  /* Cada población sobre su propio total, los dos sexos juntos: el municipio
+     sobre sus habitantes, Canarias sobre los suyos, y en la segunda pestaña los
+     nacidos en España sobre el total de nacidos en España y los de origen
+     extranjero sobre el total de origen extranjero. Es lo que hace comparables
+     dos pirámides superpuestas: cada una suma 100 en sus 42 barras. Estuvo mal:
+     las dos capas de la segunda pestaña iban divididas por la población total
+     del municipio, y Pedro lo vio a la primera: "las pirámides te están
+     saliendo delgadas por eso". */
+  const sobre = (V, t) => t > 0 ? V.map((v) => v / t * 100) : V.map(() => 0);
+  const pc = (V) => sobre(V, total);
 
   const ext = p.extranjera_hombres
     ? { H: p.extranjera_hombres, M: p.extranjera_mujeres }
@@ -372,28 +382,30 @@ function construirPiramide(p, w, h, vistaFija = null) {
   const conCanarias = BASE_CANARIAS === 'total'
     ? { H: p.hombres, M: p.mujeres }
     : esp;
+  const totalEsp = suma(esp.H) + suma(esp.M);
+  const totalExt = suma(ext.H) + suma(ext.M);
 
   /* El orden importa: la primera es la que sale al abrir la ficha y la que se
      imprime. Pedro dijo "poner Canarias en barras negras vacías" y luego
      "poder AÑADIR una pestaña que contemple solo lo de nacida en España y
      origen extranjero": la base lleva Canarias y la otra es la añadida. */
+  /* `rotH`, `rotM` y `rotNegro` son la leyenda de cada pestaña, tal cual la
+     dictó Pedro para la segunda: "Hombres españoles, Mujeres españolas,
+     Extranjeros". */
   const vistas = [
     {
-      clave: 'canarias', etiqueta: 'Municipio y Canarias',
+      clave: 'canarias', etiqueta: 'Municipio y Canarias', eje: EJE_PIRAMIDE.canarias,
       relleno: { H: pc(conCanarias.H), M: pc(conCanarias.M) },
       negro: { H: p.canarias_hombres, M: p.canarias_mujeres },
-      rotRelleno: BASE_CANARIAS === 'total' ? 'Población del municipio' : 'Nacida en España',
-      rotNegro: 'Canarias',
+      rotH: 'Hombres', rotM: 'Mujeres', rotNegro: 'Canarias',
       cuentaRelleno: conCanarias, cuentaNegro: null,
-      base: 'Porcentaje sobre la población de cada territorio',
     },
     {
-      clave: 'municipio', etiqueta: 'Por lugar de nacimiento',
-      relleno: { H: pc(esp.H), M: pc(esp.M) },
-      negro: { H: pc(ext.H), M: pc(ext.M) },
-      rotRelleno: 'Nacida en España', rotNegro: 'De origen extranjero',
+      clave: 'municipio', etiqueta: 'Por lugar de nacimiento', eje: EJE_PIRAMIDE.municipio,
+      relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
+      negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
+      rotH: 'Hombres españoles', rotM: 'Mujeres españolas', rotNegro: 'Extranjeros',
       cuentaRelleno: esp, cuentaNegro: ext,
-      base: 'Porcentaje sobre la población total del municipio',
     },
   ];
 
@@ -410,22 +422,34 @@ function construirPiramide(p, w, h, vistaFija = null) {
   const marco = relleno;
   const off = 0;
   const fy = (i) => m.t + (n - 1 - i) * altoFila + (altoFila - relleno) / 2;
-  const escala = (v) => acotar(v, 0, EJE_PIRAMIDE) / EJE_PIRAMIDE * anchoLado;
+  const escala = (v, eje) => acotar(v, 0, eje) / eje * anchoLado;
   const LADOS = [['h', -1], ['m', 1]];
 
+  const fija = vistaFija == null ? null : vistas[vistaFija];
+
   // ---- rejilla y eje ----
-  let rejilla = '', ejeX = '';
-  for (let v = 0; v <= EJE_PIRAMIDE; v++) {
-    for (const [, signo] of LADOS) {
-      const x = centro + signo * (hueco / 2 + escala(v));
-      rejilla += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-      // Se rotula de dos en dos; el 0 a los dos lados, como pidió Pedro.
-      if (v % 2 === 0) {
-        ejeX += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
-              + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
+  /* Las verticales y sus rótulos dependen del eje de la pestaña, así que van en
+     un grupo propio que `mostrarVista` vuelve a escribir al cambiar. Con tope 7
+     hay una línea por punto y rótulo cada dos; con 14, línea cada dos y rótulo
+     cada cuatro. El 0 se rotula a los dos lados, como pidió Pedro. */
+  const ejeSVG = (eje) => {
+    const paso = eje <= 8 ? 1 : 2;
+    let out = '';
+    for (let v = 0; v <= eje; v += paso) {
+      for (const [, signo] of LADOS) {
+        const x = centro + signo * (hueco / 2 + escala(v, eje));
+        out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
+        if (v % (paso * 2) === 0) {
+          out += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
+               + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
+        }
       }
     }
-  }
+    return out;
+  };
+  const ejeInicial = (fija || vistas[0]).eje;
+  // Sin id cuando la vista es fija: el dossier dibuja 88 pirámides en un documento.
+  let rejilla = `<g${fija ? '' : ' id="eje-piramide"'}>${ejeSVG(ejeInicial)}</g>`;
   /* Cuatro horizontales en los cortes de década. Entregan "a partir de los 20"
      sin ratón y sin una sola palabra que interprete. En la hoja no caben. */
   if (decadas) {
@@ -435,7 +459,6 @@ function construirPiramide(p, w, h, vistaFija = null) {
     }
   }
 
-  const fija = vistaFija == null ? null : vistas[vistaFija];
   const dibujarSilueta = CANARIAS_FORMA === 'silueta' && (fija || vistas[0]).clave === 'canarias';
 
   // ---- barras, glifos y edades ----
@@ -446,18 +469,18 @@ function construirPiramide(p, w, h, vistaFija = null) {
       const clave = lado === 'h' ? 'H' : 'M';
       const col = lado === 'h' ? C.azulMedio : C.azulClaro;
       const x0 = centro + signo * hueco / 2;
-      const aR = fija ? escala(fija.relleno[clave][i]) : 0;
+      const aR = fija ? escala(fija.relleno[clave][i], fija.eje) : 0;
       barras += `<rect ${fija ? '' : `id="p${lado}${i}" `}`
               + `x="${(signo < 0 ? x0 - aR : x0).toFixed(2)}" y="${y.toFixed(2)}" `
               + `width="${aR.toFixed(2)}" height="${relleno.toFixed(2)}" fill="${col}"/>`;
       if (!dibujarSilueta) {
-        const d = fija ? glifoNegro(x0, signo, escala(fija.negro[clave][i]), y + off, marco, s) : '';
+        const d = fija ? glifoNegro(x0, signo, escala(fija.negro[clave][i], fija.eje), y + off, marco, s) : '';
         negros += `<path ${fija ? '' : `id="n${lado}${i}" `}d="${d}" fill="none" `
                 + `stroke="${C.negro}" stroke-width="${s}" stroke-linejoin="miter"/>`;
       }
     }
-    etiquetas += `<text x="${centro.toFixed(1)}" y="${(y + relleno / 2 + fe * 0.36).toFixed(1)}" `
-               + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${limiteEdad(p.edades[i])}</text>`;
+    etiquetas += `<text x="${centro.toFixed(1)}" y="${(y + relleno / 2 + feEdad * 0.36).toFixed(1)}" `
+               + `text-anchor="middle" font-size="${feEdad}" fill="${C.gris}">${esc(p.edades[i])}</text>`;
   }
 
   // ---- silueta de repuesto, si se pide ----
@@ -468,7 +491,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       const serie = v.negro[lado === 'h' ? 'H' : 'M'];
       const pts = [];
       for (let i = 0; i < n; i++) {
-        const x = centro + signo * (hueco / 2 + escala(serie[i]));
+        const x = centro + signo * (hueco / 2 + escala(serie[i], v.eje));
         pts.push(`${x.toFixed(1)},${(fy(i) + relleno).toFixed(1)}`, `${x.toFixed(1)},${fy(i).toFixed(1)}`);
       }
       silueta += `<polyline points="${pts.join(' ')}" fill="none" stroke="${IMPRIMIENDO ? C.gris : C.negro}" `
@@ -488,11 +511,11 @@ function construirPiramide(p, w, h, vistaFija = null) {
     }
   }
 
-  const svg = abrirSVG(w, h, `Pirámide de población en porcentaje, eje de 0 a ${EJE_PIRAMIDE}${UNI}%`)
-    + rejilla + barras + negros + silueta + etiquetas + ejeX + franjas + '</svg>';
+  const svg = abrirSVG(w, h, 'Pirámide de población en porcentaje sobre el total de cada población')
+    + rejilla + barras + negros + silueta + etiquetas + franjas + '</svg>';
 
   return {
-    svg, vistas, escala, centro, hueco, edades: p.edades, total,
+    svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, total,
     fy, relleno, marco, off, altoFila, trazo: s, glifo: glifoNegro,
     silueta: dibujarSilueta,
     // La franja de lectura cubre la fila entera, no sólo la barra.
@@ -504,39 +527,35 @@ function construirPiramide(p, w, h, vistaFija = null) {
 }
 
 /* --------------------------------------------- índices geodemográficos ----- */
-/** Los tres ámbitos en tres barras, el mayor arriba. El tono sigue marcando la
- *  posición y no el territorio, que es el diseño de Pedro; lo que cambia es que
- *  la barra ahora mide. Va de cero al valor más alto de los 88 municipios en
- *  ese índice, que es la misma escala que usa el comparador: contra el mayor de
- *  los tres, la barra más larga llegaría siempre al tope y dos fichas distintas
- *  no se podrían poner una al lado de otra.
+/** Diseño de Pedro, y es suyo de verdad: los tres ámbitos en tres columnas, de
+ *  izquierda a derecha de menor a mayor, cada uno con su valor grande y debajo
+ *  una pastilla cuyo tono marca la posición, no el territorio. Sin barra que
+ *  mida, sin eje.
  *
- *  El municipio va rotulado como "Municipio" y no con su nombre: en una columna
- *  de cinco doceavos, "Santa María de Guía de Gran Canaria" repetido cuatro
- *  veces no cabe en una línea. */
-function bloqueIndices(ind, codigos, isla, rangos) {
+ *  Estuvo cambiado a tres filas con barras medidas contra el máximo de los 88.
+ *  Fue una lectura equivocada de la llamada: lo de "el mayor arriba" y "la
+ *  barra desconcierta, no sabe el eje que aporta" lo decía del COMPARADOR, y
+ *  este bloque era el modelo que quería copiar allí ("como hacemos en la
+ *  página de visualización"). Al verlo cambiado escribió "no está como estaba
+ *  antes". Está como estaba antes.
+ *
+ *  Lo único que se conserva de aquel cambio es lo que sí pidió: "Municipio" e
+ *  "Isla" en vez de los nombres propios, "porque hay municipios con nombres
+ *  muy largos". */
+function bloqueIndices(ind, codigos) {
   return codigos.map((cod) => {
     const d = ind[cod];
-    /* "en todos pondría municipios, islas y canarias": los tres ámbitos con la
-       palabra genérica y no con el nombre propio. De qué isla se habla lo dice
-       la línea de arriba de la ficha. */
     const filas = [['Canarias', d.canarias], ['Isla', d.isla], ['Municipio', d.municipio]]
       .filter(([, v]) => v != null)
-      .sort((a, b) => b[1] - a[1]);
-    /* El chip no lleva el "%" que trae el diccionario del Excel: juventud,
-       dependencia y reemplazo son "por cien", no porcentajes, y el divisor no
-       es el total de la población. Lleva en su lugar el recorrido de la escala,
-       que es lo que hace falta para leer la barra. */
+      .sort((a, b) => a[1] - b[1]);
     const dec = cod === 'C10' ? 2 : 1;
-    const tope = (rangos && rangos[cod] && rangos[cod].max)
-      || Math.max(...filas.map(([, v]) => v)) || 1;
     return `<div class="indice">
-      <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio} · 0 a ${nf(tope, dec)}</em></div>
+      <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio}${d.unidad ? ' · ' + esc(d.unidad) : ''}</em></div>
       <div class="escala">${filas.map(([n, v], i) => `
         <div class="peldano">
           <span>${esc(n)}</span>
-          <span class="barra"><i style="width:${acotar(v / tope * 100, 1, 100).toFixed(1)}%;background:${TONOS[filas.length - 1 - i]}"></i></span>
           <b>${nf(v, dec)}</b>
+          <i style="background:${TONOS[i]}"></i>
         </div>`).join('')}</div>
     </div>`;
   }).join('');
@@ -658,10 +677,9 @@ async function cargar(codmun) {
 const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Transición entre pestañas. Interpola a la vez el ancho del relleno azul y el
- *  largo del glifo negro, que es lo que hace que el cambio signifique algo: al
- *  pasar de "Solo municipio" a "Municipio y Canarias", cada barra crece
- *  exactamente el largo del marco que llevaba dentro, porque ese marco es la
- *  población de origen extranjero. El movimiento es la cantidad. */
+ *  largo del glifo negro. Al pasar a "Por lugar de nacimiento" el eje se dobla
+ *  (de 7 a 14) y las barras azules se acortan en consecuencia: es el mismo
+ *  dato sobre otro tope, no otro dato. */
 let animacion = null;
 const LADOS_PI = [['h', -1, 'H'], ['m', 1, 'M']];
 
@@ -671,8 +689,8 @@ function pintarLeyendaPiramide(vista) {
   const cont = document.getElementById('leyenda-piramide');
   if (!cont) return;
   const llaves = [
-    `<span><i class="llave" style="background:${C.azulMedio}"></i>Hombres</span>`,
-    `<span><i class="llave" style="background:${C.azulClaro}"></i>Mujeres</span>`,
+    `<span><i class="llave" style="background:${C.azulMedio}"></i>${esc(vista.rotH)}</span>`,
+    `<span><i class="llave" style="background:${C.azulClaro}"></i>${esc(vista.rotM)}</span>`,
   ];
   if (vista.negro) {
     const forma = PIRAMIDE && PIRAMIDE.silueta ? 'llave linea' : 'llave hueca';
@@ -690,13 +708,9 @@ function mostrarVista(i, animar = true) {
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   pintarLeyendaPiramide(v);
-  const info = document.getElementById('vista-info');
-  if (info) {
-    // Ni el nombre de la pestaña, que ya está en el botón pulsado, ni el total,
-    // que está en la línea de arriba de la lectura, ni que el eje sea el mismo
-    // en las 88: eso es cosa nuestra y no del que lee la ficha.
-    info.textContent = `${v.base} · eje de 0 a ${EJE_PIRAMIDE}\u00a0%`;
-  }
+  // El eje de la pestaña, con sus verticales y sus rótulos. Cambia de 7 a 14.
+  const eje = document.querySelector('#g-piramide #eje-piramide');
+  if (eje) eje.innerHTML = P.ejeSVG(v.eje);
 
   if (!P.nodos) {
     P.nodos = {}; P.actual = {};
@@ -714,8 +728,8 @@ function mostrarVista(i, animar = true) {
   const hacia = {}, desde = {};
   for (const [lado, , cl] of LADOS_PI) {
     hacia[lado] = {
-      r: v.relleno[cl].map(P.escala),
-      n: (v.negro ? v.negro[cl] : v.relleno[cl].map(() => 0)).map(P.escala),
+      r: v.relleno[cl].map((x) => P.escala(x, v.eje)),
+      n: (v.negro ? v.negro[cl] : v.relleno[cl].map(() => 0)).map((x) => P.escala(x, v.eje)),
     };
     desde[lado] = { r: P.actual[lado].r.slice(), n: P.actual[lado].n.slice() };
   }
@@ -829,7 +843,7 @@ function pintar(f) {
   mostrarVista(VISTA, false);
 
   doc.getElementById('g-indices').innerHTML =
-    bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'], f.isla, INDICE.rangos_indices);
+    bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14']);
 
   const anom = f.componentes.anomalias || [];
   doc.getElementById('g-componentes').innerHTML =
@@ -866,10 +880,6 @@ function pintar(f) {
    flechas, ni diferencias con signo: un signo delante de una diferencia se lee
    como una nota. */
 
-const LLAVE_RELLENA = `<i class="lec-llave" style="background:${C.azulMedio}"></i>`;
-const LLAVE_HUECA   = `<i class="lec-llave hueca"></i>`;
-const LLAVE_SIN     = `<i class="lec-llave vacia"></i>`;
-
 function pintarLectura(i) {
   const salida = document.getElementById('lectura-piramide');
   if (!salida || !PIRAMIDE) return;
@@ -886,33 +896,31 @@ function pintarLectura(i) {
 
   /* Dos decimales siempre: con 0,74 % un solo decimal borra la diferencia
      entre dos grupos de edad contiguos. */
-  const fila = (llave, rot, a, b, na, nb) => `
-    <div class="lec-fila">${llave}<span>${esc(rot)}</span>
+  const fila = (rot, a, b, na, nb) => `
+    <div class="lec-fila"><span>${esc(rot)}</span>
       <b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>
       ${na == null ? '<em></em>' : `<em>${nf(na)} · ${nf(nb)}</em>`}
     </div>`;
 
-  /* La desagregación entre nacida en España y de origen extranjero no
-     desaparece al cambiar de pestaña; lo que cambia es si tiene marca propia en
-     el dibujo. Las filas sin marca van sin símbolo, precisamente por eso. */
-  const filas = [];
-  /* Canarias sale en las dos pestañas: "lo mismo con la nueva pestaña que vamos
-     a implementar". Lleva símbolo solo donde está dibujada; en la otra es un
-     dato de referencia que no tiene marca propia en el gráfico. */
-  const enCanarias = v.clave === 'canarias';
+  /* Sin símbolos: los lleva la leyenda de debajo, y Pedro tachó en rojo las
+     filas que los repetían ("se repite dos veces lo mismo"). Cada porcentaje
+     va sobre su propia población —el municipio sobre sus habitantes, Canarias
+     sobre los suyos, los españoles sobre el total de españoles, los
+     extranjeros sobre el total de extranjeros— y las tres filas salen en las
+     dos pestañas, la dibujada primero y la de referencia al final. */
   const vc = P.vistas.find((x) => x.clave === 'canarias');
-  filas.push(fila(enCanarias ? LLAVE_HUECA : LLAVE_SIN, 'Canarias',
-    val(vc.negro.H), val(vc.negro.M), null, null));
-  filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_RELLENA, 'Nacida en España',
-    val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)));
-  filas.push(fila(enCanarias ? LLAVE_SIN : LLAVE_HUECA, 'De origen extranjero',
-    val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)));
+  const canarias = fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null);
+  const espanoles = fila('Españoles',
+    val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M));
+  const extranjeros = fila('Extranjeros',
+    val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M));
+  const filas = v.clave === 'canarias'
+    ? [canarias, espanoles, extranjeros]
+    : [espanoles, extranjeros, canarias];
 
-  /* El grupo de edad encabeza las dos columnas, y cada una lleva de quién
-     habla: a la izquierda el municipio, a la derecha las capas, con Canarias
-     entre ellas. Así cada franja queda rematada con municipio y Canarias, que
-     es lo que pidió Pedro. Antes la columna izquierda no decía en ninguna
-     parte que fuera el municipio: había que deducirlo. */
+  /* El grupo de edad encabeza las dos columnas: a la izquierda el municipio,
+     a la derecha las capas. Cada franja queda rematada con municipio y
+     Canarias, que es lo que pidió Pedro. */
   salida.innerHTML = `
     <p class="lec-titulo">${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</p>
     <div class="lec-izq">

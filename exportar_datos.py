@@ -475,25 +475,41 @@ with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
 # escasa: Artenara tiene mil habitantes y allí una persona vale casi una décima
 # de punto. Si la próxima edición del padrón se pasa del tope, esto lo dice aquí
 # y no lo descubre nadie mirando una barra cortada.
-EJE_PIRAMIDE = 7.0
+# Dos ejes, uno por pestaña, y cada población sobre su propio total: la de
+# "Municipio y Canarias" sobre los habitantes del municipio; la de "Por lugar
+# de nacimiento", los nacidos en España sobre el total de nacidos en España y
+# los de origen extranjero sobre el total de origen extranjero. Sobre base
+# propia los extranjeros de un municipio pequeño se concentran mucho: Artenara,
+# con 65, tiene un grupo del 13,85 %.
+EJE_PIRAMIDE = {"canarias": 7.0, "municipio": 14.0}
 
-_modales = []
+def _modal(H, M):
+    tot = sum(H) + sum(M)
+    return max(max(H), max(M)) / tot * 100 if tot else 0.0
+
+_series = {"canarias": [], "municipio": []}
 for f in todas_las_fichas:
     pi = f["piramide"]
-    tot = sum(pi["hombres"]) + sum(pi["mujeres"])
-    if tot:
-        _modales.append((max(max(pi["hombres"]), max(pi["mujeres"])) / tot * 100, f["nombre"]))
-_modales.sort(reverse=True)
-if _modales:
+    _series["canarias"].append((_modal(pi["hombres"], pi["mujeres"]), f["nombre"]))
+    if pi.get("extranjera_hombres"):
+        eh, em = pi["extranjera_hombres"], pi["extranjera_mujeres"]
+        esph = [max(0, a - b) for a, b in zip(pi["hombres"], eh)]
+        espm = [max(0, a - b) for a, b in zip(pi["mujeres"], em)]
+        _series["municipio"].append((max(_modal(esph, espm), _modal(eh, em)), f["nombre"]))
+for _clave, _modales in _series.items():
+    _modales.sort(reverse=True)
+    if not _modales:
+        continue
+    _tope = EJE_PIRAMIDE[_clave]
     _peor, _quien = _modales[0]
-    print(f"\nEje de la pirámide: {EJE_PIRAMIDE:.0f} % · grupo más numeroso {_peor:.3f} % "
-          f"({_quien}) · holgura {EJE_PIRAMIDE / _peor:.3f}x")
-    _fuera = [(v, n) for v, n in _modales if v > EJE_PIRAMIDE]
+    print(f"\nEje de la pestaña «{_clave}»: {_tope:.0f} % · grupo más numeroso {_peor:.3f} % "
+          f"({_quien}) · holgura {_tope / _peor:.3f}x")
+    _fuera = [(v, n) for v, n in _modales if v > _tope]
     if _fuera:
         raise SystemExit(
-            "\nEl eje de la pirámide se ha quedado corto y las barras saldrían cortadas.\n"
+            f"\nEl eje de la pestaña «{_clave}» se ha quedado corto y las barras saldrían cortadas.\n"
             + "\n".join(f"  {n}: {v:.3f} %" for v, n in _fuera)
-            + f"\n\nSube EJE_PIRAMIDE en web/ficha.js y aquí a {math.ceil(_fuera[0][0])} "
+            + f"\n\nSube EJE_PIRAMIDE.{_clave} en web/ficha.js y aquí a {math.ceil(_fuera[0][0])} "
               "para los 88 a la vez, y vuelve a exportar.")
 
 _peso = sum(p.stat().st_size for p in (SALIDA / "mun").glob("*.json"))

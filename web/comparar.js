@@ -100,24 +100,6 @@ function piramide(f, tope, w) {
        + rejilla + barras + edades + eje + '</svg>';
 }
 
-/* ------------------------------------------------------- barra de un índice */
-/** Cada índice lleva su propia escala, la del recorrido del índice en el
- *  conjunto de Canarias. Una escala común a los cuatro no diría nada:
- *  envejecimiento es una razón que va de 0,8 a 5,6 y reemplazo laboral un
- *  porcentaje que llega a 103. No hay umbrales ni franjas de referencia: se ve
- *  dónde cae cada municipio, no si está dentro o fuera de nada. */
-function barraIndice(valor, rango, color, w = 200) {
-  /* El tope es el maximo de los 88 exactamente, sin holgura: es el numero que
-     la cartela del indice anuncia, y es el mismo que usa la ficha. Con un 4 %
-     de margen la barra no llegaba nunca al final y el eje escrito mentia. */
-  const h = 18, tope = rango.max;
-  const x = (v) => acotar(v / tope, 0, 1) * w;
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">`
-       + `<rect x="0" y="3" width="${w}" height="${h - 6}" fill="#E8EEF5" rx="2"/>`
-       + `<rect x="0" y="3" width="${x(valor).toFixed(1)}" height="${h - 6}" fill="${color}" rx="2"/>`
-       + '</svg>';
-}
-
 /* ------------------------------------------------- barra apilada de origen -- */
 function barraApilada(valores, w = 280) {
   const h = 26;
@@ -205,31 +187,36 @@ function seccionIndices() {
     C14: 'personas de 15 a 19 por cada cien de 60 a 64',
   };
   return codigos.map((cod) => {
-    const rango = INDICE.rangos_indices[cod];
     const ref = ELEGIDOS[0].indices[cod].canarias;
     const dec = cod === 'C10' ? 2 : 1;
-    /* Aquí, y solo aquí, las filas van de mayor a menor valor en vez de en el
-       orden de las columnas: es lo que pidió Pedro, "el mayor arriba, dejarlo
-       ordenado". Se ordena la fila, no se puntúa: no hay puesto, ni medalla, ni
-       destacado, y el color de cada municipio no se mueve. Canarias sigue
-       abajo, en gris, como referencia y no como competidor. */
+    /* El mismo bloque que la ficha —rótulo, valor grande y pastilla de color—,
+       que es lo que pidió Pedro: "ordenar igual que está eso pero con los
+       nombres de los municipios, 3 colores, de mayor a menor y Canarias como
+       eje gris al lado… ordenarlo de izquierda a derecha con el color
+       respectivo, como hacemos en la página de visualización". Aquí sí de
+       mayor a menor, que es lo que dijo para el comparador; el color es el de
+       cada municipio y no el de la posición, para que al reordenar cada uno se
+       lleve el suyo. La barra medida de antes era lo que le desconcertaba:
+       "no sabe el eje que está aportando". */
     const filas = [...ELEGIDOS].sort((a, b) =>
       (b.indices[cod].municipio ?? -Infinity) - (a.indices[cod].municipio ?? -Infinity));
     return `<div class="cmp-indice">
       <div class="cmp-indice-tit">
-        <b>${esc(rango.etiqueta)}</b>
-        <span>${comoSeLee[cod]} · 0 a ${nf(rango.max, dec)}</span>
+        <b>${esc(INDICE.rangos_indices[cod].etiqueta)}</b>
+        <span>${comoSeLee[cod]}</span>
       </div>
-      ${filas.map((f) => `
-        <div class="cmp-barra">
-          <span class="cmp-barra-rot">${esc(f.nombre)}</span>
-          <span class="cmp-barra-val">${nf(f.indices[cod].municipio, dec)}</span>
-          ${barraIndice(f.indices[cod].municipio, rango, tono(f))}
+      <div class="escala" style="--n:${filas.length + 1}">
+        ${filas.map((f) => `
+        <div class="peldano">
+          <span style="color:${tono(f)}">${esc(f.nombre)}</span>
+          <b>${nf(f.indices[cod].municipio, dec)}</b>
+          <i style="background:${tono(f)}"></i>
         </div>`).join('')}
-      <div class="cmp-barra cmp-ref">
-        <span class="cmp-barra-rot">Canarias</span>
-        <span class="cmp-barra-val">${nf(ref, dec)}</span>
-        ${barraIndice(ref, rango, GRIS_REF)}
+        <div class="peldano cmp-ref">
+          <span>Canarias</span>
+          <b>${nf(ref, dec)}</b>
+          <i style="background:${GRIS_REF}"></i>
+        </div>
       </div>
     </div>`;
   }).join('');
