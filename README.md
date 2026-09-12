@@ -128,10 +128,15 @@ como pidió Pedro en la revisión.
    estructuralmente vacía en el numerador. No medía la aportación de la
    migración, medía la edad a la que se migra.
 
-**Pirámide con tres vistas.** Población total con el perfil de Canarias
-superpuesto, nacida en España, y de origen extranjero (hoja C24). Se pasa de una
-a otra con una transición animada, y el eje es común a las tres para que las
-siluetas se puedan comparar.
+**Pirámide con dos pestañas.** «Municipio y Canarias»: el municipio en barras
+azules y Canarias en barras negras huecas, cada uno sobre su población total.
+«Por lugar de nacimiento»: nacidos en España en azul y de origen extranjero
+(hoja C24) en negro hueco, cada población sobre su propio total, que es como lo
+calcula Pedro. El eje es fijo e igual en las 88 fichas, pero uno por pestaña —7 %
+y 14 %— porque sobre base propia los extranjeros de un municipio pequeño se
+concentran mucho (Artenara, 65 personas, 13,85 % en un grupo) y un eje que corta
+una barra miente. `exportar_datos.py` comprueba las dos holguras. Al señalar un
+grupo de edad, la lectura da los porcentajes y los recuentos de cada población.
 
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
 derecha por valor, y el tono indica la posición. El ISTAC no lo tiene así.

@@ -755,14 +755,19 @@ function mostrarVista(i, animar = true) {
   // Sin animación si el usuario la ha desactivado en el sistema, y tampoco si la
   // pestaña está oculta: ahí el navegador congela requestAnimationFrame y la
   // pirámide se quedaría a medio camino.
-  if (!animar || reducido() || document.hidden) { aplicar(1); pintarLectura(FILA); return; }
+  /* Si hay una franja señalada, sus marcadores van pegados a la punta de cada
+     barra: hay que recolocarlos cuando las barras acaban de moverse, que con el
+     cambio de eje es un desplazamiento grande. `senalar` existe en cuanto la
+     lectura está conectada; si no, basta con repintar la lectura. */
+  const refrescar = () => (P.senalar && FILA != null) ? P.senalar(FILA) : pintarLectura(FILA);
+  if (!animar || reducido() || document.hidden) { aplicar(1); refrescar(); return; }
 
   const dur = 620, t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
     const e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // easeInOutCubic
     aplicar(e);
-    if (p < 1) animacion = requestAnimationFrame(paso);
+    if (p < 1) animacion = requestAnimationFrame(paso); else refrescar();
   };
   animacion = requestAnimationFrame(paso);
   pintarLectura(FILA);
