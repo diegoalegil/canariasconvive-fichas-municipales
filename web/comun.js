@@ -18,6 +18,12 @@ const UNI = '\u00a0';
 const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
 
 const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
+/** Eje de una pirámide: el par más pequeño de 6, 8, 10, 12… que cubre el grupo
+ *  más numeroso. Regla de Pedro: «al 6 u 8 por cien dependiendo del valor; si
+ *  hay excepciones, que se ajuste automáticamente». Un eje que corta una barra
+ *  miente, así que nunca queda por debajo del máximo. La misma función manda
+ *  en la ficha, el dossier y el comparador, y exportar_datos.py la repite. */
+const ejeAutomatico = (maximo) => Math.max(6, Math.ceil(maximo / 2) * 2);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 /** Sin tildes y en minúsculas: quien busca "guia" tiene que encontrar Guía. */
 const plano = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

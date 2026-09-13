@@ -319,51 +319,19 @@ select {
 .nota { margin-top: var(--e-3); font-size: 11px; color: var(--gris); line-height: 1.5; text-align: center; }
 
 /* ------------------------------------------------------------- lecturas --- */
-/* Valor exacto del punto señalado. Altura reservada para que el contenido de
-   abajo no dé un salto al aparecer y desaparecer.
-
-   La de la pirámide es un bloque fijo debajo del dibujo y no un globo
-   flotante: un globo se pierde en el móvil, lo tapa el dedo y no existe en
-   papel. Nunca está vacío; en reposo enseña el total del municipio. */
+/* Valor exacto del punto señalado en la evolución: una línea bajo el dibujo,
+   con altura reservada para que el contenido de abajo no dé un salto al
+   aparecer y desaparecer. La pirámide no lleva bloque: sus cifras van dentro
+   del dibujo, junto a la punta de las barras (ficha.js, `etiquetasFila`), y
+   en reposo no enseña nada, que es lo que pidió Pedro. */
 .lectura {
   min-height: 20px; margin-top: 10px; text-align: center;
   font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums;
 }
 .lectura b { color: var(--azul); font-weight: 700; }
 
-#lectura-piramide {
-  display: grid; grid-template-columns: auto 1fr; gap: 2px var(--e-6);
-  align-items: start; text-align: left; margin-top: var(--e-4);
-  padding-top: var(--e-4); border-top: 1px solid var(--linea);
-  min-height: 96px; font-size: 12px;
-}
-.lec-titulo {
-  grid-column: 1 / -1; font-size: 12.5px; font-weight: 700;
-  color: var(--negro); margin-bottom: var(--e-2);
-}
-.lec-cab {
-  display: block; font-size: 11px; font-weight: 700; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--gris); margin-bottom: 6px;
-}
-.lec-izq > div { display: grid; grid-template-columns: 60px auto auto; gap: var(--e-3); align-items: baseline; }
-.lec-izq > div > b { color: var(--negro); font-weight: 700; }
-.lec-izq em, .lec-fila em { font-style: normal; color: var(--gris-40); }
-.lec-cab { text-align: right; }
-/* Sin columna de símbolo: la leyenda de debajo ya los lleva, y Pedro tachó
-   las filas que los repetían. */
-.lec-fila {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--e-3); align-items: baseline; margin-bottom: 4px;
-}
-.lec-fila > span { min-width: 0; }
-.lec-fila > b { color: var(--negro); font-weight: 700; white-space: nowrap; }
-.lec-fila > em { white-space: nowrap; }
-
 #g-piramide { outline: none; }
 #eje-piramide { transition: opacity .26s ease; }
-/* Cifras tabulares: las tres filas de porcentajes de la derecha quedan en
-   columna, y al recorrer los grupos de edad los números no bailan. */
-#lectura-piramide b, #lectura-piramide em { font-variant-numeric: tabular-nums; }
 #g-piramide:focus-visible { outline: 2px solid var(--azul); outline-offset: 3px; border-radius: var(--r-1); }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
@@ -729,10 +697,6 @@ select {
   .envoltorio { padding-inline: 14px; }
   .portada { padding-inline: 14px; }
   .tapa-alto, .filtros, .atajos { padding-inline: 18px; }
-  #lectura-piramide { grid-template-columns: 1fr; gap: var(--e-3); min-height: 150px; }
-  .lec-cab { text-align: left; }
-  .lec-fila { grid-template-columns: minmax(0, 1fr) auto; }
-  .lec-fila > em { grid-column: 1 / -1; text-align: left; }
   .escala { gap: 6px; }
   .peldano span { font-size: 10px; }
   /* minmax(0,1fr) y no 1fr a secas: el mínimo por defecto de una pista de
@@ -843,20 +807,14 @@ body.presentando { overflow: hidden; }
 .pres-logo { position: absolute; left: 48px; bottom: 32px; height: 40px; }
 /* La fuente de cada gráfico, también en la diapositiva. */
 .pres-fuente { font-size: 20px; color: var(--gris-40); margin-top: 28px; text-align: center; }
-.pres-pir .pres-fuente, .pres-dos .pres-fuente { text-align: left; }
+.pres-dos .pres-fuente { text-align: left; }
 .pres-centro { display: flex; justify-content: center; }
 .pres-sub { font-size: 24px; color: var(--gris); margin: -16px 0 40px; }
-.pres-pir { display: grid; grid-template-columns: 1120px minmax(0, 1fr); gap: 56px; align-items: start; }
+.pres-pir { display: flex; flex-direction: column; align-items: center; }
 .pres-pir .leyenda { gap: 40px; margin-top: 8px; }
 .pres-pir .leyenda span { font-size: 24px; gap: 12px; }
 .pres-pir .llave { width: 22px; height: 22px; border-radius: 5px; }
 .pres-pir .llave.hueca { border-width: 2.4px; }
-.pres-lectura { font-size: 32px; line-height: 1.35; font-variant-numeric: tabular-nums; }
-.pl-grupo { font-size: 40px; font-weight: 700; margin-bottom: 24px; }
-.pl-cab { font-size: 18px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); margin: 24px 0 8px; }
-.pl-fila { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; font-size: 26px; }
-.pl-fila b { font-weight: 700; color: var(--negro); white-space: nowrap; }
-.pl-fila em { font-style: normal; color: var(--gris-40); font-size: 22px; display: block; }
 .pres-indices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 120px; }
 .pres-indices .indice-tit { margin-bottom: 24px; }
 .pres-indices .indice-tit b { font-size: 34px; }
@@ -898,21 +856,8 @@ body.presentando { overflow: hidden; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
-  /* La lectura y el pie de vista sí se imprimen: son la única cifra exacta que
-     la hoja puede dar. Lo que se oculta es el control, que en papel no hace
-     nada. */
-  .barra, .vistas, .filtros, .atajos { display: none !important; }
-  .lectura:not(#lectura-piramide) { display: none !important; }
-  /* Anchos fijos en milímetros: con columnas elásticas, en los 98 mm de la
-     tarjeta cada fila se doblaba en dos y el bloque pasaba de 10 a 22 mm. */
-  #lectura-piramide {
-    grid-template-columns: 33mm 1fr; gap: .6mm 3mm; margin-top: 1.2mm;
-    padding-top: 1mm; min-height: 0; font-size: 5.5pt; line-height: 1.25;
-  }
-  .lec-titulo { font-size: 6pt; margin-bottom: .5mm; }
-  .lec-cab { font-size: 5pt; margin-bottom: .5mm; }
-  .lec-izq > div { grid-template-columns: 9mm 10mm auto; gap: 1mm; }
-  .lec-fila { grid-template-columns: 24mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
+  /* Se oculta lo que en papel no hace nada: controles y lecturas al vuelo. */
+  .barra, .vistas, .filtros, .atajos, .lectura { display: none !important; }
   .leyenda { margin-top: 1mm; gap: 3mm; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }

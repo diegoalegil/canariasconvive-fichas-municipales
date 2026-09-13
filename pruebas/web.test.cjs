@@ -174,8 +174,22 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.locator('.vista').nth(1).click();
   await espera(200);
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres nacidos en España\nMujeres nacidas en España\nNacidos en el extranjero');
-  assert.doesNotMatch(await page.locator('#lectura-piramide').textContent(), /Españoles|Extranjeros/);
-  assert.match(await page.locator('#lectura-piramide').textContent(), /Nacidos en España.*Nacidos en el extranjero/s);
+  // En reposo la pirámide no enseña ninguna cifra (Pedro: «lo de todas las edades no debe salir»);
+  // al señalar un grupo, las cifras van dentro del dibujo y la región viva las dice en palabras.
+  assert.equal(await page.locator('#lectura-piramide').textContent(), '');
+  assert.equal(await page.locator('#marcas-activas text').count(), 0);
+  await page.locator('#g-piramide').focus();
+  await page.keyboard.press('Home');
+  assert.match(await page.locator('#lectura-piramide').textContent(), /^0 a 4 años\. Hombres nacidos en España: .* Nacidos en el extranjero: hombres .*, mujeres /);
+  assert.equal(await page.locator('#marcas-activas text').count(), 2, 'una cifra por lado');
+  assert.match(await page.locator('#marcas-activas text').first().textContent(), /^\d+,\d\d\u00a0% · \d+,\d\d\u00a0%$/);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#lectura-piramide').textContent(), '');
+  // El eje es el par más pequeño que cubre las barras, por pestaña y municipio: Santa Cruz 6 y 6,
+  // Artenara 8 y 14, siempre con el tope rotulado. Sin horizontales.
+  const rotulosEje = () => page.locator('#eje-piramide text').allTextContents().then((t) => [...new Set(t.map((x) => x.replace(/\s/g, '')))].join(' '));
+  assert.equal(await rotulosEje(), '0% 2% 4% 6%');
+  assert.equal(await page.locator('#g-piramide line').evaluateAll((ls) => ls.filter((l) => l.getAttribute('y1') === l.getAttribute('y2')).length), 0, 'sin líneas horizontales');
   // La fuente de cada gráfico, con la redacción de Pedro; la de la pirámide sigue a la pestaña.
   assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, ${indice.anio}. Elaboración propia.`);
   await page.locator('.vista').nth(0).click();
@@ -198,7 +212,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
     await espera(350);
     await page.locator('#g-piramide').focus();
     await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
-    assert.match(await page.locator('.lec-titulo').textContent(), /^5 a 9 años/, `ancho ${ancho}`);
+    assert.match(await page.locator('#lectura-piramide').textContent(), /^5 a 9 años/, `ancho ${ancho}`);
     await sinDesborde(page, `ficha a ${ancho}`);
   }
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -210,7 +224,19 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await espera(200);
   await page.locator('#g-piramide').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
-  assert.match(await page.locator('.lec-titulo').textContent(), /^5 a 9 años/, 'tras imprimir');
+  assert.match(await page.locator('#lectura-piramide').textContent(), /^5 a 9 años/, 'tras imprimir');
+  // Artenara: 6,62 % en un grupo sobre el total (eje 8) y 13,85 % entre los nacidos fuera (eje 14).
+  await page.selectOption('#sel-municipio', '35005');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Artenara');
+  await espera(1000);
+  assert.equal(await rotulosEje(), '0% 2% 4% 6% 8%');
+  await page.locator('.vista').nth(1).click();
+  await espera(1000);
+  assert.equal(await rotulosEje(), '0% 4% 8% 12% 14%');
+  await page.locator('.vista').nth(0).click();
+  await espera(1000);
+  await page.selectOption('#sel-municipio', '38038');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
   // La evolución también se recorre con teclado.
   await page.locator('#g-evolucion').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowRight');
@@ -236,7 +262,10 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   await espera(900);
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
-  assert.match(await page.locator('#pres-lectura').textContent(), /Nacidos en España/);
+  assert.match(await page.locator('#pres-leyenda').textContent(), /nacidos en España/);
+  assert.equal(await page.locator('#pres-lectura').count(), 0, 'la presentación tampoco lleva el bloque de lectura');
+  await page.keyboard.press('Home');
+  assert.equal(await page.locator('#pres-piramide text[paint-order]').count(), 2, 'las cifras del grupo, en el dibujo');
   await page.keyboard.press('Escape');
   await espera(150);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar');

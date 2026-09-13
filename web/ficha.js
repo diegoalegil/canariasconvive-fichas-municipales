@@ -267,33 +267,28 @@ function graficoExtranjero(ext, w, h) {
 }
 
 /* --------------------------------------------------------------- pirámide -- */
-/* EJE FIJO POR PESTAÑA, igual en las 88 fichas y en los tres soportes. Antes
-   el tope se calculaba municipio a municipio, y de ahí la queja de Pedro: Santa
-   Cruz salía de dos en dos y San Bartolomé de cinco en cinco. Lo grave no era
-   el rótulo, era que el dibujo mentía: Arico, con un grupo modal del 5,27 %,
-   llenaba el 88 % del semiancho; Artenara, con 6,62 %, el 44 %.
-
-   Los dos números salen de los datos, no del gusto, y un eje que corta una
-   barra es un eje que miente:
-   · "Municipio y Canarias": municipio y Canarias, cada uno sobre su población
-     total. El grupo más numeroso de los 88 es el de Artenara, 6,621 %. Tope 7.
-   · "Por lugar de nacimiento": nacidos en España sobre el total de nacidos en
-     España, y de origen extranjero sobre el total de origen extranjero, que es
-     como lo calcula Pedro. Sobre base propia el modal de los extranjeros de
-     Artenara (65 personas) es 13,85 %, Agulo 11,32 %, Teror 9,95 %; trece
-     municipios pasan del 7 y dos del 10. Tope 14, el primer par que no corta a
-     nadie. Que la pestaña se vea más estrecha en un municipio grande es el
-     precio de no mentir en uno pequeño; si Pedro prefiere un 10 que corte a
-     Artenara y Agulo, es este número y nada más.
-
-   exportar_datos.py comprueba las dos holguras en cada exportación y falla
-   nombrando al municipio si alguna se pasa. */
-const EJE_PIRAMIDE = { canarias: 7, municipio: 14 };
+/* EJE AUTOMÁTICO POR PESTAÑA Y MUNICIPIO, en la escalera de los pares: el
+   menor de 6, 8, 10, 12… que cubre todas las barras de la pestaña
+   (`ejeAutomatico`, comun.js). Es la regla que dictó Pedro el 13 de
+   septiembre: «debería estar al 6 u 8 por cien dependiendo del valor; si hay
+   excepciones, que se ajuste automáticamente». Los rótulos van siempre de dos
+   en dos, que era lo que faltaba cuando el tope se calculaba municipio a
+   municipio con pasos distintos (Santa Cruz de dos en dos, San Bartolomé de
+   cinco en cinco). Un eje que corta una barra miente, así que el escalón
+   nunca queda por debajo del grupo más numeroso.
+   · "Municipio y Canarias", cada uno sobre su población total: 6 en 86
+     municipios; 8 en Artenara (6,62 %) y Tejeda (6,06 %).
+   · "Por lugar de nacimiento", cada población sobre su propio total: 6 en 49,
+     8 en 34, 10 en tres, 12 en Agulo (11,32 %) y 14 en Artenara (13,85 %).
+   Con el tope fijo de antes (7 y 14 para los 88) la segunda pestaña de un
+   municipio grande salía a media anchura, y Pedro la vio «puesta al 12».
+   exportar_datos.py escribe el reparto en cada exportación. */
 
 /* Alto de la pirámide en la hoja A4. Si al medir la hoja real no cupiera, esta
    es la única constante que se toca: toda la geometría se recalcula sola. Por
-   debajo de mm(52) el marco negro deja de poder dibujarse. */
-const ALTO_PIRAMIDE_A4 = mm(54);
+   debajo de mm(52) el marco negro deja de poder dibujarse. Eran 54 mm; al
+   retirar la lectura que iba debajo (Pedro, 13 sep) la pirámide gana diez. */
+const ALTO_PIRAMIDE_A4 = mm(64);
 
 
 /** Los tres juegos de medidas. El SVG se redibuja a cada ancho; nunca se estira
@@ -304,9 +299,9 @@ const ALTO_PIRAMIDE_A4 = mm(54);
    el canal a 22 px; `feEdad` es el cuerpo de esa etiqueta y `hueco` el ancho
    que necesita "100 o más" a ese cuerpo, con un poco de aire. */
 function medidasPiramide(w) {
-  if (IMPRIMIENDO) return { m: { t: 11, r: 10, b: 13, l: 10 }, hueco: 36, s: 0.7, fe: 8,   feEdad: 6.5, rej: 0.6, decadas: false };
-  if (w < 430)     return { m: { t: 12, r: 8,  b: 26, l: 8  }, hueco: 44, s: 1.0, fe: 8.5, feEdad: 8,   rej: 1,   decadas: true };
-  return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 50, s: 1.1, fe: 9.5, feEdad: 8.5, rej: 1,   decadas: true };
+  if (IMPRIMIENDO) return { m: { t: 11, r: 10, b: 13, l: 10 }, hueco: 36, s: 0.7, fe: 8,   feEdad: 6.5, rej: 0.6 };
+  if (w < 430)     return { m: { t: 12, r: 8,  b: 26, l: 8  }, hueco: 44, s: 1.0, fe: 8.5, feEdad: 8,   rej: 1 };
+  return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 50, s: 1.1, fe: 9.5, feEdad: 8.5, rej: 1 };
 }
 
 
@@ -334,7 +329,7 @@ function glifoNegro(x0, signo, largo, y, alto, s) {
  *  un Canarias que el dibujo no llevaba. */
 function construirPiramide(p, w, h, vistaFija = null) {
   const n = p.edades.length;
-  const { m, hueco, s, fe, feEdad, rej, decadas } = medidasPiramide(w);
+  const { m, hueco, s, fe, feEdad, rej } = medidasPiramide(w);
 
   const suma = (V) => V.reduce((a, b) => a + b, 0);
   const total = suma(p.hombres) + suma(p.mujeres);
@@ -368,20 +363,22 @@ function construirPiramide(p, w, h, vistaFija = null) {
      Extranjeros". */
   const vistas = [
     {
-      clave: 'canarias', etiqueta: 'Municipio y Canarias', eje: EJE_PIRAMIDE.canarias,
+      clave: 'canarias', etiqueta: 'Municipio y Canarias',
       relleno: { H: pc(p.hombres), M: pc(p.mujeres) },
       negro: { H: p.canarias_hombres, M: p.canarias_mujeres },
       rotH: 'Hombres', rotM: 'Mujeres', rotNegro: 'Canarias',
       cuentaRelleno: { H: p.hombres, M: p.mujeres }, cuentaNegro: null,
     },
     {
-      clave: 'municipio', etiqueta: 'Por lugar de nacimiento', eje: EJE_PIRAMIDE.municipio,
+      clave: 'municipio', etiqueta: 'Por lugar de nacimiento',
       relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
       negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
       rotH: 'Hombres nacidos en España', rotM: 'Mujeres nacidas en España', rotNegro: 'Nacidos en el extranjero',
       cuentaRelleno: esp, cuentaNegro: ext,
     },
   ];
+  // El eje de cada pestaña: el par más pequeño que cubre sus 84 barras.
+  for (const v of vistas) v.eje = ejeAutomatico(Math.max(...v.relleno.H, ...v.relleno.M, ...v.negro.H, ...v.negro.M));
 
   // ---- geometría ----
   const centro = w / 2;
@@ -403,9 +400,11 @@ function construirPiramide(p, w, h, vistaFija = null) {
 
   // ---- rejilla y eje ----
   /* Las verticales y sus rótulos dependen del eje de la pestaña, así que van en
-     un grupo propio que `mostrarVista` vuelve a escribir al cambiar. Con tope 7
-     hay una línea por punto y rótulo cada dos; con 14, línea cada dos y rótulo
-     cada cuatro. El 0 se rotula a los dos lados, como pidió Pedro. */
+     un grupo propio que `mostrarVista` vuelve a escribir al cambiar. Hasta 8
+     hay una línea por punto y rótulo cada dos; de 10 en adelante, línea cada
+     dos y rótulo cada cuatro, y el tope siempre rotulado: con el 14 sin rótulo
+     Pedro leyó que el eje «estaba puesto al 12». El 0 se rotula a los dos
+     lados, como pidió Pedro. */
   const ejeSVG = (eje) => {
     const paso = eje <= 8 ? 1 : 2;
     let out = '';
@@ -413,7 +412,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       for (const [, signo] of LADOS) {
         const x = centro + signo * (hueco / 2 + escala(v, eje));
         out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-        if (v % (paso * 2) === 0) {
+        if (v % (paso * 2) === 0 || v === eje) {
           out += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
                + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
         }
@@ -423,16 +422,9 @@ function construirPiramide(p, w, h, vistaFija = null) {
   };
   const ejeInicial = (fija || vistas[0]).eje;
   // Sin id cuando la vista es fija: el dossier dibuja 88 pirámides en un documento.
-  let rejilla = `<g${fija ? '' : ' id="eje-piramide"'}>${ejeSVG(ejeInicial)}</g>`;
-  /* Cuatro horizontales en los cortes de década. Entregan "a partir de los 20"
-     sin ratón y sin una sola palabra que interprete. En la hoja no caben. */
-  if (decadas) {
-    for (const k of [4, 8, 12, 16]) {
-      const y = m.t + (n - k) * altoFila;
-      rejilla += `<line x1="${m.l}" y1="${y.toFixed(1)}" x2="${(w - m.r).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-    }
-  }
-
+  /* Solo verticales. Hubo cuatro horizontales en los cortes de década; Pedro
+     las vio y preguntó qué eran: fuera. */
+  const rejilla = `<g${fija ? '' : ' id="eje-piramide"'}>${ejeSVG(ejeInicial)}</g>`;
 
   // ---- barras, glifos y edades ----
   let barras = '', negros = '', etiquetas = '';
@@ -470,13 +462,10 @@ function construirPiramide(p, w, h, vistaFija = null) {
     + rejilla + barras + negros + etiquetas + franjas + '</svg>';
 
   return {
-    svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, total, w, h,
+    svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, w, h, fe,
     fy, relleno, marco, off, altoFila, trazo: s, glifo: glifoNegro,
     // La franja de lectura cubre la fila entera, no sólo la barra.
     fyFranja: (i) => m.t + (n - 1 - i) * altoFila,
-    // El municipio completo, que es lo que enseña la lectura en reposo.
-    municipio: { pct: { H: pc(p.hombres), M: pc(p.mujeres) },
-                 cuenta: { H: p.hombres, M: p.mujeres } },
   };
 }
 
@@ -704,9 +693,9 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
   pintarLeyendaPiramide(v);
   // Cada pestaña dibuja una tabla distinta del ISTAC: la línea de fuente la sigue.
   fuentesFicha(i);
-  /* El eje de la pestaña, con sus verticales y sus rótulos. Cambia de 7 a 14,
-     y lo hace fundiéndose mientras las barras se mueven: un salto seco en la
-     rejilla se leía como un parpadeo. */
+  /* El eje de la pestaña, con sus verticales y sus rótulos. Cuando cambia
+     (de 6 a 8, o a 14 en Artenara) lo hace fundiéndose mientras las barras se
+     mueven: un salto seco en la rejilla se leía como un parpadeo. */
   const eje = document.querySelector('#g-piramide #eje-piramide');
   if (eje) {
     const cambia = eje.dataset.eje !== String(v.eje);
@@ -763,11 +752,10 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
   // Sin animación si el usuario la ha desactivado en el sistema, y tampoco si la
   // pestaña está oculta: ahí el navegador congela requestAnimationFrame y la
   // pirámide se quedaría a medio camino.
-  /* Si hay una franja señalada, sus marcadores van pegados a la punta de cada
-     barra: hay que recolocarlos cuando las barras acaban de moverse, que con el
-     cambio de eje es un desplazamiento grande. `senalar` existe en cuanto la
-     lectura está conectada; si no, basta con repintar la lectura. */
-  const refrescar = () => (P.senalar && FILA != null) ? P.senalar(FILA) : pintarLectura(FILA);
+  /* Si hay una franja señalada, sus marcadores y sus cifras van pegados a la
+     punta de cada barra: hay que recolocarlos cuando las barras acaban de
+     moverse, que con el cambio de eje es un desplazamiento grande. */
+  const refrescar = () => { if (P.senalar && FILA != null) P.senalar(FILA); };
   if (!animar || !animable()) { aplicar(1); refrescar(); return; }
 
   pulsoDesenfoque(document.querySelector('#g-piramide svg'), dur);
@@ -779,7 +767,6 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
     if (p < 1) animacion = requestAnimationFrame(paso); else refrescar();
   };
   animacion = requestAnimationFrame(paso);
-  pintarLectura(FILA);
 }
 
 // Si la pestaña se oculta a mitad de una transición, al volver se fija el
@@ -861,7 +848,7 @@ function pintar(f) {
   const enPantalla = !!(PIRAMIDE && PIRAMIDE.nodos && !IMPRIMIENDO
     && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && doc.querySelector('#g-piramide svg'));
   if (enPantalla) {
-    Object.assign(PIRAMIDE, { vistas: nueva.vistas, municipio: nueva.municipio, total: nueva.total, edades: nueva.edades });
+    Object.assign(PIRAMIDE, { vistas: nueva.vistas, edades: nueva.edades });
     /* 800 ms con arranque inmediato (grado 4): entre dos municipios parecidos
        las barras recorren pocos píxeles, y con la curva simétrica de antes el
        primer tercio del tiempo no se veía nada. El pulso de desenfoque que
@@ -921,58 +908,51 @@ function pintar(f) {
    flechas, ni diferencias con signo: un signo delante de una diferencia se lee
    como una nota. */
 
-function pintarLectura(i) {
-  const salida = document.getElementById('lectura-piramide');
-  if (!salida || !PIRAMIDE) return;
-  const P = PIRAMIDE, v = P.vistas[VISTA];
-  // Las dos filas de nacida en España y origen extranjero salen siempre de la
-  // vista del municipio, esté abierta o no: Pedro no las condicionó a la pestaña.
-  const base = P.vistas.find((x) => x.clave === 'municipio');
-  const todo = i == null;
-  const suma = (V) => V.reduce((a, b) => a + (b || 0), 0);
-  const val = (V) => !V ? 0 : (todo ? suma(V) : (V[i] || 0));
+/* Las cifras del grupo señalado van en el dibujo, junto a la punta de sus
+   barras: el valor de la barra azul en azul y negrita, el del marco negro en
+   negro, en el orden de la leyenda. Antes iban en un bloque bajo la pirámide
+   con el municipio entero en reposo ("Todas las edades · 1.027 personas"), dos
+   columnas y tres filas; Pedro lo tachó entero: "esto no aclara nada, al revés
+   está confundiendo" y "lo de todas las edades no debe salir, ya arriba
+   ponemos cuántos habitantes hay". En reposo no hay nada. Con halo blanco,
+   porque en los grupos anchos la etiqueta cae sobre las barras vecinas; si no
+   cabe fuera del dibujo se acerca al centro lo justo. Dos decimales: con 0,74
+   % un solo decimal borra la diferencia entre dos grupos contiguos. */
+function etiquetasFila(P, actual, i, vista, fe) {
+  /* En un dibujo estrecho (móvil) los dos valores van en dos líneas: la
+     etiqueta ocupa la mitad y así siempre hay un sitio limpio para ella. */
+  const estrecho = P.w < 430;
+  let out = '';
+  for (const [lado, sg, cl] of LADOS_PI) {
+    const x0 = P.centro + sg * P.hueco / 2;
+    const yc = P.fy(i) + P.relleno / 2;
+    const punta = Math.max(actual[lado].r[i], vista.negro ? actual[lado].n[i] : 0);
+    const azul = `${nf(vista.relleno[cl][i], 2)}${UNI}%`;
+    const negro = vista.negro ? `${nf(vista.negro[cl][i], 2)}${UNI}%` : '';
+    const letras = estrecho ? Math.max(azul.length, negro.length) : azul.length + (negro ? negro.length + 3 : 0);
+    const ancho = letras * fe * 0.62;
+    /* Junto a la punta, por fuera, si cabe dentro del dibujo; si no, en la base
+       de la barra, pegada al canal de las edades y sobre la propia barra: con
+       barras largas la punta está cerca del borde y ahí no hay sitio. */
+    const fuera = x0 + sg * (punta + 9);
+    const cabe = sg < 0 ? fuera - ancho >= 2 : fuera + ancho <= P.w - 2;
+    const x = (cabe ? fuera : x0 + sg * 6).toFixed(1);
+    const comun = `x="${x}" text-anchor="${sg < 0 ? 'end' : 'start'}" font-size="${fe}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"`;
+    out += estrecho
+      ? `<text ${comun} y="${(yc - fe * 0.2).toFixed(1)}" font-weight="700" fill="${C.azul}">${azul}`
+        + (negro ? `<tspan x="${x}" dy="${(fe * 1.1).toFixed(1)}" font-weight="400" fill="${C.negro}">${negro}</tspan>` : '') + '</text>'
+      : `<text ${comun} y="${(yc + fe * 0.36).toFixed(1)}" font-weight="700" fill="${C.azul}">${azul}`
+        + (negro ? `<tspan font-weight="400" fill="${C.negro}"> · ${negro}</tspan>` : '') + '</text>';
+  }
+  return out;
+}
 
-  const pH = val(P.municipio.pct.H), pM = val(P.municipio.pct.M);
-  const cH = val(P.municipio.cuenta.H), cM = val(P.municipio.cuenta.M);
-
-  /* Dos decimales siempre: con 0,74 % un solo decimal borra la diferencia
-     entre dos grupos de edad contiguos. */
-  const fila = (rot, a, b, na, nb) => `
-    <div class="lec-fila"><span>${esc(rot)}</span>
-      <b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>
-      ${na == null ? '<em></em>' : `<em>${nf(na)} · ${nf(nb)}</em>`}
-    </div>`;
-
-  /* Sin símbolos: los lleva la leyenda de debajo, y Pedro tachó en rojo las
-     filas que los repetían ("se repite dos veces lo mismo"). Cada porcentaje
-     va sobre su propia población —el municipio sobre sus habitantes, Canarias
-     sobre los suyos, los españoles sobre el total de españoles, los
-     extranjeros sobre el total de extranjeros— y las tres filas salen en las
-     dos pestañas, la dibujada primero y la de referencia al final. */
-  const vc = P.vistas.find((x) => x.clave === 'canarias');
-  const canarias = fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null);
-  const espanoles = fila('Nacidos en España',
-    val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M));
-  const extranjeros = fila('Nacidos en el extranjero',
-    val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M));
-  const filas = v.clave === 'canarias'
-    ? [canarias, espanoles, extranjeros]
-    : [espanoles, extranjeros, canarias];
-
-  /* El grupo de edad encabeza las dos columnas: a la izquierda el municipio,
-     a la derecha las capas. Cada franja queda rematada con municipio y
-     Canarias, que es lo que pidió Pedro. */
-  salida.innerHTML = `
-    <p class="lec-titulo">${todo ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(todo ? P.total : cH + cM)} personas</p>
-    <div class="lec-izq">
-      <p class="lec-cab">Municipio</p>
-      <div><span>Hombres</span><b>${nf(pH, 2)}${UNI}%</b><em>${nf(cH)}</em></div>
-      <div><span>Mujeres</span><b>${nf(pM, 2)}${UNI}%</b><em>${nf(cM)}</em></div>
-    </div>
-    <div class="lec-der">
-      <p class="lec-cab">hombres · mujeres</p>
-      ${filas.join('')}
-    </div>`;
+/** La misma lectura en palabras, para el lector de pantalla (región viva). */
+function textoLectura(P, vista, i) {
+  if (i == null) return '';
+  const v = (S, cl) => `${nf(S[cl][i], 2)}${UNI}%`;
+  return `${P.edades[i]} años. ${vista.rotH}: ${v(vista.relleno, 'H')}; ${vista.rotM}: ${v(vista.relleno, 'M')}.`
+       + (vista.negro ? ` ${vista.rotNegro}: hombres ${v(vista.negro, 'H')}, mujeres ${v(vista.negro, 'M')}.` : '');
 }
 
 function conectarLecturaPiramide() {
@@ -987,9 +967,9 @@ function conectarLecturaPiramide() {
   /* Los cuatro marcadores: círculo relleno en la punta de cada barra y cuadro
      negro hueco en la punta de cada marca negra. Es lo que Pedro pedía cuando
      dijo "que se mueva de un punto a otro a municipio y de uno a otro a
-     Canarias". El nombre va en la lectura y no pegado al punto: pegado al
-     punto cambia de serie según la edad y acaba leyéndose como un veredicto de
-     quién gana en cada grupo. */
+     Canarias". Junto a ellos, las cifras de la fila; el nombre de cada serie
+     lo da la leyenda, por el color: pegado al punto cambia de serie según la
+     edad y acaba leyéndose como un veredicto de quién gana en cada grupo. */
   const pintarMarcas = (i) => {
     const P = PIRAMIDE;
     let out = '';
@@ -1004,7 +984,7 @@ function conectarLecturaPiramide() {
              + `fill="#FFFFFF" stroke="${C.negro}" stroke-width="1.3"/>`;
       }
     }
-    marcas.innerHTML = out;
+    marcas.innerHTML = out + etiquetasFila(P, P.actual, i, P.vistas[VISTA], P.fe + 1.5);
   };
 
   const senalar = (i) => {
@@ -1018,7 +998,8 @@ function conectarLecturaPiramide() {
       pintarMarcas(i);
       marcas.setAttribute('opacity', '1');
     }
-    pintarLectura(i);
+    const viva = document.getElementById('lectura-piramide');
+    if (viva) viva.textContent = textoLectura(PIRAMIDE, PIRAMIDE.vistas[VISTA], i);
   };
   PIRAMIDE.senalar = senalar;
 
@@ -1253,37 +1234,18 @@ function conectarIndices() {
 const PRES = { abierta: false, paso: 1, fila: null, vista: 0, P: null };
 const PRES_CAPA = [0, 1, 2, 2, 3, 4];   // diapositiva → capa
 
-function presLectura() {
-  const P = PRES.P, v = P.vistas[PRES.vista], i = PRES.fila;
-  const base = P.vistas[1], vc = P.vistas[0];
-  const suma = (V) => V.reduce((a, b) => a + (b || 0), 0);
-  const val = (V) => i == null ? suma(V) : (V[i] || 0);
-  const pH = val(P.municipio.pct.H), pM = val(P.municipio.pct.M);
-  const cH = val(P.municipio.cuenta.H), cM = val(P.municipio.cuenta.M);
-  const fila = (rot, a, b, na, nb) => `<div class="pl-fila"><span>${rot}</span><span><b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>`
-    + (na == null ? '' : ` <em>${nf(na)} · ${nf(nb)}</em>`) + `</span></div>`;
-  const filas = [
-    fila('Nacidos en España', val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)),
-    fila('Nacidos en el extranjero', val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)),
-    fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null),
-  ];
-  if (PRES.vista === 0) filas.unshift(filas.pop());
-  document.getElementById('pres-lectura').innerHTML = `
-    <div class="pl-grupo">${i == null ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(i == null ? P.total : cH + cM)} personas</div>
-    <div class="pl-cab">Municipio</div>
-    <div class="pl-fila"><span>Hombres</span><span><b>${nf(pH, 2)}${UNI}%</b> <em>${nf(cH)}</em></span></div>
-    <div class="pl-fila"><span>Mujeres</span><span><b>${nf(pM, 2)}${UNI}%</b> <em>${nf(cM)}</em></span></div>
-    <div class="pl-cab">hombres · mujeres</div>${filas.join('')}`;
+function presLeyenda() {
+  const v = PRES.P.vistas[PRES.vista];
   document.getElementById('pres-leyenda').innerHTML =
     `<span><i class="llave" style="background:${C.azulMedio}"></i>${esc(v.rotH)}</span>`
     + `<span><i class="llave" style="background:${C.azulClaro}"></i>${esc(v.rotM)}</span>`
     + `<span><i class="llave hueca"></i>${esc(v.rotNegro)}</span>`;
 }
 
-/** Franja iluminada y los cuatro marcadores del grupo señalado, como en la ficha. */
+/** Franja iluminada, los cuatro marcadores y las cifras del grupo señalado, como en la ficha. */
 function presSenalar() {
   const P = PRES.P, i = PRES.fila, g = PRES.marcas;
-  if (i == null) { g.innerHTML = ''; presLectura(); return; }
+  if (i == null) { g.innerHTML = ''; return; }
   let out = `<rect x="12" y="${P.fyFranja(i).toFixed(1)}" width="${(P.w - 24).toFixed(1)}" height="${P.altoFila.toFixed(1)}" fill="${C.azul}" opacity=".07"/>`;
   for (const [lado, sg] of LADOS_PI) {
     const x0 = P.centro + sg * P.hueco / 2, y = P.fy(i) + P.relleno / 2;
@@ -1291,8 +1253,7 @@ function presSenalar() {
     out += `<circle cx="${xr.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="${C.azul}" stroke="#FFFFFF" stroke-width="1.2"/>`
          + `<rect x="${(xn - 3.1).toFixed(1)}" y="${(y - 3.1).toFixed(1)}" width="6.2" height="6.2" fill="#FFFFFF" stroke="${C.negro}" stroke-width="1.3"/>`;
   }
-  g.innerHTML = out;
-  presLectura();
+  g.innerHTML = out + etiquetasFila(P, PRES.actual, i, P.vistas[PRES.vista], P.fe + 4);
 }
 
 /** La pirámide de la presentación pasa a la vista pedida; animada, se transforma. */
@@ -1322,9 +1283,9 @@ function presMostrar(vista, animar) {
   document.getElementById('pres-fuente-pir').textContent = textoFuente(v.clave === 'municipio' ? 'piramide_nacimiento' : 'piramide');
   cancelAnimationFrame(PRES.animacion);
   // Con la pestaña oculta requestAnimationFrame se congela: se cambia en seco.
-  if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presSenalar(); return; }
-  const soltar = cruce('#pres-leyenda, #pres-lectura');
-  presLectura();
+  if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presLeyenda(); presSenalar(); return; }
+  const soltar = cruce('#pres-leyenda');
+  presLeyenda();
   soltar();
   const dur = 720;
   pulsoDesenfoque(document.querySelector('#pres-piramide svg'), dur, 1.6);
@@ -1387,8 +1348,8 @@ function abrirPresentacion() {
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
      <p class="pres-fuente">${esc(textoFuente('evolucion'))}</p>`,
     `<h2 id="pres-titulo-pir">Estructura de la población · Municipio y Canarias</h2>
-     <div class="pres-pir"><div><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1120" height="700"')}</figure>
-     <div class="leyenda" id="pres-leyenda"></div><p class="pres-fuente" id="pres-fuente-pir">${esc(textoFuente('piramide'))}</p></div><div class="pres-lectura" id="pres-lectura"></div></div>`,
+     <div class="pres-pir"><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1200" height="750"')}</figure>
+     <div class="leyenda" id="pres-leyenda"></div><p class="pres-fuente" id="pres-fuente-pir">${esc(textoFuente('piramide'))}</p></div>`,
     `<h2>Información geodemográfica</h2><p class="pres-sub">Los tres ámbitos, ordenados de menor a mayor valor</p>
      <div class="pres-indices">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>
      <p class="pres-fuente">${esc(textoFuente('indices'))}</p>`,
@@ -1431,7 +1392,7 @@ function abrirPresentacion() {
   PRES.eje.style.transition = 'opacity .26s ease';
   PRES.marcas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   svg.appendChild(PRES.marcas);
-  presLectura();
+  presLeyenda();
 
   // Escala del escenario, teclado, zonas y cierre.
   const escenario = cont.querySelector('.pres-escenario');

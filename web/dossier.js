@@ -109,14 +109,13 @@ function hojaFicha(f, pagina) {
         </div>${fuenteGrafico('mapas')}</div>
       </section>
 
-      <!-- La piramide va 11,5 mm mas alta que en la ficha suelta: es la pieza
-           que Pedro llama la estrella. Eran 13 mm, el hueco que dejaba libre la
-           tarjeta de indices a su lado; con la linea de fuente en cada tarjeta
-           la hoja iba justa (297,4 mm de 297 en Valverde) y cede milimetro y
-           medio junto con la cabecera y el pie. Medido: 293,7 mm. -->
+      <!-- La piramide mide 65,5 mm, la misma altura que tenia cuando iba 11,5 mm
+           mas alta que en la ficha suelta: la ficha ha crecido diez al retirar
+           la lectura de debajo y la hoja del dossier no puede crecer (293,7 mm
+           de 297 medidos con esta altura). -->
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
-        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + px(11.5), 0).svg}</figure>
+        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + px(1.5), 0).svg}</figure>
           <!-- La leyenda dice lo que la hoja dibuja. Antes anunciaba un Canarias
                que la pirámide no llegaba a pintar; ahora Canarias está, en
                barras negras huecas. -->

@@ -160,11 +160,25 @@ azules y Canarias en barras negras huecas, cada uno sobre su población total.
 extranjero (hoja C24) en negro hueco, cada población sobre su propio total, que
 es como lo calcula Pedro. Los rótulos dicen *nacidos en* y no *españoles /
 extranjeros*: la fuente (ISTAC, E30243A_000004) mide dónde nació cada persona,
-no su nacionalidad, y una persona nacida fuera puede ser española. El eje es fijo e igual en las 88 fichas, pero uno por pestaña —7 %
-y 14 %— porque sobre base propia los extranjeros de un municipio pequeño se
-concentran mucho (Artenara, 65 personas, 13,85 % en un grupo) y un eje que corta
-una barra miente. `exportar_datos.py` comprueba las dos holguras. Al señalar un
-grupo de edad, la lectura da los porcentajes y los recuentos de cada población.
+no su nacionalidad, y una persona nacida fuera puede ser española. El eje lo
+decide cada pestaña de cada municipio en la escalera de los pares: el menor de
+6, 8, 10, 12… que cubre todas sus barras (`ejeAutomatico` en `web/comun.js`),
+que es la regla que dio Pedro: «al 6 u 8 por cien dependiendo del valor; si hay
+excepciones, que se ajuste automáticamente». Los rótulos van siempre de dos en
+dos y el tope siempre rotulado. Sale 6 en 86 municipios (8 en Artenara y
+Tejeda) en la primera pestaña, y 6 en 49, 8 en 34, 10 en tres, 12 en Agulo y
+14 en Artenara en la segunda: sobre base propia los extranjeros de un
+municipio pequeño se concentran mucho, y un eje que corta una barra miente.
+Antes el eje era fijo para los 88 (7 % y 14 %) y la segunda pestaña de un
+municipio grande salía a media anchura. `exportar_datos.py` escribe el reparto
+en cada exportación. Al señalar un grupo de edad, con el ratón, el dedo o las
+flechas, sus porcentajes aparecen dentro del dibujo junto a la punta de las
+barras (azul para la barra azul, negro para el marco negro) y una región viva
+invisible los dice en palabras; en reposo no hay ninguna cifra. Hubo un bloque
+de lectura bajo la pirámide con el municipio entero en reposo («Todas las
+edades · 1.027 personas») y Pedro lo tachó: «esto no aclara nada, al revés
+está confundiendo». Tampoco lleva ya las cuatro líneas horizontales de las
+décadas, que él vio y no reconoció.
 
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
 derecha por valor, y el tono indica la posición. El ISTAC no lo tiene así.
@@ -286,7 +300,9 @@ npm test
   la dirección visible es `m/<código>.html` y desde ella se sigue cargando
   todo; el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por
   lugar de nacimiento; la fuente de cada gráfico con la redacción de Pedro,
-  que en la pirámide sigue a la pestaña; «Datos y método» con sus 42 filas;
+  que en la pirámide sigue a la pestaña; la pirámide sin cifras en reposo, con
+  las del grupo señalado dentro del dibujo, el eje de 6 en Santa Cruz y de 8 y
+  14 en Artenara, y sin horizontales; «Datos y método» con sus 42 filas;
   teclado de la
   pirámide y de la evolución tras redibujar e imprimir; la presentación es
   modal, Mayús+Tab recién abierta va a Salir y el foco vuelve al botón; el
@@ -319,7 +335,9 @@ grande): el nombre del municipio en el comparador iba en el azul claro de su
 serie (2,1:1) y ahora va en negro con una marca de color debajo. Objetivos
 táctiles de 44 px con puntero grueso. Pirámide y evolución se recorren con
 teclado (flechas, Inicio, Fin) y cada tarjeta ofrece su tabla; las cifras del
-comparador son una tabla con encabezados de fila y columna. La presentación
+grupo de edad señalado en la pirámide, que en pantalla van dentro del dibujo,
+las dice en palabras una región viva invisible; las cifras del comparador son
+una tabla con encabezados de fila y columna. La presentación
 es un diálogo modal: el resto queda inerte, el tabulador no sale y al cerrar
 el foco vuelve al botón. El buscador de la portada enseña el foco en su caja.
 Las transiciones se desactivan con `prefers-reduced-motion` y con la pestaña

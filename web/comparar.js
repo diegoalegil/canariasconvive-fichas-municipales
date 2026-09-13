@@ -77,14 +77,17 @@ function piramide(f, tope, w) {
   const y = (i) => m.t + (n - 1 - i) * fila;
 
   let barras = '', rejilla = '', eje = '';
-  for (const v of [0, tope / 2, tope]) {
+  // Líneas de dos en dos; rótulo en el 0, el tope y, si hay sitio, el medio.
+  for (let v = 0; v <= tope; v += 2) {
     for (const s of [-1, 1]) {
       const px = centro + s * (hueco / 2 + x(v));
       const extremo = v === tope;
       rejilla += `<line x1="${px.toFixed(1)}" y1="${m.t}" x2="${px.toFixed(1)}" y2="${h - m.b}" stroke="#D9D9D9"/>`;
-      eje += `<text x="${px.toFixed(1)}" y="${h - 7}" `
-           + `text-anchor="${extremo ? (s < 0 ? 'start' : 'end') : 'middle'}" `
-           + `font-size="8.5" fill="#5F5E5A">${nf(v, v % 1 ? 1 : 0)}${UNI}%</text>`;
+      if (v === 0 || extremo || (tope % 4 === 0 && v === tope / 2)) {
+        eje += `<text x="${px.toFixed(1)}" y="${h - 7}" `
+             + `text-anchor="${extremo ? (s < 0 ? 'start' : 'end') : 'middle'}" `
+             + `font-size="8.5" fill="#5F5E5A">${v}${UNI}%</text>`;
+      }
     }
   }
   let edades = '';
@@ -164,10 +167,11 @@ function seccionCifras() {
 }
 
 function seccionPiramides(ancho) {
-  const tope = Math.ceil(Math.max(...ELEGIDOS.flatMap((f) => {
+  // El mismo eje para las tres, en la escalera de pares de la ficha (comun.js).
+  const tope = ejeAutomatico(Math.max(...ELEGIDOS.flatMap((f) => {
     const p = f.piramide, t = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0);
     return t ? [...p.hombres, ...p.mujeres].map((v) => v / t * 100) : [0];
-  })) * 2) / 2;   // a la media unidad superior
+  })));
 
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
     ${ordenados().map((f) => `

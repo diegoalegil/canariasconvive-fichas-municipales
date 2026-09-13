@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=77">
+<link rel="stylesheet" href="estilos.css?v=78">
 </head>
 <body>
 
@@ -117,7 +117,10 @@
           <button class="vista" type="button" aria-pressed="false">Por lugar de nacimiento</button>
         </div>
         <figure id="g-piramide"></figure>
-        <div class="lectura" id="lectura-piramide" aria-live="polite"></div>
+        <!-- Las cifras del grupo señalado van dentro del dibujo; esta región
+             viva, invisible, es su versión en palabras para el lector de
+             pantalla. En reposo está vacía. -->
+        <div class="oculto" id="lectura-piramide" aria-live="polite"></div>
         <!-- La leyenda la escribe el JS a partir de lo que la pirámide ha
              pintado de verdad: escrita aquí a mano, el PDF anunciaba un
              Canarias que el dibujo no llevaba. -->
@@ -160,10 +163,10 @@
 
 </main>
 
-<script src="config.js?v=77"></script>
-<script src="comun.js?v=77"></script>
-<script src="iconos.js?v=77"></script>
-<script src="datos-ui.js?v=77"></script>
-<script src="ficha.js?v=77"></script>
+<script src="config.js?v=78"></script>
+<script src="comun.js?v=78"></script>
+<script src="iconos.js?v=78"></script>
+<script src="datos-ui.js?v=78"></script>
+<script src="ficha.js?v=78"></script>
 </body>
 </html>

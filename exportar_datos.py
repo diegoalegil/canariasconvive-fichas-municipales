@@ -468,51 +468,44 @@ with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
 
 # ---------------------------------------------------------------------------
-# El eje de la pirámide está fijado a mano en web/ficha.js (EJE_PIRAMIDE) para
-# que las 88 fichas se puedan poner una al lado de otra: con un tope calculado
-# municipio a municipio, Arico dibujaba su grupo modal al 88 % del semiancho y
-# Artenara, con un valor mayor, al 44 %.
-#
-# La contrapartida es que la constante depende de los datos, y la holgura es
-# escasa: Artenara tiene mil habitantes y allí una persona vale casi una décima
-# de punto. Si la próxima edición del padrón se pasa del tope, esto lo dice aquí
-# y no lo descubre nadie mirando una barra cortada.
-# Dos ejes, uno por pestaña, y cada población sobre su propio total: la de
-# "Municipio y Canarias" sobre los habitantes del municipio; la de "Por lugar
-# de nacimiento", los nacidos en España sobre el total de nacidos en España y
-# los de origen extranjero sobre el total de origen extranjero. Sobre base
-# propia los extranjeros de un municipio pequeño se concentran mucho: Artenara,
-# con 65, tiene un grupo del 13,85 %.
-EJE_PIRAMIDE = {"canarias": 7.0, "municipio": 14.0}
+# El eje de cada pirámide lo calcula la web municipio a municipio (ejeAutomatico
+# en web/comun.js): el par más pequeño de 6, 8, 10, 12… que cubre el grupo más
+# numeroso de la pestaña. Es la regla de Pedro (13 sep 2026): «al 6 u 8 por
+# cien dependiendo del valor; si hay excepciones, que se ajuste
+# automáticamente». Aquí se repite el cálculo para dejar escrito el reparto en
+# cada exportación y para que un escalón raro (más de 14) no pase inadvertido.
+# Cada población va sobre su propio total: en "Municipio y Canarias" el
+# municipio sobre sus habitantes; en "Por lugar de nacimiento" los nacidos en
+# España sobre el total de nacidos en España y los de origen extranjero sobre
+# el total de origen extranjero (Artenara, con 65, tiene un grupo del 13,85 %).
+def _eje_automatico(maximo):
+    return max(6, math.ceil(maximo / 2) * 2)
 
 def _modal(H, M):
     tot = sum(H) + sum(M)
     return max(max(H), max(M)) / tot * 100 if tot else 0.0
 
-_series = {"canarias": [], "municipio": []}
+_ejes = {"canarias": [], "municipio": []}
 for f in todas_las_fichas:
     pi = f["piramide"]
-    _series["canarias"].append((_modal(pi["hombres"], pi["mujeres"]), f["nombre"]))
+    _ejes["canarias"].append((_eje_automatico(_modal(pi["hombres"], pi["mujeres"])), f["nombre"]))
     if pi.get("extranjera_hombres"):
         eh, em = pi["extranjera_hombres"], pi["extranjera_mujeres"]
         esph = [max(0, a - b) for a, b in zip(pi["hombres"], eh)]
         espm = [max(0, a - b) for a, b in zip(pi["mujeres"], em)]
-        _series["municipio"].append((max(_modal(esph, espm), _modal(eh, em)), f["nombre"]))
-for _clave, _modales in _series.items():
-    _modales.sort(reverse=True)
-    if not _modales:
-        continue
-    _tope = EJE_PIRAMIDE[_clave]
-    _peor, _quien = _modales[0]
-    print(f"\nEje de la pestaña «{_clave}»: {_tope:.0f} % · grupo más numeroso {_peor:.3f} % "
-          f"({_quien}) · holgura {_tope / _peor:.3f}x")
-    _fuera = [(v, n) for v, n in _modales if v > _tope]
-    if _fuera:
+        _ejes["municipio"].append((_eje_automatico(max(_modal(esph, espm), _modal(eh, em))), f["nombre"]))
+for _clave, _lista in _ejes.items():
+    _reparto = {}
+    for _e, _n in _lista:
+        _reparto.setdefault(_e, []).append(_n)
+    print(f"\nEje de la pestaña «{_clave}»: " + " · ".join(
+        f"{_e} % en {len(_ns)}" + (f" ({', '.join(sorted(_ns))})" if len(_ns) <= 3 else "")
+        for _e, _ns in sorted(_reparto.items())))
+    _raros = [(e, n) for e, n in _lista if e > 14]
+    if _raros:
         raise SystemExit(
-            f"\nEl eje de la pestaña «{_clave}» se ha quedado corto y las barras saldrían cortadas.\n"
-            + "\n".join(f"  {n}: {v:.3f} %" for v, n in _fuera)
-            + f"\n\nSube EJE_PIRAMIDE.{_clave} en web/ficha.js y aquí a {math.ceil(_fuera[0][0])} "
-              "para los 88 a la vez, y vuelve a exportar.")
+            f"\nLa pestaña «{_clave}» necesita un eje de más de 14 % y eso no ha pasado nunca: revisar los datos.\n"
+            + "\n".join(f"  {n}: {e} %" for e, n in _raros))
 
 _peso = sum(p.stat().st_size for p in (SALIDA / "mun").glob("*.json"))
 print(f"\n{len(fichas)} fichas escritas en {SALIDA/'mun'}")
