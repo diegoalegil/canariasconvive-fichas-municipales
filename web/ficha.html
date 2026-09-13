@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=75">
+<link rel="stylesheet" href="estilos.css?v=76">
 </head>
 <body>
 
@@ -40,8 +40,11 @@
     <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
     <button class="btn btn-liso" type="button" id="btn-presentar" data-ico="presentar" aria-label="Presentar"><span>Presentar</span></button>
     <!-- «Imprimir / guardar PDF» y no «Descargar PDF»: abre el diálogo de
-         impresión, no descarga nada. En el diálogo, elegir A3 amplía la ficha. -->
+         impresión, no descarga nada. «Imprimir en A3» es la misma hoja
+         ampliada un 41 %, para quien la lectura de la A4 le resulte pequeña;
+         en el diálogo hay que elegir A3 como papel. -->
     <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Imprimir / guardar PDF</button>
+    <button class="btn btn-liso" type="button" id="btn-pdf-a3" data-ico="descargar" title="La misma ficha ampliada un 41 %: elige A3 como tamaño de papel en el diálogo"><span>Imprimir en A3</span></button>
   </div>
 </header>
 
@@ -152,13 +155,13 @@
 
   </div>
 
-<p class="pie-fuentes-papel">Fuentes y método: <a class="enlace-guia-publica" href="guia.html">guía de los indicadores · Canarias Convive</a></p>
+<p class="pie-fuentes-papel">Fuentes: ISTAC e INE. Método, fechas y enlace a cada recurso estadístico: <a href="guia.html">guía de los indicadores</a></p>
 </main>
 
-<script src="config.js?v=75"></script>
-<script src="comun.js?v=75"></script>
-<script src="iconos.js?v=75"></script>
-<script src="datos-ui.js?v=75"></script>
-<script src="ficha.js?v=75"></script>
+<script src="config.js?v=76"></script>
+<script src="comun.js?v=76"></script>
+<script src="iconos.js?v=76"></script>
+<script src="datos-ui.js?v=76"></script>
+<script src="ficha.js?v=76"></script>
 </body>
 </html>

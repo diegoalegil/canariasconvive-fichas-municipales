@@ -170,7 +170,7 @@ function hojaPortada() {
       estructura de la población, evolución, índices geodemográficos y lugar de nacimiento.</p>
     <div class="d-portada-mapa">${mapaArchipielago()}</div>
     <div class="d-portada-pie">
-      <div><b>${IDX.anio}</b><span>Padrón municipal continuo a 1 de enero</span></div>
+      <div><b>${IDX.anio}</b><span>Población a 1 de enero</span></div>
       <div><b>${nf(IDX.poblacion_canarias)}</b><span>Habitantes</span></div>
       <div><b>88</b><span>Municipios · 7 islas</span></div>
     </div>
@@ -181,7 +181,20 @@ function mapaArchipielago() {
   return mapa(GEOD, null, () => true, px(174), px(78), false);
 }
 
-function hojaGuia() {
+/* Las definiciones son las mismas de la guía en línea (INDICADORES, guia.js):
+   escritas aquí aparte se quedaban cortas y viejas. Las fuentes con enlace
+   están en la guía en línea; el papel lleva su dirección. */
+function hojaGuia(fichas) {
+  const anios = ['vegetativo', 'migratorio'].flatMap((clave) => fichas.flatMap((f) =>
+    f.componentes.anios.filter((a, i) => f.componentes[clave][i] != null)));
+  const anioComp = anios.length ? Math.max(...anios) : IDX.anio - 1;
+  const organismos = [...new Set(Object.values(IDX.fuentes_indicadores || {})
+    .flatMap((x) => (x.enlaces || []).map((e) => e.organismo)).filter(Boolean))];
+  // Partida solo en las barras, nunca en los guiones: un guion al final de
+  // línea se lee como silabeo y se teclearía mal desde el papel.
+  const guia = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '')
+    .split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
+  const definicion = (x) => `<p><b>${esc(x.nombre.replace(/^Índice de /, (s) => s))}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Cómo usar este dossier</h2>
     <div class="d-cols">
@@ -191,19 +204,20 @@ function hojaGuia() {
            este y, dentro de cada isla, los municipios por orden alfabético. Cada municipio
            ocupa una hoja, y antes de cada grupo hay un separador con el conjunto de la isla.</p>
         <h3>Los datos</h3>
-        <p>Padrón municipal continuo a 1 de enero de ${IDX.anio}. Las series de crecimiento
-           vegetativo y saldo migratorio llegan hasta 2024, que es el último año cerrado.</p>
+        <p>Población a 1 de enero de ${IDX.anio}. Las series de crecimiento
+           vegetativo y saldo migratorio llegan hasta ${anioComp}, que es el último año cerrado.
+           Las cifras de origen extranjero y de lugar de nacimiento cuentan dónde nació cada
+           persona, con independencia de su nacionalidad.</p>
+        <h3>Las fuentes</h3>
+        <p>${esc(organismos.length ? organismos.join(' e ') : 'ISTAC e INE')}. El enlace a cada recurso estadístico, con los años
+           que cubre y la fecha del dato, está en la guía en línea de cada indicador:
+           <b>${guia}</b></p>
+        <p>En los municipios de pocos habitantes, unas pocas personas mueven mucho un
+           índice.</p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>
-        <p><b>Envejecimiento.</b> Personas de 65 años o más por cada persona menor de 15.
-           Se expresa como una razón.</p>
-        <p><b>Juventud.</b> Menores de 15 años por cada cien personas de 15 a 64.</p>
-        <p><b>Dependencia.</b> Menores de 15 y mayores de 64 juntos, por cada cien personas
-           de 15 a 64.</p>
-        <p><b>Reemplazo laboral.</b> Personas de 15 a 19 años por cada cien de 60 a 64.</p>
-        <p>En los municipios de pocos habitantes, unas pocas personas mueven mucho un
-           índice.</p>
+        ${INDICADORES.map(definicion).join('')}
       </div>
     </div>
     <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>2</span></footer>
@@ -300,7 +314,7 @@ async function iniciarDossier() {
   for (const g of grupos) { g.paginaSeparador = p++; g.paginaPrimera = p; p += g.n; }
 
   aviso.textContent = 'Componiendo las hojas…';
-  const partes = [hojaPortada(), hojaGuia(), hojaIndice(grupos)];
+  const partes = [hojaPortada(), hojaGuia(fichas), hojaIndice(grupos)];
   for (const g of grupos) {
     partes.push(hojaSeparador(g));
     g.fichas.forEach((f, i) => partes.push(hojaFicha(f, g.paginaPrimera + i)));

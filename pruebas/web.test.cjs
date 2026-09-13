@@ -8,19 +8,59 @@
    dossier de 98 hojas con su barra visible.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
-   Pages, en un puerto libre. Sin red: los JSON salen del disco. */
+   Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
+   MOTOR=webkit corre en el motor de Safari (sin el caso de papel: page.pdf
+   solo existe en Chromium); en GitHub Actions corre en Chromium. */
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const http = require('node:http');
-const { chromium } = require('playwright');
+const { chromium, webkit } = require('playwright');
+const MOTOR = process.env.MOTOR === 'webkit' ? webkit : chromium;
+const SOLO_CHROMIUM = MOTOR !== chromium ? { skip: 'page.pdf solo existe en Chromium' } : {};
 
 const RAIZ = path.resolve(__dirname, '..'), WEB = path.join(RAIZ, 'web');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 let navegador, servidor, base, indice;
 const json = async (f) => JSON.parse(await fs.readFile(f, 'utf8'));
 const paginasPDF = (pdf) => (pdf.toString('latin1').match(/\/Type\s*\/Page(?:\s|\/|>)/g) || []).length;
+const zlib = require('node:zlib');
+/** Tamaño efectivo de cada texto de un PDF de Chromium: Tf × escala(Tm × CTM),
+ *  entrando en los Form XObject, donde Chromium mete el contenido transformado.
+ *  Sirve para demostrar que la A3 amplía de verdad, no solo que cabe. */
+function medirPDF(pdf) {
+  const mul = (a, b) => [a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3], a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
+  const d = pdf.toString('latin1');
+  const objs = {}; for (const m of d.matchAll(/(\d+) 0 obj([\s\S]*?)endobj/g)) objs[m[1]] = m[2];
+  const flujo = (o) => { const L = +(/\/Length\s+(\d+)/.exec(o) || [0, 0])[1]; const i = o.indexOf('stream') + 7; try { return zlib.inflateSync(Buffer.from(o.slice(i, i + L), 'latin1')).toString('latin1'); } catch { return ''; } };
+  const xobjects = (o) => { const r = /\/XObject\s*<<([^>]*)>>/.exec(o); const out = {}; if (r) for (const m of r[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)) out[m[1]] = m[2]; return out; };
+  const tam = [];
+  const recorrer = (recursos, contenido, ctm0) => {
+    const xo = xobjects(recursos);
+    const tok = contenido.match(/\[[^\]]*\]|<[0-9A-Fa-f]*>|\([^)]*\)|\/[^\s\[\]<>(/]+|-?\d*\.?\d+|[A-Za-z*'"]+/g) || [];
+    let ctm = ctm0, tm = [1, 0, 0, 1, 0, 0], tf = 1, nombre = null; const pila = []; let nums = [];
+    for (const k of tok) {
+      if (/^-?\d*\.?\d+$/.test(k)) { nums.push(+k); continue; }
+      if (k[0] === '/') { nombre = k.slice(1); continue; }
+      if (k === 'q') pila.push(ctm); else if (k === 'Q') ctm = pila.pop() || ctm;
+      else if (k === 'cm') ctm = mul(nums.slice(-6), ctm);
+      else if (k === 'Tm') tm = nums.slice(-6); else if (k === 'BT') tm = [1, 0, 0, 1, 0, 0];
+      else if (k === 'Tf') tf = nums[nums.length - 1];
+      else if (k === 'Tj' || k === 'TJ') { const m = mul(tm, ctm); tam.push(tf * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]))); }
+      else if (k === 'Do' && nombre && xo[nombre]) { const x = objs[xo[nombre]]; const mx = /\/Matrix\s*\[([^\]]+)\]/.exec(x); recorrer(x, flujo(x), mul(mx ? mx[1].trim().split(/\s+/).map(Number) : [1, 0, 0, 1, 0, 0], ctm)); }
+      nums = [];
+    }
+  };
+  let mediaBox = null;
+  for (const o of Object.values(objs)) {
+    if (!/\/Type\s*\/Page\b/.test(o) || /\/Type\s*\/Pages/.test(o)) continue;
+    const mb = /\/MediaBox\s*\[([^\]]+)\]/.exec(o); if (mb && !mediaBox) mediaBox = mb[1].trim().split(/\s+/).map(Number);
+    const c = /\/Contents\s+(\d+) 0 R/.exec(o); if (c) recorrer(o, flujo(objs[c[1]]), [1, 0, 0, 1, 0, 0]);
+  }
+  tam.sort((a, b) => a - b);
+  return { paginas: paginasPDF(pdf), anchoMm: mediaBox ? mediaBox[2] / 72 * 25.4 : 0, textos: tam.length, min: tam[0], max: tam[tam.length - 1] };
+}
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function abrir(ruta, { ancho = 1280, alto = 900, movimiento = 'reduce' } = {}) {
@@ -54,11 +94,12 @@ before(async () => {
   });
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${servidor.address().port}/fichas/`;
-  navegador = await chromium.launch();
+  navegador = await MOTOR.launch();
 });
 after(async () => { await navegador?.close(); await new Promise((r) => servidor?.close(r)); });
 
 test('ficha: la última selección manda, el error se ve y se reintenta, y la TVMA se redondea una sola vez', async () => {
+  const sitio = await json(path.join(RAIZ, 'sitio.json'));
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
   await page.waitForSelector('#datos-g-piramide');
   // Las Palmas tarda más que Betancuria: gana Betancuria, que fue la última.
@@ -69,7 +110,14 @@ test('ficha: la última selección manda, el error se ve y se reintenta, y la TV
   await espera(700);
   assert.equal(await page.locator('#nombre').textContent(), 'Betancuria');
   assert.equal(await page.locator('#sel-municipio').inputValue(), '35007');
-  assert.ok(page.url().endsWith('ficha.html?municipio=35007'), page.url());
+  // La dirección visible es la estable, con vista previa: la misma que copia «Copiar enlace».
+  assert.ok(page.url().endsWith('/fichas/m/35007.html'), page.url());
+  assert.equal(await page.locator('#btn-comparar').evaluate((a) => a.href), base + 'comparar.html?m=35007');
+  assert.equal(await page.locator('.barra a[data-ico="inicio"]').evaluate((a) => a.href), base + 'index.html');
+  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'm/35007.html');
+  const envoltorio = await fs.readFile(path.join(WEB, 'm/35007.html'), 'utf8');
+  const ogDesc = /<meta property="og:description" content="([^"]*)">/.exec(envoltorio)[1];
+  assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), ogDesc, 'la descripción en ejecución es la del envoltorio');
   assert.ok(await page.locator('#estado-ficha').isHidden(), 'con una carga rápida no hay aviso');
   // Un municipio que no carga: aviso visible, el selector vuelve al que se ve.
   await page.route('**/datos/mun/35017.json', (r) => r.abort());
@@ -90,8 +138,32 @@ test('ficha: la última selección manda, el error se ve y se reintenta, y la TV
 });
 
 test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redibujar e imprimir', async () => {
-  const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
+  // Se entra por el envoltorio estático (el que reciben los rastreadores): redirige a la
+  // ficha, que vuelve a poner la dirección estable y sigue cargando datos desde la raíz.
+  const { page, contexto, errores } = await abrir('m/38038.html');
   await page.waitForSelector('#datos-g-piramide');
+  assert.equal(await page.locator('#nombre').textContent(), 'Santa Cruz de Tenerife');
+  assert.ok(page.url().endsWith('/fichas/m/38038.html'), page.url());
+  await page.selectOption('#sel-municipio', '38001');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Adeje');
+  assert.ok(page.url().endsWith('/fichas/m/38001.html'), page.url());
+  await page.selectOption('#sel-municipio', '38038');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
+  // El fragmento sobrevive al cambio de dirección y a la redirección del envoltorio.
+  await page.goto(base + 'ficha.html?municipio=38038#g-evolucion');
+  await page.waitForSelector('#datos-g-piramide');
+  assert.ok(page.url().endsWith('/fichas/m/38038.html#g-evolucion'), page.url());
+  await page.goto(base + 'm/38038.html#g-evolucion');
+  await page.waitForSelector('#datos-g-piramide');
+  await espera(300);
+  assert.ok(page.url().endsWith('/fichas/m/38038.html#g-evolucion'), page.url());
+  assert.ok((await page.evaluate(() => scrollY)) > 0, 'el ancla se aplica tras la redirección');
+  await page.goto(base + 'ficha.html?municipio=38038');
+  await page.waitForSelector('#datos-g-piramide');
+  const a3btn = page.locator('#btn-pdf-a3');
+  assert.equal(await a3btn.getAttribute('aria-label'), null, 'el nombre accesible es el texto visible');
+  assert.equal((await a3btn.textContent()).trim(), 'Imprimir en A3');
+  assert.ok((await a3btn.getAttribute('title') || '').includes('A3'));
   await page.locator('.vista').nth(1).click();
   await espera(200);
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres nacidos en España\nMujeres nacidas en España\nNacidos en el extranjero');
@@ -116,7 +188,11 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   }
   await page.setViewportSize({ width: 1280, height: 900 });
   await espera(350);
-  await page.pdf({ preferCSSPageSize: true });
+  // Imprimir redibuja la ficha dos veces (beforeprint/afterprint). En WebKit no hay page.pdf:
+  // se disparan los mismos eventos, que es a lo que responde el código.
+  if (MOTOR === chromium) await page.pdf({ preferCSSPageSize: true });
+  else await page.evaluate(() => { dispatchEvent(new Event('beforeprint')); dispatchEvent(new Event('afterprint')); });
+  await espera(200);
   await page.locator('#g-piramide').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
   assert.match(await page.locator('.lec-titulo').textContent(), /^5 a 9 años/, 'tras imprimir');
@@ -134,6 +210,10 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.locator('#btn-presentar').click();
   assert.equal(await page.locator('#presentacion').getAttribute('aria-modal'), 'true');
   assert.equal(await page.locator('main').evaluate((e) => e.inert), true);
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Salir de la presentación', 'Mayús+Tab recién abierta va al último botón');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Anterior');
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press('Tab');
     assert.ok(await page.evaluate(() => document.getElementById('presentacion').contains(document.activeElement)), 'el foco no sale de la presentación');
@@ -143,8 +223,17 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
   assert.match(await page.locator('#pres-lectura').textContent(), /Nacidos en España/);
   await page.keyboard.press('Escape');
+  await espera(150);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar');
   assert.equal(await page.locator('main').evaluate((e) => e.inert), false);
+  // Abierta con el ratón y sin nada enfocado (lo que hace Safari), el foco vuelve igual al botón.
+  await page.evaluate(() => document.activeElement.blur());
+  const caja = await page.locator('#btn-presentar').boundingBox();
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+  await page.waitForSelector('#presentacion');
+  await page.keyboard.press('Escape');
+  await espera(150);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar', 'abierta con el ratón, el foco vuelve al botón');
   assert.deepEqual(errores, []);
   await contexto.close();
 });
@@ -242,6 +331,18 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
       await page.keyboard.press('Escape');
     }
   }
+  assert.match(await page.locator('#tapa-anio').textContent(), /^Población a 1 de enero de \d{4}\.$/, 'rótulo de fecha sin atribuir al padrón');
+  // Inicio y Fin con la lista abierta y el foco aún en el disparador.
+  const chip = page.locator('.isla-menu > button, .isla-menu > .chip').first();
+  const cajaChip = await chip.boundingBox();
+  await page.mouse.click(cajaChip.x + cajaChip.width / 2, cajaChip.y + cajaChip.height / 2); await espera(80);
+  assert.ok(await page.evaluate(() => document.activeElement !== document.body), 'abierta con el ratón, el foco está en el disparador');
+  await page.keyboard.press('End');
+  const opciones = page.locator('.isla-menu .desplegable:not([hidden]) a');
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), await opciones.last().textContent(), 'Fin va a la última opción');
+  await page.keyboard.press('Home');
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), await opciones.first().textContent(), 'Inicio va a la primera opción');
+  await page.keyboard.press('Escape');
   await page.locator('#buscar').focus();
   assert.notEqual(await page.locator('.buscador').evaluate((e) => getComputedStyle(e).outlineStyle), 'none');
   await page.fill('#buscar', 'guia');
@@ -263,7 +364,7 @@ test('guía: fuentes cargadas, variación media anual y edad media explicadas', 
   await contexto.close();
 });
 
-test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dossier tiene 98 páginas con su barra', { timeout: 300000 }, async () => {
+test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dossier tiene 98 páginas con su barra', { timeout: 300000, ...SOLO_CHROMIUM }, async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
   for (const m of indice.municipios) {
     await page.goto(base + `ficha.html?municipio=${m.codmun}`);
@@ -272,24 +373,43 @@ test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dos
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     assert.equal(paginasPDF(pdf), 1, `A4 de ${m.nombre}`);
   }
-  // A3 elegido en el diálogo: una página, con la maqueta ampliada.
+  // «Imprimir en A3»: una hoja A3 con los mismos textos que la A4 y todos un 41 % más
+  // grandes, medido dentro del PDF (antes la hoja era A3 pero el texto seguía a 17 pt).
   await page.goto(base + 'ficha.html?municipio=38048');
   await page.waitForSelector('#datos-g-piramide');
-  const a3 = await page.pdf({ format: 'A3', printBackground: true, margin: { top: '9mm', right: '10mm', bottom: '7mm', left: '10mm' } });
-  assert.equal(paginasPDF(a3), 1, 'A3');
-  await page.emulateMedia({ media: 'print' });
-  await page.setViewportSize({ width: 1047, height: 1527 });   // 277 × 404 mm útiles: A3 vertical
-  await espera(400);   // el cambio de transform lleva una transición de cortesía
-  assert.match(await page.locator('.envoltorio').evaluate((e) => getComputedStyle(e).transform), /^matrix\(1\.414/);
-  await page.setViewportSize({ width: 1047, height: 733 });    // A4 apaisada: no se amplía
-  await espera(400);
-  assert.equal(await page.locator('.envoltorio').evaluate((e) => getComputedStyle(e).transform), 'none');
-  // null, no 'screen': con 'screen' forzado, page.pdf imprimiría con los estilos de pantalla.
-  await page.emulateMedia({ media: null });
+  const sitio = await json(path.join(RAIZ, 'sitio.json'));
+  assert.equal(await page.locator('.pie-fuentes-papel a').textContent(), (sitio.url_publica + 'guia.html').replace(/^https?:\/\//, ''), 'el pie del papel lleva la dirección de la guía');
+  const a4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
+  // Papel A3 elegido en el diálogo: la condición de la ampliación se evalúa contra ese papel.
+  const a3 = medirPDF(await page.pdf({ format: 'A3', printBackground: true, margin: { top: '12.7mm', right: '14.1mm', bottom: '9.9mm', left: '14.1mm' } }));
+  // Si el usuario deja A4 (o carta), tiene que salir la A4 de siempre, no una hoja encogida.
+  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
+  const a4Dejada = medirPDF(await page.pdf({ format: 'A4', printBackground: true, margin: { top: '9mm', right: '10mm', bottom: '7mm', left: '10mm' } }));
+  assert.equal(a4Dejada.paginas, 1, 'A3 pedido con A4 dejado: una hoja');
+  assert.ok(Math.abs(a4Dejada.anchoMm - 210) < 1 && Math.abs(a4Dejada.max - a4.max) < 0.01 && Math.abs(a4Dejada.min - a4.min) < 0.01, `A3 pedido con A4 dejado: título ${a4Dejada.max.toFixed(2)} pt (A4 normal ${a4.max.toFixed(2)})`);
+  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
+  const carta = medirPDF(await page.pdf({ format: 'Letter', printBackground: true, margin: { top: '9mm', right: '10mm', bottom: '7mm', left: '10mm' } }));
+  assert.equal(carta.paginas, 1, 'A3 pedido con carta dejada: una hoja');
+  await page.evaluate(() => dispatchEvent(new Event('afterprint')));
+  assert.equal(await page.locator('#formato-impresion').count(), 0, 'la hoja de estilo de la A3 se retira al acabar');
+  assert.equal(a3.paginas, 1, 'A3 en una hoja');
+  assert.ok(Math.abs(a3.anchoMm - 297) < 1, `la hoja mide ${a3.anchoMm.toFixed(1)} mm de ancho, no 297`);
+  assert.equal(a3.textos, a4.textos, 'la A3 lleva los mismos textos que la A4');
+  assert.ok(a3.max / a4.max > 1.40 && a3.max / a4.max < 1.43, `título ${a4.max.toFixed(2)} pt en A4 y ${a3.max.toFixed(2)} pt en A3`);
+  assert.ok(a3.min / a4.min > 1.40 && a3.min / a4.min < 1.43, `texto menor ${a4.min.toFixed(2)} pt en A4 y ${a3.min.toFixed(2)} pt en A3`);
+  const otraVezA4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
+  assert.ok(Math.abs(otraVezA4.max - a4.max) < 0.01 && otraVezA4.paginas === 1, 'tras la A3, la A4 vuelve a ser la de siempre');
   await page.goto(base + 'dossier.html');
   await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);
   assert.ok(await page.locator('#d-barra').isVisible(), 'la barra del dossier se ve');
+  const guiaDossier = await page.locator('.hoja-texto').first().textContent();
+  const comp = (await json(path.join(WEB, 'datos/mun/38038.json'))).componentes;
+  const ultimoAnio = Math.max(...comp.anios.filter((a, i) => comp.vegetativo[i] != null || comp.migratorio[i] != null));
+  assert.ok(guiaDossier.includes(`hasta ${ultimoAnio}`), 'la guía del dossier calcula el último año de los componentes');
+  for (const t of ['Variación media anual', 'Edad media', 'Lugar de nacimiento', 'Población a 1 de enero', 'guia.html']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
+  assert.ok(!guiaDossier.includes('adrón'), 'la guía del dossier no atribuye los datos al padrón');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');

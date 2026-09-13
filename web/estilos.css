@@ -704,6 +704,13 @@ select {
   .cifra em { font-size: 11.5px; min-height: 16px; }
   .buscador { width: 100%; }
 }
+/* «Imprimir en A3» es cosa de escritorio: por debajo de 966 px de ancho la
+   barra necesitaba una fila más para él (a 768 px, el iPad vertical, pasaba
+   de 160 a 212 px de alto) y en móvil, reducido a su icono, era un segundo
+   icono de descarga idéntico al de al lado. */
+@media (max-width: 965px) {
+  #btn-pdf-a3 { display: none; }
+}
 @media (max-width: 620px) {
   .marca span { display: none; }
   /* Cinco botones con texto dejaban la barra en 288 px de alto: casi toda la
@@ -712,6 +719,7 @@ select {
   .barra .btn-liso span { display: none; }
   .barra .btn-liso.confirmado span { display: inline; }
   .barra .btn-liso { padding: 9px 12px; }
+
   .campo { width: 100%; }
   select { flex: 1; min-width: 0; }
   .cabecera { padding: 22px 18px 20px; }
@@ -792,21 +800,9 @@ select {
    origen, los tres mapas, pirámide e índices, componentes y nacimiento. Se
    dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
 @page { size: A4 portrait; margin: 9mm 10mm 7mm; }
-/* Quien elija A3 en el diálogo de impresión recibe la misma ficha ampliada un
-   41 %: los 190 mm de la maqueta pasan a 269 de los 277 útiles, y los 281 mm
-   de alto a 397 de 404. Texto y gráficos crecen en proporción; la A4 de una
-   hoja sigue siendo el formato habitual. Se amplía con transform y no con
-   zoom: con zoom, Chromium partía la hoja en dos aunque cupiera. La maqueta se
-   sigue componiendo a 190 mm y el cuerpo fija la altura de la hoja para que
-   la paginación vea una sola página. (En papel, la media query mide el área
-   útil sin márgenes; la altura mínima excluye la A4 apaisada, donde la
-   ampliación no cabría.) */
-@media print and (min-width: 250mm) and (min-height: 380mm) {
-  /* margin 0: centrada con márgenes automáticos, la maqueta arrancaba a 43 mm
-     y, ampliada desde su esquina, se salía por la derecha. */
-  .envoltorio { width: 190mm; margin: 0; transform: scale(1.414); transform-origin: top left; }
-  body { height: 396mm; overflow: hidden; }
-}
+/* La ampliación a A3 («Imprimir en A3») la inyecta ficha.js con su propio
+   @page: con el tamaño fijado aquí en A4, elegir A3 en el diálogo no
+   ampliaba nada, la ficha salía a tamaño A4 centrada en la hoja grande. */
 
 /* ------------------------------------------------------------ presentación -- */
 #presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }

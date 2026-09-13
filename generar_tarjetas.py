@@ -28,9 +28,13 @@ así que las etiquetas tienen que estar en el HTML servido; una sola ficha.html
 con ?municipio= mostraría la misma tarjeta para los 88.
 """
 import json
-import sqlite3  # noqa: F401  (no se usa; el geo ya está exportado a JSON)
+import re
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:  # pruebas/invariantes.py importa este módulo sin Pillow
+    Image = ImageDraw = ImageFont = None
 
 AQUI = Path(__file__).resolve().parent
 WEB = AQUI / "web"
@@ -57,14 +61,14 @@ def familia():
     raise SystemExit("No hay ninguna tipografía de las previstas en este sistema.")
 
 
-RUTA_TF, IDX = familia()
 _cache = {}
 
 
 def tf(peso, px):
     clave = (peso, px)
     if clave not in _cache:
-        _cache[clave] = ImageFont.truetype(RUTA_TF, px, index=IDX[peso])
+        ruta, idx = familia()
+        _cache[clave] = ImageFont.truetype(ruta, px, index=idx[peso])
     return _cache[clave]
 
 
@@ -155,7 +159,7 @@ def tarjeta_municipio(m, geo, anio):
     d.text((72, y), nf(m["poblacion"]), font=tf("medio", 76), fill=BLANCO)
     d.text((72, y + 90), "habitantes", font=tf("normal", 34), fill=AZUL_CLARO)
 
-    d.text((72, 524), f"{m['isla']} · Padrón {anio}", font=tf("medio", 29), fill=AZUL_SOBRE)
+    d.text((72, 524), f"{m['isla']} · 1 de enero de {anio}", font=tf("medio", 29), fill=AZUL_SOBRE)
     d.rectangle([72, 576, 132, 580], fill=AZUL_CLARO)
     d.text((72, 592), "Canarias Convive", font=tf("demi", 25), fill=AZUL_SOBRE)
     return img
@@ -172,7 +176,7 @@ def tarjeta_portada(idx):
         d.text((72, y), ln, font=f, fill=BLANCO)
         y += 88
 
-    d.text((72, 424), f"88 municipios · 7 islas · Padrón {idx['anio']}",
+    d.text((72, 424), f"88 municipios · 7 islas · 1 de enero de {idx['anio']}",
            font=tf("medio", 38), fill=AZUL_CLARO)
     d.rectangle([72, 512, 132, 516], fill=AZUL_CLARO)
     d.text((72, 542), f"{nf(idx['poblacion_canarias'])} habitantes",
@@ -185,16 +189,17 @@ ENVOLTORIO = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <title>{nombre} · Ficha demográfica · Canarias Convive</title>
-<link rel="canonical" href="../ficha.html?municipio={cod}">
+<link rel="canonical" href="{base}/m/{cod}.html">
 <meta property="og:type" content="article">
 <meta property="og:title" content="{nombre} · Ficha demográfica">
-<meta property="og:description" content="{hab} habitantes. Estructura de la población, evolución e índices. Padrón {anio}.">
+<meta property="og:description" content="{hab} habitantes. Estructura de la población, evolución e índices. Población a 1 de enero de {anio}.">
 <meta property="og:image" content="{base}/og/{cod}.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="{base}/m/{cod}.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta http-equiv="refresh" content="0; url=../ficha.html?municipio={cod}">
+<script>location.replace('../ficha.html?municipio={cod}' + location.hash);</script>
 </head>
 <body>
 <p>Abriendo la ficha de {nombre}… <a href="../ficha.html?municipio={cod}">Ir a la ficha</a>.</p>
@@ -203,11 +208,53 @@ ENVOLTORIO = """<!DOCTYPE html>
 """
 
 # La URL pública vive en un solo sitio, sitio.json: de ahí salen las etiquetas
-# og: de los envoltorios y web/config.js, que la da al JS para el botón de
-# compartir y la canónica. Cambiar de alojamiento es cambiar ese fichero y
-# volver a ejecutar este script.
+# og: y canónicas de las cinco páginas, los envoltorios de web/m/ y
+# web/config.js, que la da al JS para el botón de compartir. Cambiar de
+# alojamiento es cambiar ese fichero y volver a ejecutar este script.
 SITIO = json.loads((AQUI / "sitio.json").read_text(encoding="utf-8"))
 BASE = SITIO["url_publica"].rstrip("/")
+
+PAGINAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html",
+           "guia": "guia.html", "dossier": "dossier.html"}
+
+
+def _meta(html, propiedad, valor):
+    patron = rf'(<meta property="{re.escape(propiedad)}" content=")[^"]*(">)'
+    return re.sub(patron, lambda m: m.group(1) + valor + m.group(2), html)
+
+
+def reescribir_paginas(base, web=WEB):
+    """Canónica, og:url y og:image de las cinco páginas, y web/config.js, con
+    la URL pública dada (sin barra final). Devuelve los ficheros tocados."""
+    base = base.rstrip("/")
+    tocados = []
+    for nombre, ruta in PAGINAS.items():
+        p = web / f"{nombre}.html"
+        html = p.read_text(encoding="utf-8")
+        url = f"{base}/{ruta}"
+        html = re.sub(r'<link rel="canonical" href="[^"]*">',
+                      f'<link rel="canonical" href="{url}">', html)
+        html = _meta(html, "og:url", url)
+        html = _meta(html, "og:image", f"{base}/og/portada.png")
+        p.write_text(html, encoding="utf-8")
+        tocados.append(p)
+    config = web / "config.js"
+    config.write_text("// Generado por generar_tarjetas.py desde sitio.json. No editar a mano.\n"
+                      f"const URL_PUBLICA = {json.dumps(base + '/')};\n", encoding="utf-8")
+    tocados.append(config)
+    return tocados
+
+
+def escribir_envoltorios(idx, base, web=WEB):
+    """Los 88 m/<código>.html: etiquetas og: del municipio y redirección a la ficha."""
+    base = base.rstrip("/")
+    salida = web / "m"
+    salida.mkdir(exist_ok=True)
+    for m in idx["municipios"]:
+        (salida / f"{m['codmun']}.html").write_text(
+            ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"],
+                              hab=nf(m["poblacion"]), anio=idx["anio"], base=base),
+            encoding="utf-8")
 
 
 def guardar(img, ruta):
@@ -224,26 +271,22 @@ def guardar(img, ruta):
 def main():
     idx = json.loads((WEB / "datos" / "indice.json").read_text(encoding="utf-8"))
     geo = json.loads((WEB / "datos" / "geo" / "municipios.json").read_text(encoding="utf-8"))
+    if Image is None:
+        raise SystemExit("Hace falta Pillow para las tarjetas: pip install -r requirements.txt")
     SALIDA_OG.mkdir(exist_ok=True)
-    SALIDA_M.mkdir(exist_ok=True)
-    (WEB / "config.js").write_text(
-        "// Generado por generar_tarjetas.py desde sitio.json. No editar a mano.\n"
-        f"const URL_PUBLICA = {json.dumps(BASE + '/')};\n", encoding="utf-8")
+    reescribir_paginas(BASE)
+    escribir_envoltorios(idx, BASE)
 
     guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")
-
     for m in idx["municipios"]:
         guardar(tarjeta_municipio(m, geo, idx["anio"]), SALIDA_OG / f"{m['codmun']}.png")
-        (SALIDA_M / f"{m['codmun']}.html").write_text(
-            ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"],
-                              hab=nf(m["poblacion"]), anio=idx["anio"], base=BASE),
-            encoding="utf-8")
 
     peso = sum(p.stat().st_size for p in SALIDA_OG.glob("*.png"))
     print(f"{len(idx['municipios']) + 1} tarjetas en {SALIDA_OG}")
     print(f"Peso total: {peso/1024:.0f} KB  ·  media {peso/(len(idx['municipios'])+1)/1024:.1f} KB")
     print(f"{len(idx['municipios'])} envoltorios en {SALIDA_M}")
-    print(f"Tipografía: {RUTA_TF}")
+    print(f"Tipografía: {familia()[0]}")
+    print(f"URL pública: {BASE}/ (sitio.json) en las cinco páginas, los envoltorios y config.js")
 
 
 if __name__ == "__main__":

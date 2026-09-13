@@ -94,7 +94,9 @@ const INDICADORES = [
 ];
 
 /* -------------------------------------------------------------- montaje --- */
-function pintar() {
+/* pintarGuia y no pintar: el dossier carga este fichero junto a ficha.js,
+   que ya tiene su pintar(f). */
+function pintarGuia() {
   document.getElementById('guia-indice').innerHTML = INDICADORES.map((x) =>
     `<a href="#${x.id}">${esc(x.nombre.replace(/^Índice (de |del )?/, '').replace(/^./, (l) => l.toUpperCase()))}</a>`).join('');
 
@@ -117,10 +119,13 @@ function pintar() {
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 }
 
-pintar();
+/* El dossier carga este fichero solo por INDICADORES; ahí no hay guía que pintar. */
+if (document.getElementById('guia-fichas')) {
+pintarGuia();
 leerJSON('datos/indice.json').then((indice) => {
   configurarFuentes(indice);
   INDICADORES.forEach((x) => ponerDetalle(document.getElementById(`fuente-guia-${x.id}`), `detalle-guia-${x.id}`, fuenteHTML(x.id), String(indice.anio), 'Fuente y fecha'));
 }).catch(() => {
   document.querySelector('.cmp-intro').insertAdjacentHTML('afterend', '<p class="aviso-carga" role="status">No se han podido cargar las fuentes. <a href="guia.html">Reintentar</a></p>');
 });
+}

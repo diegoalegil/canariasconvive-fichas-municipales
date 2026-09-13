@@ -51,6 +51,9 @@ function abrir(disparador, lista) {
   lista.scrollTop = 0;
   disparador.setAttribute('aria-expanded', 'true');
   abierto = { disparador, lista };
+  // Safari no da el foco a un botón al pulsarlo con el ratón, y sin foco
+  // dentro del menú las teclas (flechas, Inicio, Fin, Escape) no llegan.
+  if (!disparador.contains(document.activeElement) && !lista.contains(document.activeElement)) disparador.focus();
 }
 
 /** Arriba y abajo recorren la lista; desde el disparador, la primera flecha
@@ -61,8 +64,10 @@ function mover(lista, paso) {
   const ops = [...lista.querySelectorAll('a')];
   if (!ops.length) return;
   const i = ops.indexOf(document.activeElement);
-  const j = i < 0
-    ? (paso > 0 ? 0 : ops.length - 1)
+  // Inicio y Fin son absolutos: desde el disparador, con la lista abierta,
+  // Inicio iba a la última opción (un paso negativo «desde fuera»).
+  const j = paso === 'inicio' ? 0 : paso === 'fin' ? ops.length - 1
+    : i < 0 ? (paso > 0 ? 0 : ops.length - 1)
     : Math.min(ops.length - 1, Math.max(0, i + paso));
   ops[j].focus();
 }
@@ -81,7 +86,7 @@ function teclas(e, disparador, lista, alAbrir) {
     case 'End':
       if (lista.hidden) return;
       e.preventDefault();
-      mover(lista, e.key === 'Home' ? -999 : 999);
+      mover(lista, e.key === 'Home' ? 'inicio' : 'fin');
       break;
     case 'Escape':
       if (lista.hidden) return;
@@ -223,7 +228,7 @@ async function iniciar() {
   ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
 
   document.getElementById('tapa-anio').textContent =
-    `Datos del padrón a 1 de enero de ${INDICE.anio}.`;
+    `Población a 1 de enero de ${INDICE.anio}.`;
 
   montarIslas();
   montarBuscador();

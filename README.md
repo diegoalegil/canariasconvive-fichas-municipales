@@ -16,9 +16,13 @@ python3 -m http.server 8140 --directory web
 Y se abre `http://localhost:8140`. La raíz es la portada, con el buscador y
 las listas por isla; la ficha vive en `ficha.html` y se puede enlazar un
 municipio concreto con `ficha.html?municipio=38038` (código INE). Un enlace
-antiguo del tipo `index.html?municipio=38038` redirige solo. Para compartir
-está `m/38038.html`: un envoltorio con las etiquetas de vista previa del
-municipio que redirige a la ficha.
+antiguo del tipo `index.html?municipio=38038` redirige solo. La dirección
+estable de cada municipio es `m/38038.html`: un envoltorio con las etiquetas
+de vista previa del municipio que redirige a la ficha, y la que la ficha deja
+en la barra del navegador al cargar y al cambiar de municipio, para que
+copiarla de ahí sea lo mismo que «Copiar enlace». Por eso datos y enlaces se
+resuelven contra la raíz de la web (`rutaWeb` en `comun.js`) y no contra la
+dirección visible.
 
 ## Regenerar los datos
 
@@ -40,9 +44,11 @@ sin regenerarlos se quedan viejos. `exportar_datos.py` guarda también, en
 `indice.json`, la fuente de cada indicador —organismo, enlace, años cubiertos
 y fecha de revisión— leída del índice `INDEX-F` del libro por `metadatos.py`.
 La URL pública del sitio está en un solo sitio, `sitio.json`; de ahí salen las
-etiquetas `og:` de los envoltorios y `web/config.js`, que la da al JS para el
-botón de compartir y la canónica. Mudar el sitio de alojamiento es cambiar ese
-fichero y volver a ejecutar `generar_tarjetas.py`.
+canónicas y las etiquetas `og:` de las cinco páginas, los envoltorios de
+`web/m/` y `web/config.js`, que la da al JS para el botón de compartir. Mudar
+el sitio de alojamiento es cambiar ese fichero y volver a ejecutar
+`generar_tarjetas.py`; `pruebas/invariantes.py` ensaya esa mudanza con una URL
+ficticia y comprueba que no queda ninguna referencia al dominio anterior.
 
 ## Qué hay
 
@@ -187,6 +193,14 @@ del hueco que ocupa.
 artículos y formas largas (*La Laguna* / *San Cristóbal de La Laguna*). Todo se
 referencia por `codmun`.
 
+**«Población a 1 de enero», no «padrón».** La cifra reciente sale de la
+operación censal anual del ISTAC (E30243A, desde 2021), que el propio ISTAC
+distingue de las cifras oficiales del padrón; las series largas combinan
+fuentes. Los rótulos generales dicen la fecha del dato, y la operación
+estadística queda identificada por el enlace de la nota de fuente de cada
+indicador (el recurso del ISTAC, con su código en la dirección); la nota
+misma solo describe el dato.
+
 ## Cosas de los datos que hubo que resolver
 
 - **C6M y C7M no comparten ventana temporal** (1999–2024 y 2002–2024). Emparejarlas
@@ -205,11 +219,26 @@ propios. Escalar por CSS un gráfico pensado para 640 px hasta 60 mm dejaba las
 etiquetas del eje en tres puntos y unas encima de otras. En la hoja el reparto de
 la retícula pasa de 8/4 a 7/5: los índices repiten el nombre del municipio tres
 veces y a cuatro columnas se partía en tres líneas, que era lo que hacía que la
-ficha no cupiera en una cara. Quien elija A3 en el diálogo de impresión recibe
-la misma ficha ampliada un 41 % (`transform: scale(1.414)` bajo `min-width:
-250mm`, que en papel es el área útil de la hoja): la
-A4 de una hoja sigue siendo el formato habitual, y el A3 es para quien la
-lectura de 5-6 pt le resulte pequeña.
+ficha no cupiera en una cara. «Imprimir en A3» es la misma ficha ampliada un
+41 %, para quien la lectura de 5-6 pt le resulte pequeña; la A4 de una hoja
+sigue siendo el formato habitual. En el diálogo hay que elegir A3 como papel
+(el botón lo dice en su tooltip). Con `@page` fijado en A4, elegir A3 dejaba
+la ficha a tamaño A4 centrada en la hoja grande (medido en el PDF: 17 pt de
+título en las dos). El botón inyecta un `@page { size: A3 }` y un
+`transform: scale(1.414)` —no `zoom`, que cambiaba la composición y partía la
+hoja en dos— dentro de una condición sobre el papel elegido (250 × 380 mm o
+más), que Chromium evalúa contra ese papel: con A3, ampliada; con A4 o carta,
+la A4 de siempre. Un `@page` A3 sin condición hacía que Chromium encogiera la
+página al 71 % si el usuario dejaba A4, peor que el botón normal; Safari no
+atiende a `@page size` y también necesita elegir A3 a mano. La prueba mide el
+texto dentro del PDF: con A3, mismo número de textos que la A4 y todos ×1,41
+(título 17 → 24 pt); con A4 dejada, idéntica a la A4 normal. Lo que no se ha
+medido es el diálogo real de cada navegador: conviene probarlo a mano en
+Chrome y en Safari una vez (pulsar el botón, elegir A3, guardar PDF).
+El papel lleva al pie las fuentes y la dirección de la guía, para que se pueda
+llegar desde una hoja impresa a cada recurso estadístico. El botón no se
+muestra por debajo de 966 px de ancho: en tableta añadía una fila a la barra
+y en móvil, reducido a su icono, era un segundo icono de descarga.
 
 ## Verificación
 
@@ -226,26 +255,40 @@ npm test
   pirámide suma su población y las 88 suman Canarias, la TVMA es la de la
   serie sin redondeo intermedio, los repartos suman cien, los índices están en
   los tres ámbitos, cada indicador tiene fuente con enlace https, los 88
-  envoltorios apuntan a la URL de `sitio.json` y las cinco páginas cargan la
-  misma versión de recursos.
+  envoltorios y las canónicas y `og:` de las cinco páginas llevan la URL de
+  `sitio.json`, las cinco cargan la misma versión de recursos, ningún texto
+  atribuye los datos al padrón, y una mudanza a una URL ficticia no deja
+  rastro del dominio anterior.
 - `pruebas/conciliar_excel.py`: 3.608 comparaciones contra el libro, celda a
   celda —población, series, componentes con sus anomalías, los siete índices
   en los tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el
   lugar de nacimiento—. Necesita el Excel en `~/Downloads`; si no está, se
   omite avisando. No corre en GitHub porque el libro no está en el repositorio.
-- `pruebas/web.test.cjs` (Playwright, Chromium): la última selección manda y
-  el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por lugar
-  de nacimiento; «Fuente y datos» con sus 42 filas; teclado de la pirámide y de
-  la evolución tras redibujar e imprimir; la presentación es modal y devuelve
-  el foco; el cruce no deja fantasmas; el comparador con tres plazas, sin
-  duplicados, colores fijos, tabla semántica y sin texto en azul claro, con 1,
-  2 y 3 municipios a 1280 y 375 px; el fallo de carga inicial visible; las
-  siete islas abiertas dentro de la pantalla a 320, 375 y 1280; el foco del
-  buscador; la guía; las 88 fichas en una A4, la A3 ampliada en una hoja y el
-  dossier de 98 páginas con su barra visible y sin hojas desbordadas.
+- `pruebas/web.test.cjs` (Playwright, Chromium): la última selección manda,
+  la dirección visible es `m/<código>.html` y desde ella se sigue cargando
+  todo; el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por
+  lugar de nacimiento; «Fuente y datos» con sus 42 filas; teclado de la
+  pirámide y de la evolución tras redibujar e imprimir; la presentación es
+  modal, Mayús+Tab recién abierta va a Salir y el foco vuelve al botón; el
+  cruce no deja fantasmas; el comparador con tres plazas, sin duplicados,
+  colores fijos, tabla semántica y sin texto en azul claro, con 1, 2 y 3
+  municipios a 1280 y 375 px; el fallo de carga inicial visible; las siete
+  islas abiertas dentro de la pantalla a 320, 375 y 1280, e Inicio/Fin desde el
+  disparador; el foco del buscador; la guía; las 88 fichas en una A4; la A3 con
+  los mismos textos que la A4 y todos ×1,41 medidos en el PDF; el dossier de
+  98 páginas con su barra visible, sin hojas desbordadas y con la guía que
+  calcula el último año de los componentes.
 
-Lo que la batería no cubre: Safari y Firefox (se probaron a mano con el motor
-WebKit de Playwright), un móvil físico y el `<iframe>` de WordPress.
+En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` corre
+los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo
+existe en Chromium); los detalles de Safari que se cubren así: el clic de
+ratón no da el foco a un botón, y sin él la presentación no devolvía el foco
+ni las listas de isla recibían las teclas. Lo que la batería no cubre: los
+diálogos de impresión reales, un móvil físico, el `<iframe>` de WordPress
+(probado a mano desde otro origen: la ficha pinta y cambia su dirección sin
+error) y los rastreadores de vista previa. Después de publicar conviene pasar
+`m/38038.html` por el depurador de compartir de Facebook o pegarlo en un chat
+de WhatsApp y comprobar que la tarjeta es la del municipio.
 
 ## Accesibilidad
 
@@ -270,6 +313,11 @@ oculta, donde el navegador congela `requestAnimationFrame`.
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
 - [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk. Al
-      mudarlo, cambiar `sitio.json` y ejecutar `generar_tarjetas.py`.
+      mudarlo, cambiar `sitio.json` y ejecutar `generar_tarjetas.py`. El
+      `<iframe>` de WordPress necesita `allow="fullscreen; clipboard-write"`
+      y `allowfullscreen` para el modo presentación y el botón de copiar.
+- [ ] Probar a mano «Imprimir en A3» en el diálogo de Chrome y de Safari
+      (elegir A3, guardar PDF) y, tras publicar, la vista previa de un enlace
+      `m/<código>.html` en WhatsApp.
 - [ ] Ojo: la web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
       hereda el iframe. Está en la auditoría como hallazgo M1.

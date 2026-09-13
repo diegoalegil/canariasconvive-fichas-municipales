@@ -70,6 +70,7 @@ for m in municipios:
     if envoltorio.exists():
         h = envoltorio.read_text(encoding="utf-8")
         comprobar(f'content="{url_publica}m/{cod}.html"' in h, f"m/{cod}.html: og:url no apunta a la URL pública de sitio.json")
+        comprobar(f'<link rel="canonical" href="{url_publica}m/{cod}.html">' in h, f"m/{cod}.html: la canónica no es él mismo")
         comprobar(f"ficha.html?municipio={cod}" in h, f"m/{cod}.html no redirige a la ficha")
 comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
 
@@ -82,15 +83,49 @@ for clave in ("poblacion", "tvma", "edad", "sexo", "evolucion", "extranjero", "p
         comprobar(str(e.get("url", "")).startswith("https://") and e.get("organismo"), f"fuentes_indicadores «{clave}»: enlace sin https u organismo")
 
 versiones = set()
-for pagina in ("index", "ficha", "comparar", "guia", "dossier"):
+RUTAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html", "guia": "guia.html", "dossier": "dossier.html"}
+for pagina, ruta in RUTAS.items():
     h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
     versiones |= set(re.findall(r"\?v=(\d+)", h))
     comprobar('src="config.js' in h and 'src="comun.js' in h, f"{pagina}.html no carga config.js y comun.js")
+    # Canónica y og: de la página principal, con la URL de sitio.json.
+    comprobar(f'<link rel="canonical" href="{url_publica}{ruta}">' in h, f"{pagina}.html: la canónica no es la de sitio.json")
+    if 'property="og:url"' in h:   # el dossier no lleva og: (noindex)
+        comprobar(f'<meta property="og:url" content="{url_publica}{ruta}">' in h, f"{pagina}.html: og:url no es la de sitio.json")
+        comprobar(f'<meta property="og:image" content="{url_publica}og/portada.png">' in h, f"{pagina}.html: og:image no es la de sitio.json")
+    comprobar("Padrón" not in h and "padrón" not in h, f"{pagina}.html atribuye los datos al padrón; la fuente reciente es censal: decir «Población a 1 de enero»")
 comprobar(len(versiones) == 1, f"las páginas mezclan versiones de recursos: {sorted(versiones)}")
+for js in ("portada", "dossier", "ficha", "comparar", "guia", "datos-ui"):
+    comprobar("adrón" not in (WEB / f"{js}.js").read_text(encoding="utf-8"), f"{js}.js atribuye los datos al padrón")
+
+# Ensayo de mudanza: con otra URL pública en sitio.json, ¿queda alguna referencia
+# al dominio actual en las cinco páginas, los envoltorios o config.js?
+import shutil
+import sys as _sys
+import tempfile
+_sys.path.insert(0, str(RAIZ))
+try:
+    from generar_tarjetas import reescribir_paginas, escribir_envoltorios
+    with tempfile.TemporaryDirectory() as tmp:
+        web_tmp = Path(tmp) / "web"
+        web_tmp.mkdir()
+        for pagina in RUTAS:
+            shutil.copy(WEB / f"{pagina}.html", web_tmp / f"{pagina}.html")
+        ficticia = "https://ejemplo.test/fichas/"
+        reescribir_paginas(ficticia, web_tmp)
+        escribir_envoltorios(indice, ficticia, web_tmp)
+        dominio_actual = re.sub(r"^https?://", "", url_publica).split("/")[0]
+        for f in sorted(web_tmp.rglob("*")):
+            if f.is_file():
+                t = f.read_text(encoding="utf-8")
+                comprobar(dominio_actual not in t, f"ensayo de mudanza: {f.relative_to(web_tmp)} conserva {dominio_actual}")
+                comprobar(ficticia in t, f"ensayo de mudanza: {f.relative_to(web_tmp)} no lleva la URL nueva")
+except ImportError as e:
+    comprobar(False, f"no se puede importar generar_tarjetas para el ensayo de mudanza: {e}")
 
 if fallos:
     print(f"FALLA · {len(fallos)} problema(s):")
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes, recursos v={versiones.pop()}")
+print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

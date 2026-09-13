@@ -650,7 +650,11 @@ async function cargar(codmun) {
     pintar(f);
     soltar();
     document.getElementById('sel-municipio').value = String(f.codmun);
-    history.replaceState(null, '', `?municipio=${f.codmun}`);
+    /* La dirección visible es la estable, m/<código>.html: copiarla de la barra
+       da lo mismo que «Copiar enlace», con vista previa del municipio. Al
+       recargarla, el envoltorio redirige a ficha.html?municipio= y se vuelve
+       aquí. Los enlaces y los datos van contra la raíz (comun.js). */
+    history.replaceState(null, '', rutaWeb(`m/${f.codmun}.html`) + location.hash);
     metadatosFicha(f);
     avisoCarga('estado-ficha');
   } catch (error) {
@@ -789,7 +793,7 @@ function pintar(f) {
 
   doc.getElementById('migas').textContent = `${f.isla} · ${f.comarca.replace(/^.*? - /, '')}`;
   // El comparador se abre con este municipio ya puesto.
-  doc.getElementById('btn-comparar').href = `comparar.html?m=${f.codmun}`;
+  doc.getElementById('btn-comparar').href = rutaWeb(`comparar.html?m=${f.codmun}`);
   doc.getElementById('nombre').textContent = f.nombre;
   doc.getElementById('anio').textContent = f.anio;
   doc.getElementById('habitantes').innerHTML = `<b>${nf(f.poblacion)}</b><span>habitantes</span>`;
@@ -1352,7 +1356,10 @@ function cerrarPresentacion() {
 
 function abrirPresentacion() {
   if (!FICHA || PRES.abierta) return;
-  PRES.focoAnterior = document.activeElement;
+  // Safari no da el foco a un botón al pulsarlo con el ratón: si no hay nada
+  // enfocado, al cerrar el foco vuelve al botón de presentar.
+  const activo = document.activeElement;
+  PRES.focoAnterior = activo && activo !== document.body ? activo : document.getElementById('btn-presentar');
   const f = FICHA, c = f.cifras, ev = f.evolucion, o = f.origen;
   const signo = c.tvma >= 0 ? '+' : '−';
   const P = construirPiramide(f.piramide, 640, 400, 0);
@@ -1367,7 +1374,7 @@ function abrirPresentacion() {
       <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
       <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
-     <img class="pres-logo" src="img/logo-canariasconvive.png" alt="Canarias Convive">`,
+     <img class="pres-logo" src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive">`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>`,
     `<h2 id="pres-titulo-pir">Estructura de la población · Municipio y Canarias</h2>
@@ -1427,7 +1434,10 @@ function abrirPresentacion() {
     if (e.key === 'Tab') {
       const botones = [...cont.querySelectorAll('button')];
       const i = botones.indexOf(document.activeElement);
-      botones[(i + (e.shiftKey ? -1 : 1) + botones.length) % botones.length].focus();
+      // Recién abierta el foco está en el diálogo, no en un botón: Tab va al
+      // primero y Mayús+Tab al último (Salir), no al penúltimo.
+      const j = i < 0 ? (e.shiftKey ? botones.length - 1 : 0) : (i + (e.shiftKey ? -1 : 1) + botones.length) % botones.length;
+      botones[j].focus();
       e.preventDefault(); return;
     }
     if (e.key === ' ' && document.activeElement.tagName === 'BUTTON') return;
@@ -1482,7 +1492,35 @@ addEventListener('afterprint', () => {
   IMPRIMIENDO = false;
   VISTA = VISTA_ANTES;
   pintar(FICHA);
+  const formato = document.getElementById('formato-impresion');
+  if (formato) formato.remove();
 });
+
+/* «Imprimir en A3»: la misma hoja, ampliada un 41 %, para quien elija A3 como
+   papel en el diálogo de impresión. Con el @page en A4 de estilos.css, elegir
+   A3 dejaba la ficha a tamaño A4 centrada en la hoja grande (medido en el
+   PDF: 17 pt de título en las dos). Aquí el @page A3 y la ampliación van
+   dentro de una condición sobre el papel de verdad elegido (≥ 250 × 380 mm),
+   que Chromium evalúa contra ese papel: con A3 la ficha sale ampliada
+   (título 24 pt, mismos textos que la A4); con A4 o carta, la A4 normal de
+   siempre. Un @page A3 sin condición hacía que Chromium encogiera la página
+   al 71 % si el usuario dejaba A4, peor que el botón normal. Safari no
+   atiende a @page size: ahí también hay que elegir A3 en el diálogo. La
+   ampliación va con transform y no con zoom —zoom recomponía y Chromium
+   partía la hoja en dos—. */
+function imprimirFicha(ampliada = false) {
+  document.getElementById('formato-impresion')?.remove();
+  if (ampliada) {
+    const estilo = document.createElement('style');
+    estilo.id = 'formato-impresion';
+    estilo.textContent = `@media print and (min-width: 250mm) and (min-height: 380mm) {
+        @page { size: A3 portrait; margin: 12.7mm 14.1mm 9.9mm; }
+        .envoltorio { width: 190mm; margin: 0; transform: scale(1.414); transform-origin: top left; }
+      }`;
+    document.head.appendChild(estilo);
+  }
+  window.print();
+}
 
 let temporizador = null, anchoPrevio = window.innerWidth;
 addEventListener('resize', () => {
@@ -1494,7 +1532,16 @@ addEventListener('resize', () => {
 
 async function iniciar() {
   montarIconos();
-  document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+  document.getElementById('btn-pdf').addEventListener('click', () => imprimirFicha(false));
+  document.getElementById('btn-pdf-a3').addEventListener('click', () => imprimirFicha(true));
+  enlacesAbsolutos();
+  /* El pie de la hoja impresa dice dónde están las fuentes y el método: una
+     dirección que se pueda teclear desde el papel. */
+  const pie = document.querySelector('.pie-fuentes-papel a');
+  if (pie) {
+    pie.href = rutaWeb('guia.html');
+    pie.textContent = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '');
+  }
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
@@ -1511,7 +1558,8 @@ async function iniciar() {
       return m ? `<option value="${m.codmun}">${esc(n)}</option>` : '';
     }).join('') + '</optgroup>').join('');
 
-  const pedido = new URLSearchParams(location.search).get('municipio');
+  const pedido = new URLSearchParams(location.search).get('municipio')
+    || (location.pathname.match(/\/m\/(\d{5})\.html$/) || [])[1];
   const inicial = INDICE.municipios.some((m) => String(m.codmun) === pedido) ? pedido : '38038';
   sel.value = inicial;
   sel.addEventListener('change', () => cargar(sel.value));

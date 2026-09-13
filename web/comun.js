@@ -98,10 +98,27 @@ addEventListener('beforeprint', () => {
 
 
 /* ------------------------------------------------------------- carga ------- */
+/* Raíz de la web: el directorio de este script. Las rutas de datos y de
+   enlaces se resuelven contra ella y no contra la dirección de la página,
+   porque la ficha cambia su dirección visible a m/<código>.html (la estable,
+   con vista previa) y desde ahí «datos/…» apuntaría a m/datos/…. */
+const RAIZ_WEB = new URL('.', document.currentScript.src);
+const rutaWeb = (ruta) => new URL(ruta, RAIZ_WEB).href;
+
+/** Los enlaces relativos de la página pasan a absolutos contra la raíz, por
+ *  la misma razón: escritos en el HTML valen desde ficha.html y no desde m/. */
+function enlacesAbsolutos() {
+  document.querySelectorAll('a[href]').forEach((a) => {
+    const h = a.getAttribute('href');
+    if (/^(https?:|mailto:|#|\/)/.test(h)) return;
+    a.href = rutaWeb(h);
+  });
+}
+
 /** fetch con comprobación del estado: un 404 servido como HTML no es un JSON,
  *  y antes se intentaba parsear y fallaba sin decir por qué. */
 async function leerJSON(ruta, signal) {
-  const respuesta = await fetch(ruta, { signal });
+  const respuesta = await fetch(rutaWeb(ruta), { signal });
   if (!respuesta.ok) throw new Error(`No se pudo cargar ${ruta}: HTTP ${respuesta.status}`);
   return respuesta.json();
 }
@@ -127,8 +144,9 @@ function avisoCarga(id, mensaje = '', reintentar) {
 
 /** Metadatos de la página para el municipio en pantalla —canónica y og:—
  *  sobre la URL pública de sitio.json (config.js). Los rastreadores no
- *  ejecutan JS, para ellos están los envoltorios de web/m/; esto sirve a quien
- *  copie la dirección de la barra o guarde la página. */
+ *  ejecutan JS: para ellos la dirección visible es m/<código>.html, un
+ *  envoltorio estático con estas mismas etiquetas que redirige a la ficha;
+ *  esto sirve a quien guarde la página. */
 const URL_PUBLICA_SITIO = typeof URL_PUBLICA !== 'undefined' ? URL_PUBLICA : new URL('.', location.href).href;
 function metadatosFicha(f) {
   const url = new URL(`m/${f.codmun}.html`, URL_PUBLICA_SITIO).href;
@@ -136,7 +154,7 @@ function metadatosFicha(f) {
     'og:title': `${f.nombre} · Ficha demográfica`,
     'og:url': url,
     'og:image': new URL(`og/${f.codmun}.png`, URL_PUBLICA_SITIO).href,
-    'og:description': `${nf(f.poblacion)} habitantes. Estructura de la población, evolución e índices. Datos de ${f.anio}.`,
+    'og:description': `${nf(f.poblacion)} habitantes. Estructura de la población, evolución e índices. Población a 1 de enero de ${f.anio}.`,
   };
   for (const [clave, valor] of Object.entries(valores)) {
     document.querySelector(`meta[property="${clave}"]`)?.setAttribute('content', valor);
