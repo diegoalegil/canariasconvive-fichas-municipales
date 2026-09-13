@@ -84,7 +84,8 @@ test('ficha: la última selección manda, el error se ve y se reintenta, y la TV
   assert.ok(await page.locator('#estado-ficha').isHidden());
   // 3,148981… % se muestra 3,1 y no 3,2 (antes: 3,15 en el JSON y otro redondeo en pantalla).
   assert.match(await page.locator('#cifras').textContent(), /\+3,1 %/);
-  assert.deepEqual(errores, []);
+  // La petición abortada a propósito deja su «Failed to load resource» en la consola; el resto tiene que estar limpio.
+  assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource')), []);
   await contexto.close();
 });
 
@@ -278,10 +279,13 @@ test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dos
   assert.equal(paginasPDF(a3), 1, 'A3');
   await page.emulateMedia({ media: 'print' });
   await page.setViewportSize({ width: 1047, height: 1527 });   // 277 × 404 mm útiles: A3 vertical
+  await espera(400);   // el cambio de transform lleva una transición de cortesía
   assert.match(await page.locator('.envoltorio').evaluate((e) => getComputedStyle(e).transform), /^matrix\(1\.414/);
   await page.setViewportSize({ width: 1047, height: 733 });    // A4 apaisada: no se amplía
+  await espera(400);
   assert.equal(await page.locator('.envoltorio').evaluate((e) => getComputedStyle(e).transform), 'none');
-  await page.emulateMedia({ media: 'screen' });
+  // null, no 'screen': con 'screen' forzado, page.pdf imprimiría con los estilos de pantalla.
+  await page.emulateMedia({ media: null });
   await page.goto(base + 'dossier.html');
   await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);
