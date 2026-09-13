@@ -541,17 +541,24 @@ select {
 }
 
 /* Cifras clave: rótulo a la izquierda y una columna por municipio. */
-.cmp-tabla { display: grid; grid-template-columns: minmax(140px, 1.1fr) repeat(var(--cols), 1fr); gap: 0; }
+/* La columna de rótulos mide lo que mide su texto, no una fracción: con un
+   solo municipio, 1.1fr se comía la mitad de la tarjeta y la cifra quedaba
+   perdida en el centro. */
+.cmp-tabla { display: grid; grid-template-columns: minmax(140px, max-content) repeat(var(--cols), minmax(0, 1fr)); gap: 0; }
 .cmp-cab { padding: 0 var(--e-3) var(--e-3); border-bottom: 2px solid var(--linea); }
 .cmp-cab b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .cmp-cab span { font-size: 11.5px; color: var(--gris); }
 .cmp-rot { padding: var(--e-3); border-bottom: 1px solid var(--linea); }
 .cmp-rot b { display: block; font-size: 13px; font-weight: 600; }
 .cmp-rot span { font-size: 11px; color: var(--gris); }
+/* La celda ocupa toda la fila y centra su contenido por dentro: con
+   `align-self: center` la celda encogía y su filete inferior quedaba a otra
+   altura que el del rótulo, y la línea de cada fila salía partida. */
 .cmp-val {
   padding: var(--e-3); border-bottom: 1px solid var(--linea);
   font-size: 19px; font-weight: 600; letter-spacing: -.02em;
-  font-variant-numeric: tabular-nums; align-self: center;
+  font-variant-numeric: tabular-nums;
+  display: flex; flex-direction: column; justify-content: center;
 }
 .cmp-val em {
   font-style: normal; display: block; font-size: 11px; font-weight: 500;
