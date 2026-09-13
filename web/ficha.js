@@ -676,7 +676,7 @@ function pintarLeyendaPiramide(vista) {
   cont.innerHTML = llaves.join('');
 }
 
-function mostrarVista(i, animar = true) {
+function mostrarVista(i, animar = true, dur = 620) {
   if (!PIRAMIDE) return;
   const P = PIRAMIDE;
   VISTA = i;
@@ -751,7 +751,7 @@ function mostrarVista(i, animar = true) {
   const refrescar = () => (P.senalar && FILA != null) ? P.senalar(FILA) : pintarLectura(FILA);
   if (!animar || reducido() || document.hidden) { aplicar(1); refrescar(); return; }
 
-  const dur = 620, t0 = performance.now();
+  const t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
     const e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // easeInOutCubic
@@ -842,7 +842,9 @@ function pintar(f) {
     && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && doc.querySelector('#g-piramide svg'));
   if (enPantalla) {
     Object.assign(PIRAMIDE, { vistas: nueva.vistas, municipio: nueva.municipio, total: nueva.total, edades: nueva.edades });
-    mostrarVista(VISTA, true);
+    /* 900 ms y no los 620 de la pestaña: entre dos municipios parecidos las
+       barras se mueven pocos píxeles, y a 620 el cambio pasaba desapercibido. */
+    mostrarVista(VISTA, true, 900);
   } else {
     PIRAMIDE = nueva;
     doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;

@@ -745,7 +745,12 @@ select {
 #presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }
 body.presentando { overflow: hidden; }
 .pres-escenario { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center; }
-.pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; opacity: 0; transition: opacity .2s linear; pointer-events: none; }
+/* Cada diapositiva centra su contenido en vertical: la de nacimiento y origen
+   extranjero, más baja que las demás, quedaba pegada arriba con media pantalla
+   vacía debajo. */
+.pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; opacity: 0; transition: opacity .2s linear; pointer-events: none;
+  display: flex; flex-direction: column; justify-content: center; }
+.pres-diapo > * { flex: none; }
 .pres-diapo.activa { opacity: 1; pointer-events: auto; }
 .pres-diapo h1 { font-size: 120px; font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--azul); margin: 12px 0 0; }
 .pres-diapo h2 { font-size: 44px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 32px; color: var(--negro); }
