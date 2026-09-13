@@ -85,7 +85,7 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('variacion', 13)}<div><h2>Evolución de la población</h2>
           <p>Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</p></div></header>
-        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, px(30), '-' + f.codmun)}</figure></div>
+        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, px(30), '-' + f.codmun)}</figure>${fuenteGrafico('evolucion')}</div>
       </section>
 
       <section class="tarjeta tercio">
@@ -94,7 +94,7 @@ function hojaFicha(f, pagina) {
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, px(26))}</figure>
           <div class="leyenda">
             <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias <b>${nf(ultimoValido(f.extranjero.canarias), 1)} %</b></span>
-          </div></div>
+          </div>${fuenteGrafico('extranjero')}</div>
       </section>
 
       <section class="tarjeta">
@@ -106,16 +106,17 @@ function hojaFicha(f, pagina) {
               <figcaption class="mapa-pie"><b>${r.puesto}º de ${r.total}</b>
                 <span>en ${esc(tit)}</span>
                 <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
-        </div></div>
+        </div>${fuenteGrafico('mapas')}</div>
       </section>
 
-      <!-- La piramide va 13 mm mas alta que en la ficha suelta, que es el hueco
-           que dejaba libre la tarjeta de indices a su lado. Medido: indices
-           82,6 mm, piramide 67,1. La hoja no crece ni un milimetro y la pieza
-           que Pedro llama la estrella se lee mejor. -->
+      <!-- La piramide va 11,5 mm mas alta que en la ficha suelta: es la pieza
+           que Pedro llama la estrella. Eran 13 mm, el hueco que dejaba libre la
+           tarjeta de indices a su lado; con la linea de fuente en cada tarjeta
+           la hoja iba justa (297,4 mm de 297 en Valverde) y cede milimetro y
+           medio junto con la cabecera y el pie. Medido: 293,7 mm. -->
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
-        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + px(13), 0).svg}</figure>
+        <div class="cuerpo"><figure>${construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + px(11.5), 0).svg}</figure>
           <!-- La leyenda dice lo que la hoja dibuja. Antes anunciaba un Canarias
                que la pirámide no llegaba a pintar; ahora Canarias está, en
                barras negras huecas. -->
@@ -123,24 +124,25 @@ function hojaFicha(f, pagina) {
             <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
             <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
             <span><i class="llave hueca"></i>Canarias</span>
-          </div></div>
+          </div>${fuenteGrafico('piramide')}</div>
       </section>
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
           <p>Los tres ámbitos, de menor a mayor valor</p></div></header>
-        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>
+        <div class="cuerpo">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}${fuenteGrafico('indices')}</div>
       </section>
 
       <section class="tarjeta mitad">
         <header class="rotulo">${icono('relevo', 13)}<div><h2>Componentes del cambio poblacional</h2></div></header>
-        <div class="cuerpo"><figure>${graficoComponentes(f.componentes, wCo, px(24))}</figure>
+        <div class="cuerpo"><figure>${graficoComponentes(f.componentes, wCo, px(anom.length ? 21 : 24))}</figure>
           <div class="leyenda">
             <span><i class="llave" style="background:#85B7EB"></i>Crecimiento vegetativo</span>
             <span><i class="llave" style="background:#185FA5"></i>Saldo migratorio</span>
           </div>
           ${anom.length ? `<p class="nota">${anom.map((a) =>
             `En ${a.anio} no se representa el saldo migratorio (${nf(a.valor)}): corresponde a un ${a.motivo}.`).join(' ')}</p>` : ''}
+          ${fuenteGrafico('componentes')}
         </div>
       </section>
 
@@ -153,7 +155,7 @@ function hojaFicha(f, pagina) {
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
                 `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(v[i], 1)}\u00a0%</b></div>`).join('')}
               </div></div>`).join('')}
-        </div></div>
+        </div>${fuenteGrafico('nacimiento')}</div>
       </section>
     </div>
 

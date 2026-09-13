@@ -82,6 +82,21 @@ for clave in ("poblacion", "tvma", "edad", "sexo", "evolucion", "extranjero", "p
     for e in (fu or {}).get("enlaces", []):
         comprobar(str(e.get("url", "")).startswith("https://") and e.get("organismo"), f"fuentes_indicadores «{clave}»: enlace sin https u organismo")
 
+# La fuente de cada gráfico (FUENTES_GRAFICOS en datos-ui.js) lleva los años de la
+# operación estadística escritos a mano: cuando se actualicen los datos, el año
+# de referencia del índice tiene que seguir apareciendo en cada una.
+ui = (WEB / "datos-ui.js").read_text(encoding="utf-8")
+bloque = re.search(r"const FUENTES_GRAFICOS = \{(.*?)\n\};", ui, re.S)
+graficos = dict(re.findall(r"^\s+(\w+): '([^']*)',$", bloque.group(1), re.M)) if bloque else {}
+anio_ref = str(indice["anio"])
+for clave in ("evolucion", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
+    texto = graficos.get(clave, "")
+    comprobar(texto.startswith("ISTAC. ") or texto.startswith("GRAFCAN, "), f"fuente del gráfico «{clave}»: falta o no empieza por el organismo")
+    comprobar(texto.endswith("."), f"fuente del gráfico «{clave}»: sin punto final")
+    comprobar("-" not in texto, f"fuente del gráfico «{clave}»: los periodos van con raya (–), no con guion")
+    esperado = str(indice["anio"] - 1) if clave == "componentes" else anio_ref
+    comprobar(esperado in texto, f"fuente del gráfico «{clave}» no lleva el año {esperado}: revisar la redacción tras actualizar los datos")
+
 versiones = set()
 RUTAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html", "guia": "guia.html", "dossier": "dossier.html"}
 for pagina, ruta in RUTAS.items():
@@ -128,4 +143,4 @@ if fallos:
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")
+print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes con enlace y {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

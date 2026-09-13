@@ -35,19 +35,26 @@ function medirPDF(pdf) {
   const objs = {}; for (const m of d.matchAll(/(\d+) 0 obj([\s\S]*?)endobj/g)) objs[m[1]] = m[2];
   const flujo = (o) => { const L = +(/\/Length\s+(\d+)/.exec(o) || [0, 0])[1]; const i = o.indexOf('stream') + 7; try { return zlib.inflateSync(Buffer.from(o.slice(i, i + L), 'latin1')).toString('latin1'); } catch { return ''; } };
   const xobjects = (o) => { const r = /\/XObject\s*<<([^>]*)>>/.exec(o); const out = {}; if (r) for (const m of r[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)) out[m[1]] = m[2]; return out; };
-  const tam = [];
+  const tam = []; let glifos = 0;
   const recorrer = (recursos, contenido, ctm0) => {
     const xo = xobjects(recursos);
     const tok = contenido.match(/\[[^\]]*\]|<[0-9A-Fa-f]*>|\([^)]*\)|\/[^\s\[\]<>(/]+|-?\d*\.?\d+|[A-Za-z*'"]+/g) || [];
-    let ctm = ctm0, tm = [1, 0, 0, 1, 0, 0], tf = 1, nombre = null; const pila = []; let nums = [];
+    let ctm = ctm0, tm = [1, 0, 0, 1, 0, 0], tf = 1, nombre = null, cadena = ''; const pila = []; let nums = [];
     for (const k of tok) {
       if (/^-?\d*\.?\d+$/.test(k)) { nums.push(+k); continue; }
       if (k[0] === '/') { nombre = k.slice(1); continue; }
+      if (k[0] === '<' || k[0] === '[' || k[0] === '(') { cadena = k; continue; }
       if (k === 'q') pila.push(ctm); else if (k === 'Q') ctm = pila.pop() || ctm;
       else if (k === 'cm') ctm = mul(nums.slice(-6), ctm);
       else if (k === 'Tm') tm = nums.slice(-6); else if (k === 'BT') tm = [1, 0, 0, 1, 0, 0];
       else if (k === 'Tf') tf = nums[nums.length - 1];
-      else if (k === 'Tj' || k === 'TJ') { const m = mul(tm, ctm); tam.push(tf * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]))); }
+      else if (k === 'Tj' || k === 'TJ') {
+        const m = mul(tm, ctm); tam.push(tf * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])));
+        // Glifos dibujados (un byte por glifo en las fuentes simples de Chromium): la cifra que
+        // tiene que coincidir entre A4 y A3. El número de operadores no sirve, porque Chromium
+        // parte las líneas en tramos distintos según la escala.
+        for (const h of cadena.matchAll(/<([0-9A-Fa-f]*)>/g)) glifos += h[1].length / 2;
+      }
       else if (k === 'Do' && nombre && xo[nombre]) { const x = objs[xo[nombre]]; const mx = /\/Matrix\s*\[([^\]]+)\]/.exec(x); recorrer(x, flujo(x), mul(mx ? mx[1].trim().split(/\s+/).map(Number) : [1, 0, 0, 1, 0, 0], ctm)); }
       nums = [];
     }
@@ -59,7 +66,7 @@ function medirPDF(pdf) {
     const c = /\/Contents\s+(\d+) 0 R/.exec(o); if (c) recorrer(o, flujo(objs[c[1]]), [1, 0, 0, 1, 0, 0]);
   }
   tam.sort((a, b) => a - b);
-  return { paginas: paginasPDF(pdf), anchoMm: mediaBox ? mediaBox[2] / 72 * 25.4 : 0, textos: tam.length, min: tam[0], max: tam[tam.length - 1] };
+  return { paginas: paginasPDF(pdf), anchoMm: mediaBox ? mediaBox[2] / 72 * 25.4 : 0, textos: tam.length, glifos, min: tam[0], max: tam[tam.length - 1] };
 }
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -169,8 +176,16 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres nacidos en España\nMujeres nacidas en España\nNacidos en el extranjero');
   assert.doesNotMatch(await page.locator('#lectura-piramide').textContent(), /Españoles|Extranjeros/);
   assert.match(await page.locator('#lectura-piramide').textContent(), /Nacidos en España.*Nacidos en el extranjero/s);
+  // La fuente de cada gráfico, con la redacción de Pedro; la de la pirámide sigue a la pestaña.
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, ${indice.anio}. Elaboración propia.`);
   await page.locator('.vista').nth(0).click();
-  // Fuente y datos: plegado, con enlace https y la tabla de las 21 edades.
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('.fuente-grafico').count(), 7, 'siete gráficos con fuente; las cifras clave no la llevan');
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de los municipios, 1996–${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, cifras de población ${indice.anio}. Elaboración propia.`);
+  assert.deepEqual(await page.locator('.datos-detalle > summary').allTextContents(), ['Método de cálculo', 'Datos y método', 'Datos y método', 'Método de cálculo', ...Array(4).fill('Datos y método')]);
+  assert.equal(await page.locator('#fuente-g-evolucion + details').getAttribute('id'), 'datos-g-evolucion', 'la fuente va justo antes del desplegable');
+  // Datos y método: plegado, con enlace https y la tabla de las 21 edades.
   const detalle = page.locator('#datos-g-piramide');
   assert.equal(await detalle.getAttribute('open'), null);
   await detalle.locator('summary').click();
@@ -285,6 +300,8 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   const claros = await page.locator('#cmp-resultado *').evaluateAll((els) => els.filter((e) => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).color === 'rgb(133, 183, 235)').length);
   assert.equal(claros, 0, 'texto en #85B7EB sobre blanco');
   assert.equal(await page.locator('#datos-cmp-piramides table').count(), 6);
+  assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('#cmp-extranjero .fuente-grafico + details > summary').textContent(), 'Datos y método');
   for (const ancho of [1280, 375]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);
@@ -379,6 +396,12 @@ test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dos
   await page.waitForSelector('#datos-g-piramide');
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
   assert.equal(await page.locator('.pie-fuentes-papel a').textContent(), (sitio.url_publica + 'guia.html').replace(/^https?:\/\//, ''), 'el pie del papel lleva la dirección de la guía');
+  // En la hoja se imprime la fuente de cada gráfico y no el desplegable de datos.
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('.fuente-grafico:visible').count(), 7, 'siete fuentes en la hoja');
+  assert.equal(await page.locator('.datos-detalle:visible').count(), 0, 'el desplegable no se imprime');
+  assert.ok(await page.locator('.cabecera .pie-fuentes-papel').isVisible(), 'el camino a la guía va en la cabecera de la hoja');
+  await page.emulateMedia({ media: null });
   const a4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
   await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
   // Papel A3 elegido en el diálogo: la condición de la ampliación se evalúa contra ese papel.
@@ -395,7 +418,8 @@ test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dos
   assert.equal(await page.locator('#formato-impresion').count(), 0, 'la hoja de estilo de la A3 se retira al acabar');
   assert.equal(a3.paginas, 1, 'A3 en una hoja');
   assert.ok(Math.abs(a3.anchoMm - 297) < 1, `la hoja mide ${a3.anchoMm.toFixed(1)} mm de ancho, no 297`);
-  assert.equal(a3.textos, a4.textos, 'la A3 lleva los mismos textos que la A4');
+  assert.equal(a3.glifos, a4.glifos, 'la A3 lleva los mismos textos que la A4');
+  assert.ok(a4.glifos > 2000, `glifos contados en la A4: ${a4.glifos}`);
   assert.ok(a3.max / a4.max > 1.40 && a3.max / a4.max < 1.43, `título ${a4.max.toFixed(2)} pt en A4 y ${a3.max.toFixed(2)} pt en A3`);
   assert.ok(a3.min / a4.min > 1.40 && a3.min / a4.min < 1.43, `texto menor ${a4.min.toFixed(2)} pt en A4 y ${a3.min.toFixed(2)} pt en A3`);
   const otraVezA4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
@@ -411,6 +435,7 @@ test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dos
   for (const t of ['Variación media anual', 'Edad media', 'Lugar de nacimiento', 'Población a 1 de enero', 'guia.html']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
   assert.ok(!guiaDossier.includes('adrón'), 'la guía del dossier no atribuye los datos al padrón');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
+  assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7, 'cada gráfico del dossier lleva su fuente');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });

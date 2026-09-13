@@ -702,6 +702,8 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   pintarLeyendaPiramide(v);
+  // Cada pestaña dibuja una tabla distinta del ISTAC: la línea de fuente la sigue.
+  fuentesFicha(i);
   /* El eje de la pestaña, con sus verticales y sus rótulos. Cambia de 7 a 14,
      y lo hace fundiéndose mientras las barras se mueven: un salto seco en la
      rejilla se leía como un parpadeo. */
@@ -875,8 +877,11 @@ function pintar(f) {
     bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14']);
 
   const anom = f.componentes.anomalias || [];
+  // En papel, la nota de El Pinar y Frontera (segregación de 2007) más la línea
+  // de fuente hacían de esta la tarjeta más alta de su fila: el gráfico le cede
+  // 3 mm a la nota y la fila mide lo mismo que en los otros 86 municipios.
   doc.getElementById('g-componentes').innerHTML =
-    graficoComponentes(f.componentes, wCo, IMPRIMIENDO ? mm(24) : acotar(wCo * 0.34, 190, 250))
+    graficoComponentes(f.componentes, wCo, IMPRIMIENDO ? mm(anom.length ? 21 : 24) : acotar(wCo * 0.34, 190, 250))
     + (anom.length ? `<figcaption class="nota">${anom.map((a) =>
         `En ${a.anio} no se representa el saldo migratorio (${nf(a.valor)}): corresponde a un `
         + `${a.motivo}, no a un flujo demográfico.`).join(' ')}</figcaption>` : '');
@@ -900,6 +905,8 @@ function pintar(f) {
   }
   conectarLecturaEvolucion();
   conectarIndices();
+  // La fuente de cada gráfico se imprime; el desplegable de datos, no.
+  fuentesFicha(VISTA);
   if (!IMPRIMIENDO) datosFicha(f);
 }
 
@@ -1312,6 +1319,7 @@ function presMostrar(vista, animar) {
     }
   };
   document.getElementById('pres-titulo-pir').textContent = 'Estructura de la población · ' + v.etiqueta;
+  document.getElementById('pres-fuente-pir').textContent = textoFuente(v.clave === 'municipio' ? 'piramide_nacimiento' : 'piramide');
   cancelAnimationFrame(PRES.animacion);
   // Con la pestaña oculta requestAnimationFrame se congela: se cambia en seco.
   if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presSenalar(); return; }
@@ -1376,15 +1384,19 @@ function abrirPresentacion() {
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
      <img class="pres-logo" src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive">`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
-     <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>`,
+     <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
+     <p class="pres-fuente">${esc(textoFuente('evolucion'))}</p>`,
     `<h2 id="pres-titulo-pir">Estructura de la población · Municipio y Canarias</h2>
      <div class="pres-pir"><div><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1120" height="700"')}</figure>
-     <div class="leyenda" id="pres-leyenda"></div></div><div class="pres-lectura" id="pres-lectura"></div></div>`,
+     <div class="leyenda" id="pres-leyenda"></div><p class="pres-fuente" id="pres-fuente-pir">${esc(textoFuente('piramide'))}</p></div><div class="pres-lectura" id="pres-lectura"></div></div>`,
     `<h2>Información geodemográfica</h2><p class="pres-sub">Los tres ámbitos, ordenados de menor a mayor valor</p>
-     <div class="pres-indices">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>`,
-    `<div class="pres-dos"><div><h2>Lugar de nacimiento</h2><div class="pres-anillos">${anillo('Municipio', o.municipio)}${anillo('Canarias', o.canarias)}</div></div>
+     <div class="pres-indices">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>
+     <p class="pres-fuente">${esc(textoFuente('indices'))}</p>`,
+    `<div class="pres-dos"><div><h2>Lugar de nacimiento</h2><div class="pres-anillos">${anillo('Municipio', o.municipio)}${anillo('Canarias', o.canarias)}</div>
+     <p class="pres-fuente">${esc(textoFuente('nacimiento'))}</p></div>
      <div><h2>Origen extranjero</h2>${graficoExtranjero(f.extranjero, 560, 300).replace('width="100%"', 'width="840" height="450"')}
-     <div class="leyenda" style="justify-content:flex-start"><span><i class="llave" style="background:${C.negro};height:3px;border-radius:0"></i>Canarias${UNI}<b>${pct(ultimaCan)}</b></span></div></div></div>`,
+     <div class="leyenda" style="justify-content:flex-start"><span><i class="llave" style="background:${C.negro};height:3px;border-radius:0"></i>Canarias${UNI}<b>${pct(ultimaCan)}</b></span></div>
+     <p class="pres-fuente">${esc(textoFuente('extranjero'))}</p></div></div>`,
   ];
   const cont = document.createElement('div');
   cont.id = 'presentacion';

@@ -69,7 +69,7 @@ web/dossier.html     las 88 fichas en un documento A4 de 98 hojas
 
 web/config.js        la URL pública, generada desde sitio.json
 web/comun.js         cifras, escapado, carga con error visible y el cruce con desenfoque
-web/datos-ui.js      la línea «Fuente y datos» de cada tarjeta: procedencia, fecha y tabla
+web/datos-ui.js      la fuente de cada gráfico y el desplegable «Datos y método»: fecha y tabla
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja
 web/portada.js       buscador, listas por isla y entrada de la portada
 web/comparar.js      el comparador
@@ -173,13 +173,31 @@ derecha por valor, y el tono indica la posición. El ISTAC no lo tiene así.
 otro, con el reparto escrito debajo. Sustituye a las barras apiladas, donde las
 etiquetas de algunos municipios no cabían dentro.
 
-**Fuente y datos en cada tarjeta.** Al pie de cada tarjeta, plegada, una
-línea «Fuente y datos»: organismo y enlace al recurso estadístico, años que
-cubre, fecha o periodo del dato, cómo se calcula, y la tabla completa con los
-valores que el gráfico dibuja, para quien no pueda leer el gráfico o quiera el
-número exacto. Describe el dato, no lo interpreta, y va plegada para que la
-tarjeta cerrada siga siendo solo el gráfico. En papel no se imprime: la hoja
-lleva una línea de fuentes al pie.
+**La fuente bajo cada gráfico.** Una línea «Fuente: …» al pie de cada
+gráfico, en pantalla, en la hoja y en el dossier, con la redacción que fijó
+Pedro para cada uno (`FUENTES_GRAFICOS` en `web/datos-ui.js`): operación
+estadística del ISTAC y años que cubre, GRAFCAN en los mapas, y «Elaboración
+propia» donde hay cálculo. La pirámide cambia de fuente con la pestaña, porque
+cada una dibuja una tabla distinta. Los años son los de la operación de
+origen (la serie de cifras oficiales arranca en 1996 aunque un municipio
+empiece más tarde), así que no se calculan con los datos: se revisan a mano
+con cada actualización, y `pruebas/invariantes.py` avisa si el año de
+referencia del índice deja de aparecer en ellas. Las cifras clave no llevan
+línea de fuente: no son un gráfico. Debajo, plegado, «Datos y método»
+(«Método de cálculo» en cifras y mapas): fecha o periodo del dato, cómo se
+calcula, enlace al recurso estadístico y la tabla completa con los valores
+que el gráfico dibuja, para quien no pueda leer el gráfico o quiera el
+número exacto. Describe el dato, no lo interpreta, y va plegado para que la
+tarjeta cerrada siga siendo el gráfico y su fuente. En papel el desplegable
+no se imprime, y el camino a la guía va en la esquina de la cabecera.
+
+En la hoja A4 cada fila de la retícula crece la línea de fuente (2,3 mm); se
+compensa con menos relleno en el pie y el rótulo de las tarjetas. Medido: la
+ficha más alta pasa de 276,0 a 276,4 mm de los 281 disponibles, y las 88
+miden lo mismo porque en El Pinar y Frontera el gráfico de componentes cede a
+su nota de 2007 los 3 mm que las hacían más altas. En el dossier la pirámide
+cede milímetro y medio (de 13 a 11,5 mm más alta que en la ficha suelta) y la
+cabecera y el pie otros dos: la hoja más alta mide 293,7 mm de 297.
 
 **La última selección manda.** Cambiar dos veces de municipio con la primera
 respuesta llegando tarde dejaba el selector en uno y la ficha en otro. Cada
@@ -267,7 +285,9 @@ npm test
 - `pruebas/web.test.cjs` (Playwright, Chromium): la última selección manda,
   la dirección visible es `m/<código>.html` y desde ella se sigue cargando
   todo; el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por
-  lugar de nacimiento; «Fuente y datos» con sus 42 filas; teclado de la
+  lugar de nacimiento; la fuente de cada gráfico con la redacción de Pedro,
+  que en la pirámide sigue a la pestaña; «Datos y método» con sus 42 filas;
+  teclado de la
   pirámide y de la evolución tras redibujar e imprimir; la presentación es
   modal, Mayús+Tab recién abierta va a Salir y el foco vuelve al botón; el
   cruce no deja fantasmas; el comparador con tres plazas, sin duplicados,
