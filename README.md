@@ -44,6 +44,7 @@ web/comparar.html    hasta tres municipios en paralelo
 web/guia.html        qué mide cada indicador y qué no dice
 web/dossier.html     las 88 fichas en un documento A4 de 98 hojas
 
+web/comun.js         cifras, escapado y el cruce con desenfoque, comunes a las cinco páginas
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja
 web/portada.js       cartografía por islas, buscador, filtro y oleada de entrada
 web/comparar.js      el comparador
