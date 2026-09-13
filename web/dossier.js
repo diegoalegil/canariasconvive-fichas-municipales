@@ -250,6 +250,7 @@ function hojaSeparador(g) {
 function traerReglasDeImpresion() {
   const salida = [];
   for (const hoja of document.styleSheets) {
+    if (!hoja.href || !new URL(hoja.href).pathname.endsWith('/estilos.css')) continue;
     let reglas;
     try { reglas = hoja.cssRules; } catch { continue; }   // hoja de otro origen
     for (const r of reglas) {
@@ -259,7 +260,7 @@ function traerReglasDeImpresion() {
       for (const s of r.cssRules) {
         if (!s.selectorText) { salida.push(s.cssText); continue; }
         const sel = s.selectorText.split(',')
-          .map((x) => `.d-body ${x.trim()}`).join(', ');
+          .map((x) => `.d-body .hoja ${x.trim()}`).join(', ');
         salida.push(`${sel} { ${s.style.cssText} }`);
       }
     }
@@ -279,13 +280,13 @@ async function iniciarDossier() {
   const aviso = document.getElementById('d-aviso');
 
   [IDX, GEOD] = await Promise.all([
-    fetch('datos/indice.json').then((r) => r.json()),
-    fetch('datos/geo/municipios.json').then((r) => r.json()),
+    leerJSON('datos/indice.json'),
+    leerJSON('datos/geo/municipios.json'),
   ]);
 
   aviso.textContent = `Cargando las ${IDX.municipios.length} fichas…`;
   const fichas = await Promise.all(IDX.municipios.map((m) =>
-    fetch(`datos/mun/${m.codmun}.json`).then((r) => r.json())));
+    leerJSON(`datos/mun/${m.codmun}.json`)));
 
   // Orden: islas de oeste a este, municipios por orden alfabético.
   const grupos = ISLAS_OESTE_ESTE.map((isla) => {
@@ -312,6 +313,6 @@ async function iniciarDossier() {
 }
 
 iniciarDossier().catch((e) => {
-  document.getElementById('d-aviso').textContent = 'No se ha podido componer el dossier.';
+  avisoCarga('d-aviso', 'No se ha podido componer el dossier.', () => location.reload());
   console.error(e);
 });

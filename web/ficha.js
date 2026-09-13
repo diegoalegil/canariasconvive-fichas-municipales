@@ -378,7 +378,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       clave: 'municipio', etiqueta: 'Por lugar de nacimiento', eje: EJE_PIRAMIDE.municipio,
       relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
       negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
-      rotH: 'Hombres españoles', rotM: 'Mujeres españolas', rotNegro: 'Extranjeros',
+      rotH: 'Hombres nacidos en España', rotM: 'Mujeres nacidas en España', rotNegro: 'Nacidos en el extranjero',
       cuentaRelleno: esp, cuentaNegro: ext,
     },
   ];
@@ -626,12 +626,43 @@ let FILA = null;   // grupo de edad señalado en la pirámide, o null
    pirámide no: sus barras se transforman en `pintar`. */
 const CRUCE_MUNICIPIO = '.cabecera, .tarjeta:not(.destacada) > .cuerpo, #lectura-piramide';
 
+/* Solo la última petición puede pintar. Con dos cambios seguidos y la primera
+   respuesta llegando tarde, el selector decía Betancuria y la ficha, Las
+   Palmas (hallazgo 2 de la auditoría). Se aborta la anterior y, si aun así
+   llegara, se comprueba que sigue siendo la vigente. Si falla, el selector
+   vuelve al municipio que se ve y se ofrece reintentar. */
+let peticionFicha = null;
 async function cargar(codmun) {
-  const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
-  const soltar = FICHA ? cruce(CRUCE_MUNICIPIO) : () => {};
-  pintar(f);
-  soltar();
-  history.replaceState(null, '', `?municipio=${codmun}`);
+  peticionFicha?.abort();
+  const peticion = new AbortController();
+  peticionFicha = peticion;
+  const contenido = document.querySelector('main');
+  contenido.setAttribute('aria-busy', 'true');
+  // El aviso de carga solo sale si tarda: lo normal son 100 ms, y un rótulo que
+  // parpadea en cada cambio sería ruido.
+  const tardio = setTimeout(() => {
+    if (peticion === peticionFicha) avisoCarga('estado-ficha', 'Cargando municipio…');
+  }, 600);
+  try {
+    const f = await leerJSON(`datos/mun/${codmun}.json`, peticion.signal);
+    if (peticion !== peticionFicha) return;
+    const soltar = FICHA ? cruce(CRUCE_MUNICIPIO) : () => {};
+    pintar(f);
+    soltar();
+    document.getElementById('sel-municipio').value = String(f.codmun);
+    history.replaceState(null, '', `?municipio=${f.codmun}`);
+    metadatosFicha(f);
+    avisoCarga('estado-ficha');
+  } catch (error) {
+    if (peticion !== peticionFicha || error.name === 'AbortError') return;
+    if (FICHA) document.getElementById('sel-municipio').value = String(FICHA.codmun);
+    else document.getElementById('nombre').textContent = 'Ficha sin cargar';
+    avisoCarga('estado-ficha', 'No se ha podido cargar el municipio.'
+      + (FICHA ? ' Se mantiene la ficha anterior.' : ''), () => cargar(codmun));
+  } finally {
+    clearTimeout(tardio);
+    if (peticion === peticionFicha) contenido.setAttribute('aria-busy', 'false');
+  }
 }
 
 /** Transición entre pestañas. Interpola a la vez el ancho del relleno azul y el
@@ -865,6 +896,7 @@ function pintar(f) {
   }
   conectarLecturaEvolucion();
   conectarIndices();
+  if (!IMPRIMIENDO) datosFicha(f);
 }
 
 /* ------------------------------------------------------- lecturas al vuelo -- */
@@ -908,9 +940,9 @@ function pintarLectura(i) {
      dos pestañas, la dibujada primero y la de referencia al final. */
   const vc = P.vistas.find((x) => x.clave === 'canarias');
   const canarias = fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null);
-  const espanoles = fila('Españoles',
+  const espanoles = fila('Nacidos en España',
     val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M));
-  const extranjeros = fila('Extranjeros',
+  const extranjeros = fila('Nacidos en el extranjero',
     val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M));
   const filas = v.clave === 'canarias'
     ? [canarias, espanoles, extranjeros]
@@ -994,7 +1026,9 @@ function conectarLecturaPiramide() {
   svg.addEventListener('pointerleave', () => { if (!fijada) senalar(null); });
 
   fig.setAttribute('tabindex', '0');
-  fig.addEventListener('keydown', (e) => {
+  fig.setAttribute('aria-label', 'Estructura de la población. Flechas arriba y abajo para recorrer las edades.');
+  fig.setAttribute('aria-describedby', 'lectura-piramide');
+  fig.onkeydown = (e) => {
     const n = PIRAMIDE.edades.length;
     let i = FILA;
     switch (e.key) {
@@ -1008,7 +1042,7 @@ function conectarLecturaPiramide() {
     e.preventDefault();
     if (i != null) fijada = true;
     senalar(i);
-  });
+  };
 
   senalar(FILA);
 }
@@ -1025,17 +1059,36 @@ function conectarLecturaEvolucion() {
   /* pointermove y pointerdown, no mousemove: con el ratón es lo mismo, y en el
      móvil un toque o un arrastre sobre la curva dan el año y el dato, que antes
      solo se podían leer con puntero. */
+  let seleccion = null;
+  const mostrar = (i) => {
+    seleccion = i;
+    const x = px(X[i]), y = py(Y[i]);
+    linea.setAttribute('x1', x.toFixed(1)); linea.setAttribute('x2', x.toFixed(1));
+    punto.setAttribute('cx', x.toFixed(1)); punto.setAttribute('cy', y.toFixed(1));
+    guia.setAttribute('opacity', '1');
+    salida.innerHTML = `<b>${X[i]}</b> · ${nf(Y[i])} habitantes`;
+  };
   const situar = (ev) => {
     const caja = svg.getBoundingClientRect();
     const escalaX = svg.viewBox.baseVal.width / caja.width;
     const xSvg = (ev.clientX - caja.left) * escalaX;
     let mejor = 0, dist = Infinity;
     X.forEach((a, i) => { const d = Math.abs(px(a) - xSvg); if (d < dist) { dist = d; mejor = i; } });
-    const x = px(X[mejor]), y = py(Y[mejor]);
-    linea.setAttribute('x1', x.toFixed(1)); linea.setAttribute('x2', x.toFixed(1));
-    punto.setAttribute('cx', x.toFixed(1)); punto.setAttribute('cy', y.toFixed(1));
-    guia.setAttribute('opacity', '1');
-    salida.innerHTML = `<b>${X[mejor]}</b> · ${nf(Y[mejor])} habitantes`;
+    mostrar(mejor);
+  };
+  const figura = document.getElementById('g-evolucion');
+  figura.tabIndex = 0;
+  figura.setAttribute('aria-label', 'Evolución de la población. Flechas izquierda y derecha para recorrer los años.');
+  figura.setAttribute('aria-describedby', 'lectura-evolucion');
+  figura.onkeydown = (e) => {
+    let i = seleccion;
+    if (e.key === 'ArrowRight') i = i == null ? 0 : Math.min(X.length - 1, i + 1);
+    else if (e.key === 'ArrowLeft') i = i == null ? X.length - 1 : Math.max(0, i - 1);
+    else if (e.key === 'Home') i = 0;
+    else if (e.key === 'End') i = X.length - 1;
+    else if (e.key === 'Escape') { seleccion = null; guia.setAttribute('opacity', '0'); salida.textContent = ''; e.preventDefault(); return; }
+    else return;
+    e.preventDefault(); mostrar(i);
   };
   cazador.addEventListener('pointermove', situar);
   cazador.addEventListener('pointerdown', situar);
@@ -1056,7 +1109,7 @@ function conectarCompartir() {
   const original = rotulo.textContent;
   b.addEventListener('click', async () => {
     if (!FICHA) return;
-    const url = new URL(`m/${FICHA.codmun}.html`, location.href).href;
+    const url = new URL(`m/${FICHA.codmun}.html`, URL_PUBLICA_SITIO).href;
     try {
       await navigator.clipboard.writeText(url);
       rotulo.textContent = 'Enlace copiado';
@@ -1199,8 +1252,8 @@ function presLectura() {
   const fila = (rot, a, b, na, nb) => `<div class="pl-fila"><span>${rot}</span><span><b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>`
     + (na == null ? '' : ` <em>${nf(na)} · ${nf(nb)}</em>`) + `</span></div>`;
   const filas = [
-    fila('Españoles', val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)),
-    fila('Extranjeros', val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)),
+    fila('Nacidos en España', val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)),
+    fila('Nacidos en el extranjero', val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)),
     fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null),
   ];
   if (PRES.vista === 0) filas.unshift(filas.pop());
@@ -1292,11 +1345,14 @@ function cerrarPresentacion() {
   const cont = document.getElementById('presentacion');
   if (cont) cont.remove();
   document.body.classList.remove('presentando');
+  PRES.fondo?.forEach(([e, inerte]) => { e.inert = inerte; });
+  if (PRES.focoAnterior?.isConnected) PRES.focoAnterior.focus();
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
 }
 
 function abrirPresentacion() {
   if (!FICHA || PRES.abierta) return;
+  PRES.focoAnterior = document.activeElement;
   const f = FICHA, c = f.cifras, ev = f.evolucion, o = f.origen;
   const signo = c.tvma >= 0 ? '+' : '−';
   const P = construirPiramide(f.piramide, 640, 400, 0);
@@ -1325,11 +1381,14 @@ function abrirPresentacion() {
   ];
   const cont = document.createElement('div');
   cont.id = 'presentacion';
+  cont.setAttribute('aria-modal', 'true');
   cont.setAttribute('role', 'dialog'); cont.setAttribute('aria-label', 'Presentación de la ficha'); cont.tabIndex = -1;
   cont.innerHTML = `<div class="pres-escenario">${capas.map((h, k) => `<section class="pres-diapo${k === 0 ? ' activa' : ''}">${h}</section>`).join('')}</div>
     <button class="pres-zona izq" type="button" aria-label="Anterior"></button><button class="pres-zona der" type="button" aria-label="Siguiente"></button>
     <button class="pres-cerrar" type="button" aria-label="Salir de la presentación">${icono('cerrar', 20)}</button>
     <span class="pres-contador" id="pres-contador">1 / 6</span>`;
+  PRES.fondo = [...document.body.children].map((e) => [e, e.inert]);
+  PRES.fondo.forEach(([e]) => { e.inert = true; });
   document.body.appendChild(cont);
   document.body.classList.add('presentando');
 
@@ -1365,6 +1424,13 @@ function abrirPresentacion() {
   addEventListener('resize', PRES.escalar);
   PRES.teclas = (e) => {
     const n = P.edades.length, enPiramide = PRES_CAPA[PRES.paso - 1] === 2;
+    if (e.key === 'Tab') {
+      const botones = [...cont.querySelectorAll('button')];
+      const i = botones.indexOf(document.activeElement);
+      botones[(i + (e.shiftKey ? -1 : 1) + botones.length) % botones.length].focus();
+      e.preventDefault(); return;
+    }
+    if (e.key === ' ' && document.activeElement.tagName === 'BUTTON') return;
     switch (e.key) {
       case 'ArrowRight': case 'PageDown': case ' ': presIr(PRES.paso + 1); break;
       case 'ArrowLeft': case 'PageUp': presIr(PRES.paso - 1); break;
@@ -1433,10 +1499,11 @@ async function iniciar() {
   conectarCompartir();
 
   [INDICE, GEO] = await Promise.all([
-    fetch('datos/indice.json').then((r) => r.json()),
-    fetch('datos/geo/municipios.json').then((r) => r.json()),
+    leerJSON('datos/indice.json'),
+    leerJSON('datos/geo/municipios.json'),
   ]);
 
+  configurarFuentes(INDICE);
   const sel = document.getElementById('sel-municipio');
   sel.innerHTML = Object.entries(INDICE.islas).map(([isla, muns]) =>
     `<optgroup label="${esc(isla)}">` + muns.map((n) => {
@@ -1458,6 +1525,7 @@ async function iniciar() {
 if (document.getElementById('sel-municipio')) {
   iniciar().catch((e) => {
     document.getElementById('nombre').textContent = 'No se han podido cargar los datos';
+    avisoCarga('estado-ficha', 'No se han podido cargar los datos.', () => location.reload());
     console.error(e);
   });
 }

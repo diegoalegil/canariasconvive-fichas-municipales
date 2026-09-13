@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Invariantes de los datos exportados. Solo biblioteca estándar: corre en
+cualquier sitio, también en GitHub Actions antes de publicar.
+
+Comprueba lo que no puede fallar sin que la ficha mienta: que hay 88
+municipios, que cada pirámide suma su población y las 88 suman Canarias, que
+la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
+por lugar de nacimiento suman cien, que los cuatro índices están en los tres
+ámbitos, que cada indicador tiene su fuente con enlace https, que los 88
+envoltorios de web/m/ apuntan a la URL pública de sitio.json y que las cinco
+páginas cargan la misma versión de recursos.
+
+La conciliación contra el Excel, que sí necesita el libro, está en
+conciliar_excel.py."""
+import json
+import re
+import sys
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parent.parent
+WEB = RAIZ / "web"
+fallos = []
+
+
+def comprobar(condicion, mensaje):
+    if not condicion:
+        fallos.append(mensaje)
+
+
+indice = json.loads((WEB / "datos/indice.json").read_text(encoding="utf-8"))
+sitio = json.loads((RAIZ / "sitio.json").read_text(encoding="utf-8"))
+url_publica = sitio["url_publica"]
+comprobar(url_publica.startswith("https://") and url_publica.endswith("/"), "sitio.json: url_publica debe ser https y acabar en /")
+comprobar(url_publica in (WEB / "config.js").read_text(encoding="utf-8"), "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
+
+municipios = indice["municipios"]
+comprobar(len(municipios) == 88, f"indice.json: {len(municipios)} municipios, no 88")
+suma = 0
+for m in municipios:
+    cod = m["codmun"]
+    ruta = WEB / f"datos/mun/{cod}.json"
+    comprobar(ruta.exists(), f"falta {ruta.name}")
+    if not ruta.exists():
+        continue
+    f = json.loads(ruta.read_text(encoding="utf-8"))
+    p = f["piramide"]
+    total = sum(p["hombres"]) + sum(p["mujeres"])
+    comprobar(total == f["poblacion"], f"{f['nombre']}: la pirámide suma {total} y la población es {f['poblacion']}")
+    comprobar(f["poblacion"] == m["poblacion"], f"{f['nombre']}: población distinta en indice.json")
+    suma += f["poblacion"]
+    comprobar(len(p["edades"]) == 21 and p["edades"][0] == "0 a 4" and p["edades"][-1] == "100 o más",
+              f"{f['nombre']}: grupos de edad {p['edades'][:1]}…{p['edades'][-1:]}")
+    for clave in ("hombres", "mujeres", "extranjera_hombres", "extranjera_mujeres", "canarias_hombres", "canarias_mujeres"):
+        comprobar(len(p[clave]) == 21, f"{f['nombre']}: {clave} tiene {len(p[clave])} valores")
+    comprobar(all(p["extranjera_hombres"][i] <= p["hombres"][i] and p["extranjera_mujeres"][i] <= p["mujeres"][i] for i in range(21)),
+              f"{f['nombre']}: nacidos fuera por encima del total en algún grupo")
+    ev = f["evolucion"]
+    serie = dict(zip(ev["anios"], ev["valores"]))
+    n = ev["anio_fin"] - ev["anio_base"]
+    tvma = 100 * ((serie[ev["anio_fin"]] / serie[ev["anio_base"]]) ** (1 / n) - 1)
+    comprobar(abs(tvma - f["cifras"]["tvma"]) < 1e-9, f"{f['nombre']}: TVMA {f['cifras']['tvma']} no es la de la serie ({tvma:.6f}); ¿redondeo intermedio?")
+    comprobar(abs(sum(f["origen"]["municipio"]) - 100) <= 0.15, f"{f['nombre']}: el lugar de nacimiento suma {sum(f['origen']['municipio'])}")
+    comprobar(abs(f["cifras"]["pct_hombres"] + f["cifras"]["pct_mujeres"] - 100) <= 0.15, f"{f['nombre']}: hombres + mujeres no suman 100")
+    for cod_ind in ("C10", "C11", "C17", "C14"):
+        ind = f["indices"].get(cod_ind)
+        comprobar(ind is not None and all(isinstance(ind.get(k), (int, float)) for k in ("municipio", "isla", "canarias")),
+                  f"{f['nombre']}: índice {cod_ind} incompleto")
+    envoltorio = WEB / f"m/{cod}.html"
+    comprobar(envoltorio.exists(), f"falta el envoltorio m/{cod}.html")
+    if envoltorio.exists():
+        h = envoltorio.read_text(encoding="utf-8")
+        comprobar(f'content="{url_publica}m/{cod}.html"' in h, f"m/{cod}.html: og:url no apunta a la URL pública de sitio.json")
+        comprobar(f"ficha.html?municipio={cod}" in h, f"m/{cod}.html no redirige a la ficha")
+comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
+
+fuentes = indice.get("fuentes_indicadores", {})
+for clave in ("poblacion", "tvma", "edad", "sexo", "evolucion", "extranjero", "piramide", "nacimiento",
+              "vegetativo", "migratorio", "rankings", "envejecimiento", "juventud", "dependencia", "reemplazo"):
+    fu = fuentes.get(clave)
+    comprobar(fu is not None and fu.get("periodo") and fu.get("nota") and fu.get("enlaces"), f"fuentes_indicadores: falta o está incompleta «{clave}»")
+    for e in (fu or {}).get("enlaces", []):
+        comprobar(str(e.get("url", "")).startswith("https://") and e.get("organismo"), f"fuentes_indicadores «{clave}»: enlace sin https u organismo")
+
+versiones = set()
+for pagina in ("index", "ficha", "comparar", "guia", "dossier"):
+    h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
+    versiones |= set(re.findall(r"\?v=(\d+)", h))
+    comprobar('src="config.js' in h and 'src="comun.js' in h, f"{pagina}.html no carga config.js y comun.js")
+comprobar(len(versiones) == 1, f"las páginas mezclan versiones de recursos: {sorted(versiones)}")
+
+if fallos:
+    print(f"FALLA · {len(fallos)} problema(s):")
+    for x in fallos:
+        print(" -", x)
+    sys.exit(1)
+print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes, recursos v={versiones.pop()}")

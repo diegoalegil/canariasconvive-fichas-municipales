@@ -9,11 +9,10 @@
    Era demasiado para lo que hay que explicar, y lo de "alto" y "bajo" rozaba el
    calificativo, que es justo lo que la ficha no hace.
 
-   Las cuatro definiciones de los índices no estaban escritas en ninguna parte:
-   el diccionario del Excel da el nombre y la unidad, pero no la fórmula. Se
-   dedujeron contrastando los valores ya calculados de Pedro contra la pirámide
-   de población de los 88 municipios, y cuadran con menos de un 0,5 % de error
-   máximo. El detalle está en el README.
+   Las cuatro fórmulas de los índices están en el Excel como fórmulas
+   matriciales (C10M!C27, C11M!C27, C14M!C27 y C17M!C27, sobre los grupos de
+   C8M y C13M); las de aquí son esas. Debajo de cada indicador, plegada, va su
+   fuente con enlace y fecha, leída de indice.json.
    ============================================================================= */
 
 
@@ -34,6 +33,18 @@ function fraccion(arriba, abajo, coda = '') {
 
 /* ----------------------------------------------------------- indicadores --- */
 const INDICADORES = [
+  {
+    id: 'tvma', ico: 'variacion', nombre: 'Variación media anual',
+    unidad: 'Se expresa en porcentaje anual',
+    mide: 'La tasa anual equivalente entre la población inicial y final. n es el número de años transcurridos.',
+    formula: `<span class="frm" role="img" aria-label="Población final dividida por población inicial, elevada a uno partido por n; menos uno, por cien">[${fraccion('Población final', 'Población inicial')}<sup>1/n</sup> − 1] × 100</span>`,
+  },
+  {
+    id: 'edad', ico: 'edad', nombre: 'Edad media',
+    unidad: 'Se expresa en años; valor aproximado',
+    mide: 'Media ponderada de las marcas de los grupos de edad. Para el grupo de 100 o más se utiliza una marca de 102 años.',
+    formula: fraccion('Σ (marca del grupo × habitantes del grupo)', 'Total de habitantes'),
+  },
   {
     id: 'envejecimiento', ico: 'edad', nombre: 'Índice de envejecimiento',
     unidad: 'Se expresa como una razón',
@@ -66,7 +77,7 @@ const INDICADORES = [
   {
     id: 'migratorio', ico: 'variacion', nombre: 'Saldo migratorio',
     unidad: 'Se expresa en personas',
-    mide: 'Las altas en el padrón del municipio en un año menos las bajas.',
+    mide: 'Las entradas menos las salidas por cambio de residencia en el mismo año.',
   },
   {
     id: 'nacimiento', ico: 'nacimiento', nombre: 'Lugar de nacimiento',
@@ -77,8 +88,8 @@ const INDICADORES = [
   {
     id: 'extranjero', ico: 'extranjero', nombre: 'Población de origen extranjero',
     unidad: 'Se expresa en porcentaje',
-    mide: 'Qué parte de la población del municipio es de origen extranjero.',
-    formula: fraccion('Población de origen extranjero', 'Total de habitantes', '× 100'),
+    mide: 'Personas nacidas fuera de España, con independencia de su nacionalidad, por cada cien habitantes.',
+    formula: fraccion('Personas nacidas fuera de España', 'Total de habitantes', '× 100'),
   },
 ];
 
@@ -95,6 +106,7 @@ function pintar() {
       <div class="cuerpo">
         <p class="guia-mide">${esc(x.mide)}</p>
         ${x.formula ? `<div class="guia-formula">${x.formula}</div>` : ''}
+        <div id="fuente-guia-${x.id}"></div>
       </div>
     </section>`).join('');
 
@@ -106,3 +118,9 @@ function pintar() {
 }
 
 pintar();
+leerJSON('datos/indice.json').then((indice) => {
+  configurarFuentes(indice);
+  INDICADORES.forEach((x) => ponerDetalle(document.getElementById(`fuente-guia-${x.id}`), `detalle-guia-${x.id}`, fuenteHTML(x.id), String(indice.anio), 'Fuente y fecha'));
+}).catch(() => {
+  document.querySelector('.cmp-intro').insertAdjacentHTML('afterend', '<p class="aviso-carga" role="status">No se han podido cargar las fuentes. <a href="guia.html">Reintentar</a></p>');
+});

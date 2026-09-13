@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from metadatos import fuentes_indicadores
 
 RUTA = Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
 RUTA_GEO = Path.home() / "Downloads" / "MUNICIPIOS.gpkg"
@@ -365,7 +366,7 @@ for mun in MUNICIPIOS:
         }, 2),
 
         "cifras": {
-            "tvma": r2(tvma(x1, y1), 2),
+            "tvma": tvma(x1, y1),  # La precisión se conserva hasta el único redondeo de presentación.
             "edad_media": r2(edad_media(h, m), 1),
             "hombres": int(h.sum()),
             "mujeres": int(m.sum()),
@@ -459,6 +460,7 @@ indice = {
     "municipios": sorted(fichas, key=lambda f: _norm(f["nombre"])),
     "islas": {i: sorted(ms, key=_norm) for i, ms in ISLAS.items()},
     "comarcas": {c: sorted(ms, key=_norm) for c, ms in COMARCAS.items()},
+    "fuentes_indicadores": fuentes_indicadores(RUTA, todas_las_fichas),
     "fuentes": ["ISTAC — Instituto Canario de Estadística", "INE", "Cartografía: GRAFCAN"],
     "rangos_indices": rangos,
 }

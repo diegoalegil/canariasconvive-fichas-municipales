@@ -54,6 +54,8 @@ function cruce(selector) {
       const b = padre.getBoundingClientRect();
       clon = el.cloneNode(true);
       clon.classList.add('fantasma');
+      clon.inert = true;
+      clon.setAttribute('aria-hidden', 'true');
       clon.removeAttribute('id');
       clon.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
       clon.style.cssText = `left:${a.left - b.left - padre.clientLeft}px;top:${a.top - b.top - padre.clientTop}px;`
@@ -93,3 +95,51 @@ addEventListener('beforeprint', () => {
   document.querySelectorAll('.fantasma').forEach((f) => f.remove());
   document.getAnimations().forEach((a) => { try { a.finish(); } catch (e) { a.cancel(); } });
 });
+
+
+/* ------------------------------------------------------------- carga ------- */
+/** fetch con comprobación del estado: un 404 servido como HTML no es un JSON,
+ *  y antes se intentaba parsear y fallaba sin decir por qué. */
+async function leerJSON(ruta, signal) {
+  const respuesta = await fetch(ruta, { signal });
+  if (!respuesta.ok) throw new Error(`No se pudo cargar ${ruta}: HTTP ${respuesta.status}`);
+  return respuesta.json();
+}
+
+/** Aviso de carga o de error, visible y con botón de reintento. Sin mensaje,
+ *  se oculta. El elemento lleva role="status" en el HTML. */
+function avisoCarga(id, mensaje = '', reintentar) {
+  const caja = document.getElementById(id);
+  if (!caja) return;
+  caja.hidden = !mensaje;
+  caja.replaceChildren();
+  if (!mensaje) return;
+  const texto = document.createElement('span');
+  texto.textContent = mensaje;
+  caja.append(texto);
+  if (reintentar) {
+    const boton = document.createElement('button');
+    boton.type = 'button'; boton.className = 'btn btn-liso'; boton.textContent = 'Reintentar';
+    boton.addEventListener('click', reintentar);
+    caja.append(boton);
+  }
+}
+
+/** Metadatos de la página para el municipio en pantalla —canónica y og:—
+ *  sobre la URL pública de sitio.json (config.js). Los rastreadores no
+ *  ejecutan JS, para ellos están los envoltorios de web/m/; esto sirve a quien
+ *  copie la dirección de la barra o guarde la página. */
+const URL_PUBLICA_SITIO = typeof URL_PUBLICA !== 'undefined' ? URL_PUBLICA : new URL('.', location.href).href;
+function metadatosFicha(f) {
+  const url = new URL(`m/${f.codmun}.html`, URL_PUBLICA_SITIO).href;
+  const valores = {
+    'og:title': `${f.nombre} · Ficha demográfica`,
+    'og:url': url,
+    'og:image': new URL(`og/${f.codmun}.png`, URL_PUBLICA_SITIO).href,
+    'og:description': `${nf(f.poblacion)} habitantes. Estructura de la población, evolución e índices. Datos de ${f.anio}.`,
+  };
+  for (const [clave, valor] of Object.entries(valores)) {
+    document.querySelector(`meta[property="${clave}"]`)?.setAttribute('content', valor);
+  }
+  document.querySelector('link[rel="canonical"]')?.setAttribute('href', url);
+}

@@ -44,6 +44,10 @@ function abrir(disparador, lista) {
   if (abierto && abierto.lista === lista) return;
   cerrar();
   lista.hidden = false;
+  lista.style.left = '0px';
+  const caja = lista.getBoundingClientRect();
+  const desplazamiento = acotar(0, 12 - caja.left, document.documentElement.clientWidth - 12 - caja.right);
+  lista.style.left = `${desplazamiento}px`;
   lista.scrollTop = 0;
   disparador.setAttribute('aria-expanded', 'true');
   abierto = { disparador, lista };
@@ -51,6 +55,8 @@ function abrir(disparador, lista) {
 
 /** Arriba y abajo recorren la lista; desde el disparador, la primera flecha
  *  entra en ella. Es lo que se espera de algo que se despliega. */
+addEventListener('resize', () => { if (abierto) cerrar(abierto.lista.contains(document.activeElement)); });
+
 function mover(lista, paso) {
   const ops = [...lista.querySelectorAll('a')];
   if (!ops.length) return;

@@ -202,7 +202,12 @@ ENVOLTORIO = """<!DOCTYPE html>
 </html>
 """
 
-BASE = "https://diegoalegil.github.io/canariasconvive-fichas-municipales"
+# La URL pública vive en un solo sitio, sitio.json: de ahí salen las etiquetas
+# og: de los envoltorios y web/config.js, que la da al JS para el botón de
+# compartir y la canónica. Cambiar de alojamiento es cambiar ese fichero y
+# volver a ejecutar este script.
+SITIO = json.loads((AQUI / "sitio.json").read_text(encoding="utf-8"))
+BASE = SITIO["url_publica"].rstrip("/")
 
 
 def guardar(img, ruta):
@@ -221,6 +226,9 @@ def main():
     geo = json.loads((WEB / "datos" / "geo" / "municipios.json").read_text(encoding="utf-8"))
     SALIDA_OG.mkdir(exist_ok=True)
     SALIDA_M.mkdir(exist_ok=True)
+    (WEB / "config.js").write_text(
+        "// Generado por generar_tarjetas.py desde sitio.json. No editar a mano.\n"
+        f"const URL_PUBLICA = {json.dumps(BASE + '/')};\n", encoding="utf-8")
 
     guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")
 

@@ -44,7 +44,17 @@ function ordenados() {
 }
 
 /** El color de un municipio es el del hueco que ocupó al elegirlo. */
-const tono = (f) => TONOS_COL[ELEGIDOS.findIndex((x) => x.codmun === f.codmun)] || GRIS_REF;
+const COLORES = new Map();
+const PENDIENTES = new Set();
+const ELECCION = new Map();
+let secuenciaEleccion = 0;
+const tono = (f) => COLORES.get(String(f.codmun)) || TONOS_COL[0];
+function reservarColor(codigo) {
+  const usados = new Set([...ELEGIDOS.map((f) => String(f.codmun)), ...PENDIENTES]
+    .filter((c) => c !== codigo).map((c) => COLORES.get(c)));
+  const anterior = COLORES.get(codigo);
+  COLORES.set(codigo, anterior && !usados.has(anterior) ? anterior : TONOS_COL.find((c) => !usados.has(c)));
+}
 
 /* --------------------------------------------------------------- pirámide -- */
 /** Pirámide en porcentaje sobre el total del propio municipio. El eje es común
@@ -140,14 +150,17 @@ function seccionCifras() {
     ['Mujeres', '% del total', (f) => pct(f.cifras.pct_mujeres), null],
     ['Hombres', '% del total', (f) => pct(f.cifras.pct_hombres), null],
   ];
-  return `<div class="cmp-tabla" style="--cols:${ELEGIDOS.length}">
-    <div class="cmp-cab"></div>
-    ${ordenados().map((f) => `<div class="cmp-cab"><b style="color:${tono(f)}">${esc(f.nombre)}</b><span>${esc(f.isla)}</span></div>`).join('')}
-    ${filas.map(([rot, uni, fn]) => `
-      <div class="cmp-rot"><b>${rot}</b><span>${uni}</span></div>
-      ${ordenados().map((f) => `<div class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${tono(f)}">${fn(f)}</div>`).join('')}
-    `).join('')}
-  </div>`;
+  const municipios = ordenados();
+  return `<table class="cmp-tabla" role="table">
+    <caption class="oculto">Cifras clave por municipio</caption>
+    <thead role="rowgroup"><tr role="row"><th class="cmp-cab" scope="col" role="columnheader">Indicador</th>
+    ${municipios.map((f) => `<th class="cmp-cab" scope="col" role="columnheader"><b>${esc(f.nombre)}</b><span>${esc(f.isla)}</span><i class="marca-municipio" style="background:${tono(f)}"></i></th>`).join('')}
+    </tr></thead><tbody role="rowgroup">
+    ${filas.map(([rot, uni, fn], i) => `<tr role="row">
+      <th class="cmp-rot" scope="row" role="rowheader" id="cmp-fila-${i}"><b>${rot}</b><span>${uni}</span></th>
+      ${municipios.map((f) => `<td role="cell" class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${tono(f)}"><span class="cmp-dato">${fn(f)}</span></td>`).join('')}
+    </tr>`).join('')}
+    </tbody></table>`;
 }
 
 function seccionPiramides(ancho) {
@@ -159,7 +172,7 @@ function seccionPiramides(ancho) {
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
     ${ordenados().map((f) => `
       <div class="cmp-col">
-        <h3 style="color:${tono(f)}">${esc(f.nombre)}</h3>
+        <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
         ${piramide(f, tope, ancho)}
         ${f.poblacion < 5000 ? `<p class="cmp-aviso">Con ${nf(f.poblacion)} habitantes, cada franja de cinco años reúne pocas personas y la silueta sale irregular. No se ha suavizado.</p>` : ''}
       </div>`).join('')}
@@ -200,7 +213,7 @@ function seccionIndices() {
       <div class="escala" style="--n:${filas.length + 1}">
         ${filas.map((f) => `
         <div class="peldano">
-          <span style="color:${tono(f)}">${esc(f.nombre)}</span>
+          <span style="color:var(--azul)">${esc(f.nombre)}</span>
           <b>${nf(f.indices[cod].municipio, dec)}</b>
           <i style="background:${tono(f)}"></i>
         </div>`).join('')}
@@ -218,7 +231,7 @@ function seccionNacimiento() {
   const cats = ELEGIDOS[0].origen.categorias;
   const fila = (rot, vals, color) => `
     <div class="cmp-apilada">
-      <span class="cmp-barra-rot" ${color ? `style="color:${color}"` : ''}>${esc(rot)}</span>
+      <span class="cmp-barra-rot" ${color ? 'style="color:var(--azul)"' : ''}>${esc(rot)}</span>
       ${barraApilada(vals)}
       <span class="cmp-barra-val">${vals.map((v) => nf(v, 1)).join(' · ')}</span>
     </div>`;
@@ -239,7 +252,7 @@ function seccionExtranjero() {
       ${ordenados().map((f) => {
         const v = ultimo(f.extranjero.municipio);
         return `<div class="cmp-col">
-          <h3 style="color:${tono(f)}">${esc(f.nombre)}</h3>
+          <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
           <p><b>${pct(v)}</b> de su población</p>
           ${anillo(v, tono(f))}
         </div>`;
@@ -272,6 +285,7 @@ function pintar(cruzar = false) {
   document.getElementById('cmp-indices').innerHTML = seccionIndices();
   document.getElementById('cmp-nacimiento').innerHTML = seccionNacimiento();
   document.getElementById('cmp-extranjero').innerHTML = seccionExtranjero();
+  datosComparador(ordenados());
   soltar();
 }
 
@@ -286,15 +300,30 @@ function pintarElegidos() {
     b.addEventListener('click', () => quitar(b.dataset.quitar)));
   document.getElementById('cmp-cuenta').textContent =
     `${ELEGIDOS.length} de ${MAXIMO}`;
-  document.getElementById('sel-anadir').disabled = ELEGIDOS.length >= MAXIMO;
+  document.getElementById('sel-anadir').disabled = ELEGIDOS.length + PENDIENTES.size >= MAXIMO;
+  document.getElementById('cmp-cuenta').textContent += PENDIENTES.size ? ` · ${PENDIENTES.size} cargando` : '';
 }
 
 async function anadir(codmun) {
-  if (ELEGIDOS.length >= MAXIMO) return;
-  if (ELEGIDOS.some((f) => String(f.codmun) === String(codmun))) return;
-  const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
-  ELEGIDOS.push(f);
-  pintar(true);
+  const codigo = String(codmun);
+  if (ELEGIDOS.length + PENDIENTES.size >= MAXIMO || PENDIENTES.has(codigo)
+      || ELEGIDOS.some((f) => String(f.codmun) === codigo)) return;
+  PENDIENTES.add(codigo); reservarColor(codigo);
+  ELECCION.set(codigo, ++secuenciaEleccion);
+  pintarElegidos();
+  avisoCarga('estado-comparador');
+  try {
+    const f = await leerJSON(`datos/mun/${codigo}.json`);
+    ELEGIDOS.push(f);
+    ELEGIDOS.sort((a, b) => ELECCION.get(String(a.codmun)) - ELECCION.get(String(b.codmun)));
+    PENDIENTES.delete(codigo);
+    pintar(true);
+  } catch (error) {
+    avisoCarga('estado-comparador', 'No se ha podido añadir el municipio.', () => anadir(codigo));
+    if (!ELEGIDOS.length) pintar();
+  } finally {
+    PENDIENTES.delete(codigo); pintarElegidos();
+  }
 }
 
 function quitar(codmun) {
@@ -325,7 +354,8 @@ async function iniciar() {
   document.querySelectorAll('.btn[data-ico]').forEach((b) =>
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 
-  INDICE = await (await fetch('datos/indice.json')).json();
+  INDICE = await leerJSON('datos/indice.json');
+  configurarFuentes(INDICE);
 
   document.getElementById('sel-orden').addEventListener('change', (e) => {
     ORDEN = e.target.value;
@@ -351,6 +381,6 @@ async function iniciar() {
 }
 
 iniciar().catch((e) => {
-  document.getElementById('cmp-vacio').textContent = 'No se han podido cargar los datos.';
+  avisoCarga('estado-comparador', 'No se han podido cargar los datos.', () => location.reload());
   console.error(e);
 });

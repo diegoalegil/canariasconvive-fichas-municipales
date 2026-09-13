@@ -13,40 +13,59 @@ recalcula ningún indicador: los índices se leen ya calculados desde el Excel.
 python3 -m http.server 8140 --directory web
 ```
 
-Y se abre `http://localhost:8140`. La raíz es la portada con el mapa selector;
-la ficha vive en `ficha.html` y se puede enlazar un municipio concreto con
-`ficha.html?municipio=38038` (código INE). Un enlace antiguo del tipo
-`index.html?municipio=38038` redirige solo.
+Y se abre `http://localhost:8140`. La raíz es la portada, con el buscador y
+las listas por isla; la ficha vive en `ficha.html` y se puede enlazar un
+municipio concreto con `ficha.html?municipio=38038` (código INE). Un enlace
+antiguo del tipo `index.html?municipio=38038` redirige solo. Para compartir
+está `m/38038.html`: un envoltorio con las etiquetas de vista previa del
+municipio que redirige a la ficha.
 
 ## Regenerar los datos
 
-Requiere `pandas`, `numpy` y `openpyxl`. El notebook necesita además `geopandas`,
-pero estos dos scripts no: la geometría se lee del GeoPackage con `sqlite3`.
+Requiere `pandas`, `numpy`, `openpyxl` y, para las tarjetas, `Pillow`
+(`pip install -r requirements.txt`). El notebook necesita además `geopandas`,
+pero estos scripts no: la geometría se lee del GeoPackage con `sqlite3`.
 
 ```bash
-python exportar_datos.py    # Excel  -> web/datos/mun/<codINE>.json  +  indice.json
-python exportar_geo.py      # gpkg   -> web/datos/geo/municipios.json
+python3 exportar_datos.py    # Excel  -> web/datos/mun/<codINE>.json  +  indice.json
+python3 exportar_geo.py      # gpkg   -> web/datos/geo/municipios.json
+python3 generar_tarjetas.py  # tarjetas og/, envoltorios m/ y web/config.js
+npm test                     # antes de publicar (ver Verificación)
 ```
 
-Ambos leen de `~/Downloads/`. La ruta está en una constante al principio de cada script.
+Los dos primeros leen de `~/Downloads/`; la ruta está en una constante al
+principio de cada script. **Los tres van juntos**: las tarjetas y los
+envoltorios llevan la población y el año escritos, y si se regeneran los datos
+sin regenerarlos se quedan viejos. `exportar_datos.py` guarda también, en
+`indice.json`, la fuente de cada indicador —organismo, enlace, años cubiertos
+y fecha de revisión— leída del índice `INDEX-F` del libro por `metadatos.py`.
+La URL pública del sitio está en un solo sitio, `sitio.json`; de ahí salen las
+etiquetas `og:` de los envoltorios y `web/config.js`, que la da al JS para el
+botón de compartir y la canónica. Mudar el sitio de alojamiento es cambiar ese
+fichero y volver a ejecutar `generar_tarjetas.py`.
 
 ## Qué hay
 
 ```
 exportar_datos.py    Excel -> 88 JSON (3,6 KB cada uno) + indice.json
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
-generar_tarjetas.py  las 89 tarjetas de vista previa + los envoltorios de web/m/
+generar_tarjetas.py  las 89 tarjetas de vista previa, los envoltorios de web/m/ y web/config.js
+metadatos.py         la fuente de cada indicador, leída del índice del Excel
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook
+sitio.json           la URL pública, en un solo sitio
+pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
 
-web/index.html       portada: mapa selector de los 88 municipios
+web/index.html       portada: buscador y listas por isla de los 88 municipios
 web/ficha.html       la ficha municipal
 web/comparar.html    hasta tres municipios en paralelo
 web/guia.html        qué mide cada indicador y qué no dice
 web/dossier.html     las 88 fichas en un documento A4 de 98 hojas
 
-web/comun.js         cifras, escapado y el cruce con desenfoque, comunes a las cinco páginas
+web/config.js        la URL pública, generada desde sitio.json
+web/comun.js         cifras, escapado, carga con error visible y el cruce con desenfoque
+web/datos-ui.js      la línea «Fuente y datos» de cada tarjeta: procedencia, fecha y tabla
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja
-web/portada.js       cartografía por islas, buscador, filtro y oleada de entrada
+web/portada.js       buscador, listas por isla y entrada de la portada
 web/comparar.js      el comparador
 web/guia.js          la guía
 web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
@@ -59,31 +78,38 @@ web/datos/           salida de los scripts
 
 ## Las definiciones de los cuatro índices
 
-No están escritas en ninguna parte: el diccionario `INDEX-C` del Excel da el
-nombre y la unidad de cada indicador, pero no la fórmula. Se dedujeron
-contrastando los valores ya calculados de Pedro contra la pirámide de población,
-municipio a municipio. Error máximo sobre los 88:
+Están en el Excel, como fórmulas matriciales sobre los grupos de edad de las
+hojas `C8M` (0-14, 15-64, 65 y más) y `C13M` (15-19, 60-64); se leen con
+`openpyxl` (`data_only=False`, `celda.value.text`). Las de la ficha son esas:
 
-| Índice | Definición | Escala | Error máx. |
+| Índice | Celda | Definición | Escala en la ficha |
 |---|---|---|---|
-| C10 Envejecimiento | (65 y más) / (0-14) | razón | 0,47 % |
-| C11 Juventud | (0-14) / (15-64) × 100 | por cien | 0,39 % |
-| C17 Dependencia | (0-14 y 65 y más) / (15-64) × 100 | por cien | 0,14 % |
-| C14 Reemplazo laboral | (15-19) / (60-64) × 100 | por cien | 0,26 % |
+| C10 Envejecimiento | `C10M!C27` | (65 y más) / (0-14) | razón |
+| C11 Juventud | `C11M!C27` | (0-14) / (15-64) | el libro guarda la razón; la ficha la multiplica por cien |
+| C17 Dependencia | `C17M!C27` | (0-14 y 65 y más) / (15-64) × 100 | por cien |
+| C14 Reemplazo laboral | `C14M!C27` | (15-19) / (60-64) × 100 | por cien |
 
-El reemplazo laboral cuadra con lo que dijo Pedro en la revisión: 15-19 frente a
-60-64. De ahí que no tenga sentido calcularlo por separado para la población de
-origen extranjero.
+Los cuatro se leen ya calculados del libro; `pruebas/conciliar_excel.py`
+comprueba los 88 municipios en los tres ámbitos contra él. El reemplazo
+laboral cuadra con lo que dijo Pedro en la revisión: 15-19 frente a 60-64. De
+ahí que no tenga sentido calcularlo por separado para la población de origen
+extranjero.
 
 **Ojo con juventud.** No es el porcentaje de menores de 15 sobre la población
 —eso sería un 10,3 % en Santa Cruz— sino menores de 15 por cada cien personas de
 15 a 64, que da 15,0. La ficha lo rotula con un `%` que puede inducir a esa
-lectura; la guía lo advierte de forma expresa. **Conviene que Pedro confirme las
-cuatro definiciones antes de darlas por buenas.**
+lectura; la guía lo advierte de forma expresa.
 
 También se comprobó que "de origen extranjero" y el tramo "extranjero" del
 lugar de nacimiento son el mismo dato: en los 88 municipios se diferencian como
 mucho en una décima, y de media en 0,03 puntos.
+
+La TVMA no viene del libro: se calcula con la serie de población y se guarda
+**sin redondear**; solo se redondea al presentarla. Con dos decimales en el
+JSON y uno en pantalla, siete municipios cambiaban de cifra (Puerto del
+Rosario: 3,148… → 3,15 → «3,2 %», cuando es 3,1). La edad media es una
+aproximación por marcas de clase (2,5; 7,5; …; 97,5 y 102 para 100 o más), y
+la guía lo dice.
 
 ## Decisiones
 
@@ -109,13 +135,6 @@ personas, un signo geométrico no arrastra los sesgos que arrastra un retrato. E
 color lo pone el contenedor con `currentColor`, así que sobre la cabecera azul se
 vuelven blancos sin duplicar el marcado.
 
-**Cifras clave con su propio dato dentro.** Cada celda lleva una
-micro-representación dibujada con los valores reales del municipio: la serie de
-población del periodo, la edad media sobre la escala 0-100 y el reparto por sexo
-en una retícula de puntos. Ninguna marca un umbral ni una referencia de "lo
-normal"; solo dan escala a la cifra que tienen encima. Los números van centrados,
-como pidió Pedro en la revisión.
-
 **Dos criterios que vienen de la revisión con Pedro y que no se tocan:**
 
 1. **Ningún color de alerta sobre personas.** En semiología gráfica el rojo
@@ -131,9 +150,11 @@ como pidió Pedro en la revisión.
 
 **Pirámide con dos pestañas.** «Municipio y Canarias»: el municipio en barras
 azules y Canarias en barras negras huecas, cada uno sobre su población total.
-«Por lugar de nacimiento»: nacidos en España en azul y de origen extranjero
-(hoja C24) en negro hueco, cada población sobre su propio total, que es como lo
-calcula Pedro. El eje es fijo e igual en las 88 fichas, pero uno por pestaña —7 %
+«Por lugar de nacimiento»: nacidos en España en azul y nacidos en el
+extranjero (hoja C24) en negro hueco, cada población sobre su propio total, que
+es como lo calcula Pedro. Los rótulos dicen *nacidos en* y no *españoles /
+extranjeros*: la fuente (ISTAC, E30243A_000004) mide dónde nació cada persona,
+no su nacionalidad, y una persona nacida fuera puede ser española. El eje es fijo e igual en las 88 fichas, pero uno por pestaña —7 %
 y 14 %— porque sobre base propia los extranjeros de un municipio pequeño se
 concentran mucho (Artenara, 65 personas, 13,85 % en un grupo) y un eje que corta
 una barra miente. `exportar_datos.py` comprueba las dos holguras. Al señalar un
@@ -142,9 +163,25 @@ grupo de edad, la lectura da los porcentajes y los recuentos de cada población.
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
 derecha por valor, y el tono indica la posición. El ISTAC no lo tiene así.
 
-**Mosaico para el lugar de nacimiento.** Cien casillas: de cada cien habitantes,
-cuántos nacieron dónde. Sustituye a las barras apiladas, donde las etiquetas de
-algunos municipios no cabían dentro.
+**Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
+otro, con el reparto escrito debajo. Sustituye a las barras apiladas, donde las
+etiquetas de algunos municipios no cabían dentro.
+
+**Fuente y datos en cada tarjeta.** Al pie de cada tarjeta, plegada, una
+línea «Fuente y datos»: organismo y enlace al recurso estadístico, años que
+cubre, fecha o periodo del dato, cómo se calcula, y la tabla completa con los
+valores que el gráfico dibuja, para quien no pueda leer el gráfico o quiera el
+número exacto. Describe el dato, no lo interpreta, y va plegada para que la
+tarjeta cerrada siga siendo solo el gráfico. En papel no se imprime: la hoja
+lleva una línea de fuentes al pie.
+
+**La última selección manda.** Cambiar dos veces de municipio con la primera
+respuesta llegando tarde dejaba el selector en uno y la ficha en otro. Cada
+carga aborta la anterior y, si aun así llegara, solo pinta la vigente. Si
+falla, el selector vuelve al municipio que se ve y aparece un aviso con
+reintento; el comparador reserva la plaza mientras carga, así que no pasa de
+tres ni admite dos veces el mismo, y el color de cada municipio es suyo y no
+del hueco que ocupa.
 
 **Código INE como clave.** Los nombres de municipio canarios tienen tildes,
 artículos y formas largas (*La Laguna* / *San Cristóbal de La Laguna*). Todo se
@@ -162,110 +199,77 @@ referencia por `codmun`.
 - **Frontera y El Pinar no existen antes de 2007**, así que la variación acumulada
   y la TVMA arrancan en 2008 y la etiqueta lo dice.
 
-**Entrada en oleada, de oeste a este.** Al entrar la portada en pantalla, los 88
-municipios aparecen uno a uno con 9 ms de desfase, ordenados por su longitud
-geográfica: un frente que cruza el archipiélago de El Hierro a Lanzarote. Las
-divisorias municipales llegan al final, a los 1.180 ms, así que el mapa se
-resuelve en municipios cuando el mosaico ya está completo. Total: 1.440 ms.
-
-El orden sale de la propia geometría —la x del EPSG:4083 es el este en metros y
-crece de forma monótona de El Hierro a Lanzarote—, así que no hay que mantener
-ninguna lista a mano. Es un criterio que no dice nada de los municipios: es
-dónde están. Todos comparten duración, color y escala, y las cifras aparecen
-escritas en vez de contar hacia arriba: hacerlas subir dramatizaría un dato que
-son personas.
-
-Tres cosas que no son evidentes y están resueltas en el código: el umbral del
-`IntersectionObserver` es una fracción del área del **elemento observado**, y la
-tapa mide 5.000 px, así que un 0,3 fijo no se alcanza nunca y la animación no
-arrancaría jamás —se calcula un umbral alcanzable—; dentro de un iframe el
-observador mide contra el viewport del iframe, donde la portada está visible
-desde el principio, que es justo lo que se quiere; y la clase de animación se
-retira al acabar, para que un giro de pantalla no vuelva a lanzar la oleada.
-
-Con `prefers-reduced-motion` no hay animación ni se registra el observador: se
-ve directamente el estado final.
-
-**Todo cambio de contenido es un cruce con desenfoque.** Al cambiar de municipio
-en la ficha, de pestaña en la pirámide, de diapositiva en la presentación o de
-municipios en el comparador, lo que había se difumina y se apaga encima (320 ms)
-mientras lo nuevo aparece debajo enfocándose (600 ms), con 4 px de desenfoque. Nada se desplaza ni cambia
-de tamaño: el ojo ve *que* ha cambiado sin tener que releer para saberlo. Es una
-sola función, `cruce` en `comun.js`, que deja un fantasma de cada bloque, se
-repinta y suelta. La pirámide no se cruza: sus 42 barras se mueven hasta la
-forma nueva —arranque rápido y frenada larga, porque entre dos municipios
-parecidos el recorrido es de pocos píxeles y con una curva simétrica el primer
-tercio no se veía nada— con un pulso de desenfoque de 1,2 px que acompaña al
-movimiento. Dos curvas para toda la web: lo que entra frena largo
-(`cubic-bezier(.22,.61,.36,1)`) y lo que sale se va sin brusquedad
-(`cubic-bezier(.4,0,.6,1)`); las diapositivas de la presentación usan la de
-salida para la que se va y la suave para la que llega.
-La entrada de la ficha espera a que la pestaña se mire: abierta en segundo plano,
-antes se daba por hecha sin que nadie la viera. En papel, con `prefers-reduced-
-motion` y con la pestaña oculta no hay cruce ni pulso: se ve el estado final.
-
-**El listado no es un extra, sostiene la accesibilidad del mapa.** En un móvil
-hay trece municipios del norte de Tenerife cuya forma baja de los 24 px que pide
-la norma para un objetivo táctil; el más pequeño es Puerto de la Cruz, con 16x11.
-La norma admite esos casos cuando existe **un control equivalente en la misma
-página**, y ese control es el listado alfabético por islas, que además es lo que
-filtra el buscador. Por eso en pantalla táctil sus enlaces van holgados (37 px) y
-no justos.
-
-**Portada con mapa de verdad.** Cada isla se dibuja en su propio panel y a su
-propia escala, en vez de meter el archipiélago entero a escala única. Así
-Betancuria (805 habitantes) se pincha igual de fácil que Las Palmas (384.023) sin
-renunciar a la forma real del municipio, que es lo que un concejal busca. Que las
-islas no comparten escala entre sí se dice en el propio mapa. Cada municipio es un
-enlace de verdad dentro del SVG: funciona el teclado, el clic central y el abrir
-en otra pestaña sin una línea de JavaScript para ello. Debajo va el listado
-completo por islas, que es la alternativa accesible al mapa y además es lo que
-filtra el buscador.
-
 **El PDF se redibuja, no se encoge.** Al imprimir, `beforeprint` vuelve a generar
 todos los SVG a la medida de la hoja, con márgenes de eje y cuerpos de letra
 propios. Escalar por CSS un gráfico pensado para 640 px hasta 60 mm dejaba las
 etiquetas del eje en tres puntos y unas encima de otras. En la hoja el reparto de
 la retícula pasa de 8/4 a 7/5: los índices repiten el nombre del municipio tres
 veces y a cuatro columnas se partía en tres líneas, que era lo que hacía que la
-ficha no cupiera en una cara.
+ficha no cupiera en una cara. Quien elija A3 en el diálogo de impresión recibe
+la misma ficha ampliada un 41 % (`transform: scale(1.414)` bajo `min-width:
+250mm`, que en papel es el área útil de la hoja): la
+A4 de una hoja sigue siendo el formato habitual, y el A3 es para quien la
+lectura de 5-6 pt le resulte pequeña.
 
 ## Verificación
 
-Los valores exportados se contrastaron uno a uno contra la ficha PDF de Santa Cruz
-de Tenerife generada por el notebook: población, variación acumulada, TVMA, edad
-media, reparto por sexo, los tres rankings con sus pesos, los cuatro índices en
-los tres ámbitos y el reparto por lugar de nacimiento. **Coinciden los 19.**
-Además, la suma de la población de los 88 municipios cuadra exactamente con el
-total regional de la hoja C1R.
+La batería está en `pruebas/` y corre antes de cada publicación (la acción de
+GitHub no despliega si falla):
 
-La ficha impresa se comprobó municipio a municipio midiendo la altura real de la
-maqueta a 190 mm de ancho: los 88 caben entre 271,2 y 273,1 mm, con 281 mm
-disponibles en una A4 con estos márgenes. **Ninguno pasa a una segunda página.**
+```bash
+python3 -m pip install -r requirements.txt   # una vez
+npm ci && npx playwright install chromium     # una vez
+npm test
+```
 
-La auditoría comprueba además que **el contenido no se salga de su propia caja a
-ninguna profundidad**, no solo de la tarjeta. La diferencia no es teórica: en
-móvil, el pie de la celda de edad media se colaba por especificidad —`.cifra
-em.entre` gana a `.cifra em` aunque la segunda esté dentro de una media query—,
-y flex encogía el número hasta 4 px en vez de desbordar la tarjeta. La
-comprobación antigua no lo veía; la nueva sí, y está verificada reintroduciendo
-el fallo a propósito.
+- `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios, cada
+  pirámide suma su población y las 88 suman Canarias, la TVMA es la de la
+  serie sin redondeo intermedio, los repartos suman cien, los índices están en
+  los tres ámbitos, cada indicador tiene fuente con enlace https, los 88
+  envoltorios apuntan a la URL de `sitio.json` y las cinco páginas cargan la
+  misma versión de recursos.
+- `pruebas/conciliar_excel.py`: 3.608 comparaciones contra el libro, celda a
+  celda —población, series, componentes con sus anomalías, los siete índices
+  en los tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el
+  lugar de nacimiento—. Necesita el Excel en `~/Downloads`; si no está, se
+  omite avisando. No corre en GitHub porque el libro no está en el repositorio.
+- `pruebas/web.test.cjs` (Playwright, Chromium): la última selección manda y
+  el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por lugar
+  de nacimiento; «Fuente y datos» con sus 42 filas; teclado de la pirámide y de
+  la evolución tras redibujar e imprimir; la presentación es modal y devuelve
+  el foco; el cruce no deja fantasmas; el comparador con tres plazas, sin
+  duplicados, colores fijos, tabla semántica y sin texto en azul claro, con 1,
+  2 y 3 municipios a 1280 y 375 px; el fallo de carga inicial visible; las
+  siete islas abiertas dentro de la pantalla a 320, 375 y 1280; el foco del
+  buscador; la guía; las 88 fichas en una A4, la A3 ampliada en una hoja y el
+  dossier de 98 páginas con su barra visible y sin hojas desbordadas.
+
+Lo que la batería no cubre: Safari y Firefox (se probaron a mano con el motor
+WebKit de Playwright), un móvil físico y el `<iframe>` de WordPress.
 
 ## Accesibilidad
 
-Comprobado en 320, 375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin desbordes horizontales, sin
-texto por debajo de 7,5 px reales, y todo el texto pasa el contraste AA (4,5:1,
-o 3:1 en texto grande) tanto sobre blanco como sobre los fondos de las tarjetas.
-Objetivos táctiles de 44 px en cualquier aparato con puntero grueso. La
-transición de la pirámide se desactiva con `prefers-reduced-motion` y también
-cuando la pestaña está oculta, donde el navegador congela `requestAnimationFrame`.
+Comprobado en 320, 375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin desbordes
+horizontales, también con los desplegables abiertos; sin texto por debajo de
+7,5 px reales; todo el texto pasa el contraste AA (4,5:1, o 3:1 en texto
+grande): el nombre del municipio en el comparador iba en el azul claro de su
+serie (2,1:1) y ahora va en negro con una marca de color debajo. Objetivos
+táctiles de 44 px con puntero grueso. Pirámide y evolución se recorren con
+teclado (flechas, Inicio, Fin) y cada tarjeta ofrece su tabla; las cifras del
+comparador son una tabla con encabezados de fila y columna. La presentación
+es un diálogo modal: el resto queda inerte, el tabulador no sale y al cerrar
+el foco vuelve al botón. El buscador de la portada enseña el foco en su caja.
+Las transiciones se desactivan con `prefers-reduced-motion` y con la pestaña
+oculta, donde el navegador congela `requestAnimationFrame`.
 
 ## Pendiente
 
-- [ ] Confirmar con Pedro cómo nombrar la vista "Nacida en España" de la pirámide:
-      se obtiene restando la población de origen extranjero (C24) del total (C23).
+- [ ] Que Pedro dé por buenos los rótulos «Nacidos en España» y «Nacidos en el
+      extranjero» de la pestaña por lugar de nacimiento (él había dicho
+      «españoles / extranjeros»; la fuente mide nacimiento, no nacionalidad).
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
-- [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk.
+- [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk. Al
+      mudarlo, cambiar `sitio.json` y ejecutar `generar_tarjetas.py`.
 - [ ] Ojo: la web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
       hereda el iframe. Está en la auditoría como hallazgo M1.

@@ -8,3 +8,6 @@ venv/
 *.xlsx
 *.gpkg
 *.ipynb
+
+node_modules/
+test-results/

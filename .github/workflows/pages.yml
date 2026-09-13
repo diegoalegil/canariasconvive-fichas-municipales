@@ -1,5 +1,7 @@
 # Publica la carpeta web/ en GitHub Pages. El sitio es estático: no hay build,
 # solo se sube tal cual lo que generan exportar_datos.py y exportar_geo.py.
+# Antes corre la batería de pruebas (pruebas/): invariantes de los datos,
+# interacciones en Chromium e impresión. Si algo falla, no se publica.
 name: Desplegar en GitHub Pages
 
 on:
@@ -17,7 +19,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Invariantes de los datos
+        run: python3 pruebas/invariantes.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Interacciones e impresión en Chromium
+        run: npm run test:web
   desplegar:
+    needs: pruebas
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -33,10 +53,14 @@ jobs:
         # 600000 ms es el máximo que admite la acción: pedirle más no da más
         # margen, solo un aviso de que lo ha recortado. Diez minutos.
         #
-        # Si un despliegue falla, NO se relanza desde la web de Actions: el
-        # relanzamiento vuelve a ejecutar la subida del artefacto, se queda con
-        # dos llamados "github-pages" en la misma ejecución y deploy-pages se
-        # niega a elegir. Se arregla empujando un commit nuevo, que arranca una
-        # ejecución limpia.
+        # Si un despliegue falla, mirar el error antes de actuar:
+        # - "multiple artifacts": se relanzó desde la web y la subida se repitió;
+        #   deploy-pages no elige entre dos "github-pages". Un commit nuevo
+        #   arranca una ejecución limpia.
+        # - timeout (los 600000 ms): la publicación se quedó consultando un
+        #   estado vacío. Volver a empujar suele bastar.
+        # - "deployment in progress": hay un despliegue anterior sin cerrar; un
+        #   commit nuevo no lo libera, hay que esperar a que termine o cancelarlo
+        #   en Settings › Environments › github-pages.
         with:
           timeout: 600000

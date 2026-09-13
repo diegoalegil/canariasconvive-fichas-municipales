@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/ficha.html">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ficha demográfica municipal · Canarias Convive</title>
 <meta name="description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de cualquiera de los 88 municipios de Canarias.">
@@ -19,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=74">
+<link rel="stylesheet" href="estilos.css?v=75">
 </head>
 <body>
 
@@ -38,11 +39,14 @@
     <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
     <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
     <button class="btn btn-liso" type="button" id="btn-presentar" data-ico="presentar" aria-label="Presentar"><span>Presentar</span></button>
-    <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Descargar PDF</button>
+    <!-- «Imprimir / guardar PDF» y no «Descargar PDF»: abre el diálogo de
+         impresión, no descarga nada. En el diálogo, elegir A3 amplía la ficha. -->
+    <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Imprimir / guardar PDF</button>
   </div>
 </header>
 
 <main class="envoltorio">
+  <div id="estado-ficha" class="aviso-carga" role="status" aria-live="polite" hidden></div>
 
   <section class="cabecera">
     <p class="migas" id="migas">—</p>
@@ -70,7 +74,7 @@
       </header>
       <div class="cuerpo">
         <figure id="g-evolucion"></figure>
-        <p class="lectura" id="lectura-evolucion"></p>
+        <p class="lectura" id="lectura-evolucion" aria-live="polite"></p>
       </div>
     </section>
 
@@ -107,7 +111,7 @@
           <button class="vista" type="button" aria-pressed="false">Por lugar de nacimiento</button>
         </div>
         <figure id="g-piramide"></figure>
-        <div class="lectura" id="lectura-piramide"></div>
+        <div class="lectura" id="lectura-piramide" aria-live="polite"></div>
         <!-- La leyenda la escribe el JS a partir de lo que la pirámide ha
              pintado de verdad: escrita aquí a mano, el PDF anunciaba un
              Canarias que el dibujo no llevaba. -->
@@ -148,10 +152,13 @@
 
   </div>
 
+<p class="pie-fuentes-papel">Fuentes y método: <a class="enlace-guia-publica" href="guia.html">guía de los indicadores · Canarias Convive</a></p>
 </main>
 
-<script src="comun.js?v=74"></script>
-<script src="iconos.js?v=74"></script>
-<script src="ficha.js?v=74"></script>
+<script src="config.js?v=75"></script>
+<script src="comun.js?v=75"></script>
+<script src="iconos.js?v=75"></script>
+<script src="datos-ui.js?v=75"></script>
+<script src="ficha.js?v=75"></script>
 </body>
 </html>

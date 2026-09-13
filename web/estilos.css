@@ -355,6 +355,7 @@ select {
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
   gap: var(--e-3); align-items: baseline; margin-bottom: 4px;
 }
+.lec-fila > span { min-width: 0; }
 .lec-fila > b { color: var(--negro); font-weight: 700; white-space: nowrap; }
 .lec-fila > em { white-space: nowrap; }
 
@@ -554,25 +555,27 @@ select {
   padding: var(--e-7) var(--e-5); text-align: center; color: var(--gris); font-size: 14px;
 }
 
-/* Cifras clave: rótulo a la izquierda y una columna por municipio. */
-/* La columna de rótulos mide lo que mide su texto, no una fracción: con un
-   solo municipio, 1.1fr se comía la mitad de la tarjeta y la cifra quedaba
-   perdida en el centro. */
-.cmp-tabla { display: grid; grid-template-columns: minmax(140px, max-content) repeat(var(--cols), minmax(0, 1fr)); gap: 0; }
+/* Cifras clave: una tabla de verdad —encabezados de columna y de fila— con el
+   rótulo a la izquierda y una columna por municipio. Era una rejilla de divs y
+   un lector de pantalla no sabía a qué municipio pertenecía cada cifra. La
+   columna de rótulos es fija: con un solo municipio, una fracción se comía la
+   mitad de la tarjeta y la cifra quedaba perdida en el centro. */
+.cmp-tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.cmp-tabla th, .cmp-tabla td { text-align: left; vertical-align: middle; font-weight: inherit; }
+.cmp-tabla th:first-child { width: 160px; }
 .cmp-cab { padding: 0 var(--e-3) var(--e-3); border-bottom: 2px solid var(--linea); }
-.cmp-cab b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.cmp-cab b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--negro); }
 .cmp-cab span { font-size: 11.5px; color: var(--gris); }
+/* El color del municipio se lleva en una marca, no en el texto: el azul claro
+   sobre blanco daba 2,1:1 de contraste, por debajo del mínimo AA de 4,5. */
+.marca-municipio { display: block; height: 3px; width: 32px; margin-top: 8px; border-radius: 2px; }
 .cmp-rot { padding: var(--e-3); border-bottom: 1px solid var(--linea); }
 .cmp-rot b { display: block; font-size: 13px; font-weight: 600; }
 .cmp-rot span { font-size: 11px; color: var(--gris); }
-/* La celda ocupa toda la fila y centra su contenido por dentro: con
-   `align-self: center` la celda encogía y su filete inferior quedaba a otra
-   altura que el del rótulo, y la línea de cada fila salía partida. */
 .cmp-val {
   padding: var(--e-3); border-bottom: 1px solid var(--linea);
   font-size: 19px; font-weight: 600; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
-  display: flex; flex-direction: column; justify-content: center;
 }
 .cmp-val em {
   font-style: normal; display: block; font-size: 11px; font-weight: 500;
@@ -617,8 +620,10 @@ select {
   /* La tabla se apila. Las cabeceras de columna desaparecen porque cada valor
      pasa a llevar escrito su municipio: en una sola columna, "384.023 / 805 /
      2.949" obligaría a recordar en qué orden estaban. */
-  .cmp-tabla { grid-template-columns: 1fr; }
-  .cmp-cab { display: none; }
+  .cmp-tabla, .cmp-tabla tbody, .cmp-tabla tr, .cmp-tabla th { display: block; width: auto; }
+  .cmp-tabla td.cmp-val { display: grid; width: auto; }
+  /* La cabecera queda para el lector de pantalla, no para la vista. */
+  .cmp-tabla thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .cmp-rot { border-bottom: 0; padding: var(--e-4) 0 var(--e-2); }
   .cmp-val {
     display: grid; grid-template-columns: 1fr auto; align-items: baseline;
@@ -737,11 +742,71 @@ select {
 }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 
+/* ------------------------------------------------- carga, foco y fuentes -- */
+/* `hidden` manda aunque el elemento tenga display propio: el aviso de error del
+   comparador se escribía y seguía oculto. */
+[hidden] { display: none !important; }
+.aviso-carga {
+  margin: 0 0 var(--e-4); padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--fondo); border: 1px solid var(--azul); border-radius: var(--r-2);
+  color: var(--azul); font-size: 13px;
+}
+/* El buscador de la portada quita el contorno del input; el foco se ve en la caja. */
+.buscador:focus-within { outline: 2px solid var(--azul); outline-offset: 3px; }
+/* Los gráficos con teclado —pirámide y evolución— enseñan dónde está el foco. */
+#g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+/* El desplegable de una isla no puede salirse de la pantalla del móvil. */
+.desplegable { max-width: calc(100vw - 24px); }
+
+/* Fuente y datos de cada tarjeta (datos-ui.js): una línea discreta al pie,
+   plegada, con la procedencia, la fecha y la tabla de valores. */
+.datos-detalle { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--linea); text-align: left; }
+.datos-detalle > summary {
+  display: flex; align-items: center; gap: 7px; width: fit-content; padding: 4px 0;
+  list-style: none; cursor: pointer; color: var(--gris); font-size: 11.5px; font-weight: 500;
+}
+.datos-detalle > summary::-webkit-details-marker { display: none; }
+.datos-detalle > summary::before {
+  content: ''; width: 0; height: 0; border: 4px solid transparent; border-left: 5px solid currentColor;
+  margin-right: -2px; transition: transform .25s ease;
+}
+.datos-detalle[open] > summary::before { transform: rotate(90deg); }
+.datos-detalle > summary:hover, .datos-detalle > summary:focus-visible { color: var(--azul); }
+.datos-contenido { padding-top: 10px; font-size: 12px; color: var(--gris); }
+.datos-contenido a { color: var(--azul); text-underline-offset: 3px; }
+.fuente-dato { margin: 10px 0; }
+.fuente-dato p { margin: 3px 0; line-height: 1.55; text-wrap: pretty; }
+.fuente-dato b { color: var(--negro); }
+.tabla-scroll { max-width: 100%; overflow: auto; margin: 6px 0 14px; }
+.tabla-datos { border-collapse: collapse; width: 100%; min-width: 420px; font-variant-numeric: tabular-nums; font-size: 12px; }
+.tabla-datos caption { text-align: left; color: var(--negro); font-weight: 600; padding: 4px 0 8px; }
+.tabla-datos th, .tabla-datos td { padding: 6px 10px; border-bottom: 1px solid var(--linea); text-align: right; white-space: nowrap; }
+.tabla-datos th { color: var(--negro); font-weight: 600; }
+.tabla-datos th:first-child { text-align: left; }
+.tabla-datos thead { background: var(--caja); }
+.pie-fuentes-papel { display: none; }
+@media (pointer: coarse) { .datos-detalle > summary { min-height: 44px; } }
+
 /* ============================================================== impresión == */
 /* Ficha de una hoja A4 vertical: cabecera azul, cifras clave, evolución y
    origen, los tres mapas, pirámide e índices, componentes y nacimiento. Se
    dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
 @page { size: A4 portrait; margin: 9mm 10mm 7mm; }
+/* Quien elija A3 en el diálogo de impresión recibe la misma ficha ampliada un
+   41 %: los 190 mm de la maqueta pasan a 269 de los 277 útiles, y los 281 mm
+   de alto a 397 de 404. Texto y gráficos crecen en proporción; la A4 de una
+   hoja sigue siendo el formato habitual. Se amplía con transform y no con
+   zoom: con zoom, Chromium partía la hoja en dos aunque cupiera. La maqueta se
+   sigue componiendo a 190 mm y el cuerpo fija la altura de la hoja para que
+   la paginación vea una sola página. (En papel, la media query mide el área
+   útil sin márgenes; la altura mínima excluye la A4 apaisada, donde la
+   ampliación no cabría.) */
+@media print and (min-width: 250mm) and (min-height: 380mm) {
+  /* margin 0: centrada con márgenes automáticos, la maqueta arrancaba a 43 mm
+     y, ampliada desde su esquina, se salía por la derecha. */
+  .envoltorio { width: 190mm; margin: 0; transform: scale(1.414); transform-origin: top left; }
+  body { height: 396mm; overflow: hidden; }
+}
 
 /* ------------------------------------------------------------ presentación -- */
 #presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }
@@ -787,9 +852,9 @@ body.presentando { overflow: hidden; }
 .pres-lectura { font-size: 32px; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .pl-grupo { font-size: 40px; font-weight: 700; margin-bottom: 24px; }
 .pl-cab { font-size: 18px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); margin: 24px 0 8px; }
-.pl-fila { display: grid; grid-template-columns: 200px auto; gap: 24px; }
-.pl-fila b { font-weight: 700; color: var(--negro); }
-.pl-fila em { font-style: normal; color: var(--gris-40); font-size: 24px; }
+.pl-fila { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; font-size: 26px; }
+.pl-fila b { font-weight: 700; color: var(--negro); white-space: nowrap; }
+.pl-fila em { font-style: normal; color: var(--gris-40); font-size: 22px; display: block; }
 .pres-indices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 120px; }
 .pres-indices .indice-tit { margin-bottom: 24px; }
 .pres-indices .indice-tit b { font-size: 34px; }
@@ -817,7 +882,9 @@ body.presentando { overflow: hidden; }
 
 @media print {
   #presentacion { display: none !important; }
-  .fantasma { display: none !important; }
+  .fantasma, .datos-detalle, .aviso-carga { display: none !important; }
+  .pie-fuentes-papel { display: block; margin-top: 1mm; font-size: 6pt; color: var(--gris); }
+  .pie-fuentes-papel a { color: inherit; text-decoration: none; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
@@ -835,7 +902,7 @@ body.presentando { overflow: hidden; }
   .lec-titulo { font-size: 6pt; margin-bottom: .5mm; }
   .lec-cab { font-size: 5pt; margin-bottom: .5mm; }
   .lec-izq > div { grid-template-columns: 9mm 10mm auto; gap: 1mm; }
-  .lec-fila { grid-template-columns: 16mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
+  .lec-fila { grid-template-columns: 24mm auto auto; gap: 1.6mm; margin-bottom: .3mm; }
   .leyenda { margin-top: 1.2mm; gap: 3mm; }
   .envoltorio { max-width: none; padding: 0; }
   .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
@@ -918,3 +985,4 @@ body.presentando { overflow: hidden; }
   .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6pt; }
   .nota { font-size: 5.5pt; margin-top: 1.4mm; }
 }
+
