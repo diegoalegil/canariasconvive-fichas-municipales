@@ -255,7 +255,7 @@ select {
   font: inherit; font-size: 12px; font-weight: 600;
   padding: 8px 15px; border-radius: var(--r-full); cursor: pointer;
   border: 1px solid var(--linea); background: var(--fondo); color: var(--gris);
-  transition: background .15s, color .15s, border-color .15s;
+  transition: background .25s, color .25s, border-color .25s;
 }
 .vista:hover { border-color: var(--azul-claro); color: var(--azul); }
 .vista[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
@@ -284,8 +284,8 @@ select {
 .peldano i { display: block; height: 7px; border-radius: var(--r-1); }
 /* Los índices se responden: la columna señalada se resalta en los cuatro y
    las otras se atenúan. Solo color y opacidad; nada cambia de sitio. */
-.peldano { transition: opacity .12s linear; cursor: default; }
-.peldano span, .peldano b { transition: color .12s linear; }
+.peldano { transition: opacity .25s ease; cursor: default; }
+.peldano span, .peldano b { transition: color .25s ease; }
 .peldano.foco span { color: var(--negro); font-weight: 700; }
 .peldano.foco b { text-decoration: underline; text-decoration-color: var(--azul); text-decoration-thickness: 2px; text-underline-offset: 5px; }
 .peldano.tenue { opacity: .45; }
@@ -359,7 +359,7 @@ select {
 .lec-fila > em { white-space: nowrap; }
 
 #g-piramide { outline: none; }
-#eje-piramide { transition: opacity .22s ease; }
+#eje-piramide { transition: opacity .26s ease; }
 /* Cifras tabulares: las tres filas de porcentajes de la derecha quedan en
    columna, y al recorrer los grupos de edad los números no bailan. */
 #lectura-piramide b, #lectura-piramide em { font-variant-numeric: tabular-nums; }
@@ -483,8 +483,8 @@ select {
 .vacio { font-size: 13px; color: var(--gris); }
 
 /* --------------------------------------------------------------- entrada --- */
-@keyframes surgir { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
-.cabecera, .tarjeta { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
+@keyframes surgir { from { opacity: 0; transform: translateY(8px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.cabecera, .tarjeta { animation: surgir .6s cubic-bezier(.22,.61,.36,1) backwards; }
 .tarjeta:nth-of-type(1) { animation-delay: .04s; }
 .tarjeta:nth-of-type(2) { animation-delay: .08s; }
 .tarjeta:nth-of-type(3) { animation-delay: .12s; }
@@ -751,14 +751,17 @@ body.presentando { overflow: hidden; }
    extranjero, más baja que las demás, quedaba pegada arriba con media pantalla
    vacía debajo. */
 /* Entre diapositivas, fundido con desenfoque: la que sale se difumina y la que
-   entra se enfoca, a la vez, en 320 ms. La oculta pasa a visibility:hidden al
-   acabar para no tener cinco capas de 1920×1080 desenfocadas en memoria. */
+   entra se enfoca, a la vez, en 480 ms; la que sale con la curva de salida y
+   la que entra con la suave (la curva es la del estado al que se va). La oculta
+   pasa a visibility:hidden al acabar para no tener cinco capas de 1920×1080
+   desenfocadas en memoria. */
 .pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; pointer-events: none;
-  opacity: 0; filter: blur(14px); visibility: hidden;
-  transition: opacity .32s ease, filter .32s ease, visibility 0s linear .32s;
+  opacity: 0; filter: blur(8px); visibility: hidden;
+  transition: opacity .48s cubic-bezier(.4,0,.6,1), filter .48s cubic-bezier(.4,0,.6,1), visibility 0s linear .48s;
   display: flex; flex-direction: column; justify-content: center; }
 .pres-diapo > * { flex: none; }
-.pres-diapo.activa { opacity: 1; filter: blur(0); visibility: visible; pointer-events: auto; transition-delay: 0s; }
+.pres-diapo.activa { opacity: 1; filter: blur(0); visibility: visible; pointer-events: auto;
+  transition: opacity .48s cubic-bezier(.22,.61,.36,1), filter .48s cubic-bezier(.22,.61,.36,1), visibility 0s; }
 @media (prefers-reduced-motion: reduce) { .pres-diapo { transition: none; filter: none; } }
 .pres-diapo h1 { font-size: 120px; font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--azul); margin: 12px 0 0; }
 .pres-diapo h2 { font-size: 44px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 32px; color: var(--negro); }

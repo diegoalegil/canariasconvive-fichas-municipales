@@ -188,14 +188,18 @@ ve directamente el estado final.
 
 **Todo cambio de contenido es un cruce con desenfoque.** Al cambiar de municipio
 en la ficha, de pestaña en la pirámide, de diapositiva en la presentación o de
-municipios en el comparador, lo que había se difumina y se apaga encima (260 ms)
-mientras lo nuevo aparece debajo enfocándose (460 ms). Nada se desplaza ni cambia
+municipios en el comparador, lo que había se difumina y se apaga encima (320 ms)
+mientras lo nuevo aparece debajo enfocándose (600 ms), con 4 px de desenfoque. Nada se desplaza ni cambia
 de tamaño: el ojo ve *que* ha cambiado sin tener que releer para saberlo. Es una
 sola función, `cruce` en `comun.js`, que deja un fantasma de cada bloque, se
 repinta y suelta. La pirámide no se cruza: sus 42 barras se mueven hasta la
 forma nueva —arranque rápido y frenada larga, porque entre dos municipios
 parecidos el recorrido es de pocos píxeles y con una curva simétrica el primer
-tercio no se veía nada— con un pulso de desenfoque que acompaña al movimiento.
+tercio no se veía nada— con un pulso de desenfoque de 1,2 px que acompaña al
+movimiento. Dos curvas para toda la web: lo que entra frena largo
+(`cubic-bezier(.22,.61,.36,1)`) y lo que sale se va sin brusquedad
+(`cubic-bezier(.4,0,.6,1)`); las diapositivas de la presentación usan la de
+salida para la que se va y la suave para la que llega.
 La entrada de la ficha espera a que la pestaña se mire: abierta en segundo plano,
 antes se daba por hecha sin que nadie la viera. En papel, con `prefers-reduced-
 motion` y con la pestaña oculta no hay cruce ni pulso: se ve el estado final.

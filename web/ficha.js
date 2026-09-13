@@ -654,10 +654,11 @@ function pintarLeyendaPiramide(vista) {
   cont.innerHTML = llaves.join('');
 }
 
-/** `salida` = arranque rápido y frenada larga (easeOutCubic): es lo que se usa
- *  entre municipios, donde el recorrido puede ser de pocos píxeles y con la
- *  curva simétrica el primer tercio no se veía moverse. */
-function mostrarVista(i, animar = true, dur = 620, salida = false) {
+/** Las barras arrancan enseguida y frenan largo (easeOut de grado `grado`):
+ *  con la curva simétrica de antes, el primer tercio del tiempo no se veía
+ *  nada. Grado 3 al cambiar de pestaña, donde el recorrido es largo; grado 4
+ *  entre municipios, donde puede ser de pocos píxeles y hay que verlo salir. */
+function mostrarVista(i, animar = true, dur = 720, grado = 3) {
   if (!PIRAMIDE) return;
   const P = PIRAMIDE;
   VISTA = i;
@@ -674,7 +675,7 @@ function mostrarVista(i, animar = true, dur = 620, salida = false) {
     const cambia = eje.dataset.eje !== String(v.eje);
     if (cambia && animar && animable()) {
       eje.style.opacity = '0';
-      setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 220);
+      setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 260);
     } else if (cambia || !eje.dataset.eje) {
       eje.innerHTML = P.ejeSVG(v.eje);
     }
@@ -732,13 +733,12 @@ function mostrarVista(i, animar = true, dur = 620, salida = false) {
   const refrescar = () => (P.senalar && FILA != null) ? P.senalar(FILA) : pintarLectura(FILA);
   if (!animar || !animable()) { aplicar(1); refrescar(); return; }
 
-  pulsoDesenfoque(document.querySelector('#g-piramide svg'), Math.min(dur, 640));
+  pulsoDesenfoque(document.querySelector('#g-piramide svg'), dur);
   const t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
-    const e = salida ? 1 - Math.pow(1 - p, 3)                                  // easeOutCubic
-      : (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);         // easeInOutCubic
-    aplicar(e);
+    aplicar(1 - Math.pow(1 - p, grado));
+
     if (p < 1) animacion = requestAnimationFrame(paso); else refrescar();
   };
   animacion = requestAnimationFrame(paso);
@@ -825,11 +825,11 @@ function pintar(f) {
     && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && doc.querySelector('#g-piramide svg'));
   if (enPantalla) {
     Object.assign(PIRAMIDE, { vistas: nueva.vistas, municipio: nueva.municipio, total: nueva.total, edades: nueva.edades });
-    /* Arranque rápido (`salida`) y 700 ms: entre dos municipios parecidos las
-       barras recorren pocos píxeles, y con la curva simétrica de la pestaña el
+    /* 800 ms con arranque inmediato (grado 4): entre dos municipios parecidos
+       las barras recorren pocos píxeles, y con la curva simétrica de antes el
        primer tercio del tiempo no se veía nada. El pulso de desenfoque que
        acompaña al movimiento hace visible el cambio aunque sea de 3 px. */
-    mostrarVista(VISTA, true, 700, true);
+    mostrarVista(VISTA, true, 800, 4);
   } else {
     PIRAMIDE = nueva;
     doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
@@ -1093,12 +1093,12 @@ function programarEntrada() {
 }
 
 /* El contenido de la cabecera y de cada tarjeta se enfoca al llegar los datos,
-   de arriba abajo con 35 ms entre bloques. */
+   de arriba abajo con 40 ms entre bloques. */
 function entradaContenido() {
   if (!animable()) return;
   document.querySelectorAll('.cabecera, .tarjeta > .cuerpo').forEach((el, i) =>
-    el.animate([{ opacity: 0, filter: 'blur(8px)' }, { opacity: 1, filter: 'blur(0px)' }],
-      { duration: 520, delay: 35 * i, easing: SUAVE, fill: 'backwards' }));
+    el.animate([{ opacity: 0, filter: `blur(${DESENFOQUE}px)` }, { opacity: 1, filter: 'blur(0px)' }],
+      { duration: 640, delay: 40 * i, easing: SUAVE, fill: 'backwards' }));
 }
 
 /* Cambio de pestaña: las barras se transforman y la leyenda y la lectura,
@@ -1261,13 +1261,14 @@ function presMostrar(vista, animar) {
   const soltar = cruce('#pres-leyenda, #pres-lectura');
   presLectura();
   soltar();
-  pulsoDesenfoque(document.querySelector('#pres-piramide svg'), 620, 4);
+  const dur = 720;
+  pulsoDesenfoque(document.querySelector('#pres-piramide svg'), dur, 1.6);
   PRES.eje.style.opacity = '0';
-  setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 220);
-  const dur = 620, t0 = performance.now();
+  setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 260);
+  const t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
-    aplicar(p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    aplicar(1 - Math.pow(1 - p, 3));
     if (p < 1) PRES.animacion = requestAnimationFrame(paso); else presSenalar();
   };
   PRES.animacion = requestAnimationFrame(paso);
@@ -1349,7 +1350,7 @@ function abrirPresentacion() {
     }
   }
   PRES.eje = svg.querySelector('g');
-  PRES.eje.style.transition = 'opacity .22s ease';
+  PRES.eje.style.transition = 'opacity .26s ease';
   PRES.marcas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   svg.appendChild(PRES.marcas);
   presLectura();
