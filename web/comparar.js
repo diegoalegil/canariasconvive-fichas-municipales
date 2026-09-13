@@ -29,14 +29,6 @@ const TONOS_COL = ['#185FA5', '#2E75B6', '#85B7EB'];   // distinguen columna, no
 const TONOS_ORIGEN = ['#185FA5', '#6FA6D8', '#B5D4F4'];
 const GRIS_REF = '#9AA0A6';
 
-const nf = (v, d = 0) => v == null || !isFinite(v)
-  ? '—'
-  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-const UNI = '\u00a0';   // espacio duro entre la cifra y su unidad
-const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const acotar = (v, a, b) => Math.max(a, Math.min(b, v));
-const plano = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 let INDICE = null;
 let ELEGIDOS = [];        // fichas completas, en el orden en que las añadió el usuario

@@ -345,6 +345,10 @@ select {
 .lec-fila > em { white-space: nowrap; }
 
 #g-piramide { outline: none; }
+#eje-piramide { transition: opacity .22s ease; }
+/* Cifras tabulares: las tres filas de porcentajes de la derecha quedan en
+   columna, y al recorrer los grupos de edad los números no bailan. */
+#lectura-piramide b, #lectura-piramide em { font-variant-numeric: tabular-nums; }
 #g-piramide:focus-visible { outline: 2px solid var(--azul); outline-offset: 3px; border-radius: var(--r-1); }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }

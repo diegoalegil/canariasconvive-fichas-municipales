@@ -22,10 +22,6 @@ const px = (mm) => Math.round(mm * 96 / 25.4);
 
 let IDX = null, GEOD = null;
 
-const nfd = (v, d = 0) => v == null || !isFinite(v)
-  ? '—'
-  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-const escd = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ------------------------------------------------------- datos por isla --- */
 /** Lo que se puede decir de una isla sin inventar nada.
@@ -67,16 +63,16 @@ function hojaFicha(f, pagina) {
 
   return `<article class="hoja hoja-ficha" data-pagina="${pagina}">
     <header class="d-cab">
-      <p class="d-migas">${escd(f.isla)} · ${escd(f.comarca.replace(/^.*? - /, ''))}</p>
-      <div class="d-titular"><h2>${escd(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
-      <p class="d-hab"><b>${nfd(f.poblacion)}</b><span>habitantes</span></p>
+      <p class="d-migas">${esc(f.isla)} · ${esc(f.comarca.replace(/^.*? - /, ''))}</p>
+      <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
+      <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
     </header>
 
     <div class="cifras">
-      ${[[`${signo}${nfd(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual', `${ev.anio_base}–${ev.anio_fin}`],
-         [nfd(c.edad_media, 1), 'años', 'Edad media', ''],
-         [nfd(c.pct_mujeres, 1), '%', 'Mujeres', `${nfd(c.mujeres)} personas`],
-         [nfd(c.pct_hombres, 1), '%', 'Hombres', `${nfd(c.hombres)} personas`],
+      ${[[`${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual', `${ev.anio_base}–${ev.anio_fin}`],
+         [nf(c.edad_media, 1), 'años', 'Edad media', ''],
+         [nf(c.pct_mujeres, 1), '%', 'Mujeres', `${nf(c.mujeres)} personas`],
+         [nf(c.pct_hombres, 1), '%', 'Hombres', `${nf(c.hombres)} personas`],
         ].map(([cifra, uni, rot, pie]) => `
         <div class="cifra">
           <b>${cifra}${uni ? `<span>\u00a0${uni}</span>` : ''}</b>
@@ -97,7 +93,7 @@ function hojaFicha(f, pagina) {
           <p>Porcentaje sobre el total</p></div></header>
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, px(26))}</figure>
           <div class="leyenda">
-            <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias <b>${nfd(ultimoValido(f.extranjero.canarias), 1)} %</b></span>
+            <span><i class="llave" style="background:#1A1A1A;height:2px;border-radius:0"></i>Canarias <b>${nf(ultimoValido(f.extranjero.canarias), 1)} %</b></span>
           </div></div>
       </section>
 
@@ -108,8 +104,8 @@ function hojaFicha(f, pagina) {
           ${niveles.map(([tit, filtro, r, lim]) => `
             <figure class="mapa">${mapa(GEOD, f.codmun, filtro, wMapa, px(20), lim)}
               <figcaption class="mapa-pie"><b>${r.puesto}º de ${r.total}</b>
-                <span>en ${escd(tit)}</span>
-                <p><b>${nfd(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
+                <span>en ${esc(tit)}</span>
+                <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
         </div></div>
       </section>
 
@@ -144,7 +140,7 @@ function hojaFicha(f, pagina) {
             <span><i class="llave" style="background:#185FA5"></i>Saldo migratorio</span>
           </div>
           ${anom.length ? `<p class="nota">${anom.map((a) =>
-            `En ${a.anio} no se representa el saldo migratorio (${nfd(a.valor)}): corresponde a un ${a.motivo}.`).join(' ')}</p>` : ''}
+            `En ${a.anio} no se representa el saldo migratorio (${nf(a.valor)}): corresponde a un ${a.motivo}.`).join(' ')}</p>` : ''}
         </div>
       </section>
 
@@ -155,7 +151,7 @@ function hojaFicha(f, pagina) {
           ${[['Municipio', f.origen.municipio], ['Canarias', f.origen.canarias]].map(([t, v]) => `
             <div class="anillo"><h3>${t}</h3>${anilloOrigen(v, 30, 13)}
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
-                `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${escd(cat)}</span><b>${nfd(v[i], 1)}\u00a0%</b></div>`).join('')}
+                `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(v[i], 1)}\u00a0%</b></div>`).join('')}
               </div></div>`).join('')}
         </div></div>
       </section>
@@ -175,7 +171,7 @@ function hojaPortada() {
     <div class="d-portada-mapa">${mapaArchipielago()}</div>
     <div class="d-portada-pie">
       <div><b>${IDX.anio}</b><span>Padrón municipal continuo a 1 de enero</span></div>
-      <div><b>${nfd(IDX.poblacion_canarias)}</b><span>Habitantes</span></div>
+      <div><b>${nf(IDX.poblacion_canarias)}</b><span>Habitantes</span></div>
       <div><b>88</b><span>Municipios · 7 islas</span></div>
     </div>
   </article>`;
@@ -221,8 +217,8 @@ function hojaIndice(grupos) {
     <div class="d-indice">
       ${grupos.map((g) => `
         <div class="d-indice-grupo">
-          <h3>${escd(g.nombre)} <em>separador ${g.paginaSeparador}</em></h3>
-          ${g.fichas.map((f, i) => `<div><span>${escd(f.nombre)}</span><b>${g.paginaPrimera + i}</b></div>`).join('')}
+          <h3>${esc(g.nombre)} <em>separador ${g.paginaSeparador}</em></h3>
+          ${g.fichas.map((f, i) => `<div><span>${esc(f.nombre)}</span><b>${g.paginaPrimera + i}</b></div>`).join('')}
         </div>`).join('')}
     </div>
     <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>3</span></footer>
@@ -232,18 +228,18 @@ function hojaIndice(grupos) {
 function hojaSeparador(g) {
   return `<article class="hoja hoja-separador">
     <p class="d-migas">Isla</p>
-    <h2>${escd(g.nombre)}</h2>
+    <h2>${esc(g.nombre)}</h2>
     <p class="d-sub">${g.n} municipios · fichas ${g.paginaPrimera} a ${g.paginaPrimera + g.n - 1}</p>
     <div class="d-isla-datos">
-      <div><b>${nfd(g.habitantes)}</b><span>Habitantes en ${IDX.anio}</span></div>
+      <div><b>${nf(g.habitantes)}</b><span>Habitantes en ${IDX.anio}</span></div>
       <div><b>${g.n}</b><span>Municipios</span></div>
-      <div><b>${nfd(g.peso, 1)} %</b><span>De la población de Canarias</span></div>
-      <div><b>${nfd(g.envejecimiento, 2)}</b><span>Envejecimiento de la isla</span></div>
+      <div><b>${nf(g.peso, 1)} %</b><span>De la población de Canarias</span></div>
+      <div><b>${nf(g.envejecimiento, 2)}</b><span>Envejecimiento de la isla</span></div>
     </div>
     <div class="d-isla-mapa">${mapa(GEOD, null, (x) => x.properties.isla === g.nombre, px(120), px(62), true)}</div>
     <div class="d-isla-lista">${g.fichas.map((f, i) =>
-      `<span>${escd(f.nombre)} <em>${g.paginaPrimera + i}</em></span>`).join('')}</div>
-    <footer class="d-pie"><span>Canarias Convive · ${escd(g.nombre)}</span><span>${g.paginaSeparador}</span></footer>
+      `<span>${esc(f.nombre)} <em>${g.paginaPrimera + i}</em></span>`).join('')}</div>
+    <footer class="d-pie"><span>Canarias Convive · ${esc(g.nombre)}</span><span>${g.paginaSeparador}</span></footer>
   </article>`;
 }
 

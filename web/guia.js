@@ -16,7 +16,6 @@
    máximo. El detalle está en el README.
    ============================================================================= */
 
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ------------------------------------------------------------- fórmulas --- */
 /** División con barra horizontal, escrita como en un libro y no como "a / b".

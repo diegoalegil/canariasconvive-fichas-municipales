@@ -17,12 +17,6 @@
 const ISLAS = ['El Hierro', 'La Gomera', 'La Palma', 'Tenerife',
                'Gran Canaria', 'Fuerteventura', 'Lanzarote'];
 
-const nf = (v, d = 0) => v == null || !isFinite(v)
-  ? '—'
-  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-/** Sin tildes y en minúsculas: quien busca "guia" tiene que encontrar Guía. */
-const plano = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 let INDICE = null;
 let abierto = null;          // { disparador, lista } del desplegable visible

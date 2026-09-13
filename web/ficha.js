@@ -23,16 +23,6 @@ const TONOS_ORIGEN = ['#185FA5', '#6FA6D8', '#B5D4F4'];
 const ANIO_INICIO_COMPONENTES = 2002;   // la serie de saldo migratorio arranca aquí
 
 /* ------------------------------------------------------------- utilidades -- */
-const nf = (v, d = 0) => v == null || !isFinite(v)
-  ? '—'
-  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
-/* El símbolo va separado de la cifra, como manda la RAE, y con espacio duro
-   para que nunca se quede solo al final de una línea. Vale para el %, para
-   "años" y para cualquier unidad: la ficha lo escribía de tres maneras. */
-const UNI = '\u00a0';
-const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
-const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const ultimoValido = (V) => {
   for (let i = V.length - 1; i >= 0; i--) if (V[i] != null && isFinite(V[i])) return V[i];
@@ -305,19 +295,6 @@ const EJE_PIRAMIDE = { canarias: 7, municipio: 14 };
    debajo de mm(52) el marco negro deja de poder dibujarse. */
 const ALTO_PIRAMIDE_A4 = mm(54);
 
-/* Tres interruptores. Los tres corresponden a cosas que Pedro dejó abiertas, y
-   se dejan a la vista para poder enseñarle las dos versiones sin tocar nada:
-
-   CANARIAS_FORMA  'barras' son las barras negras huecas que pidió ver;
-                   'silueta' es la escalera negra de antes. Vale para pantalla
-                   y para papel: cada pestaña lleva una sola capa negra, así que
-                   en la hoja no se entretejen dos contornos en la misma fila.
-   BASE_CANARIAS   contra qué se compara Canarias. El perfil de Canarias viene
-                   en porcentaje sobre el total del archipiélago, extranjeros
-                   incluidos; enfrentarlo a la parte nacida en España del
-                   municipio sesgaría justo a los de mucha población extranjera. */
-const CANARIAS_FORMA = 'barras';   // 'barras' | 'silueta'
-const BASE_CANARIAS  = 'total';    // 'total' | 'espanola'
 
 /** Los tres juegos de medidas. El SVG se redibuja a cada ancho; nunca se estira
  *  uno pequeño, que dejaría el trazo deformado y la letra en un pelo. */
@@ -379,9 +356,6 @@ function construirPiramide(p, w, h, vistaFija = null) {
     H: p.hombres.map((v, i) => Math.max(0, v - ext.H[i])),
     M: p.mujeres.map((v, i) => Math.max(0, v - ext.M[i])),
   };
-  const conCanarias = BASE_CANARIAS === 'total'
-    ? { H: p.hombres, M: p.mujeres }
-    : esp;
   const totalEsp = suma(esp.H) + suma(esp.M);
   const totalExt = suma(ext.H) + suma(ext.M);
 
@@ -395,10 +369,10 @@ function construirPiramide(p, w, h, vistaFija = null) {
   const vistas = [
     {
       clave: 'canarias', etiqueta: 'Municipio y Canarias', eje: EJE_PIRAMIDE.canarias,
-      relleno: { H: pc(conCanarias.H), M: pc(conCanarias.M) },
+      relleno: { H: pc(p.hombres), M: pc(p.mujeres) },
       negro: { H: p.canarias_hombres, M: p.canarias_mujeres },
       rotH: 'Hombres', rotM: 'Mujeres', rotNegro: 'Canarias',
-      cuentaRelleno: conCanarias, cuentaNegro: null,
+      cuentaRelleno: { H: p.hombres, M: p.mujeres }, cuentaNegro: null,
     },
     {
       clave: 'municipio', etiqueta: 'Por lugar de nacimiento', eje: EJE_PIRAMIDE.municipio,
@@ -459,7 +433,6 @@ function construirPiramide(p, w, h, vistaFija = null) {
     }
   }
 
-  const dibujarSilueta = CANARIAS_FORMA === 'silueta' && (fija || vistas[0]).clave === 'canarias';
 
   // ---- barras, glifos y edades ----
   let barras = '', negros = '', etiquetas = '';
@@ -473,30 +446,12 @@ function construirPiramide(p, w, h, vistaFija = null) {
       barras += `<rect ${fija ? '' : `id="p${lado}${i}" `}`
               + `x="${(signo < 0 ? x0 - aR : x0).toFixed(2)}" y="${y.toFixed(2)}" `
               + `width="${aR.toFixed(2)}" height="${relleno.toFixed(2)}" fill="${col}"/>`;
-      if (!dibujarSilueta) {
-        const d = fija ? glifoNegro(x0, signo, escala(fija.negro[clave][i], fija.eje), y + off, marco, s) : '';
-        negros += `<path ${fija ? '' : `id="n${lado}${i}" `}d="${d}" fill="none" `
-                + `stroke="${C.negro}" stroke-width="${s}" stroke-linejoin="miter"/>`;
-      }
+      const d = fija ? glifoNegro(x0, signo, escala(fija.negro[clave][i], fija.eje), y + off, marco, s) : '';
+      negros += `<path ${fija ? '' : `id="n${lado}${i}" `}d="${d}" fill="none" `
+              + `stroke="${C.negro}" stroke-width="${s}" stroke-linejoin="miter"/>`;
     }
     etiquetas += `<text x="${centro.toFixed(1)}" y="${(y + relleno / 2 + feEdad * 0.36).toFixed(1)}" `
                + `text-anchor="middle" font-size="${feEdad}" fill="${C.gris}">${esc(p.edades[i])}</text>`;
-  }
-
-  // ---- silueta de repuesto, si se pide ----
-  let silueta = '';
-  if (dibujarSilueta) {
-    const v = fija || vistas[0];
-    for (const [lado, signo] of LADOS) {
-      const serie = v.negro[lado === 'h' ? 'H' : 'M'];
-      const pts = [];
-      for (let i = 0; i < n; i++) {
-        const x = centro + signo * (hueco / 2 + escala(serie[i], v.eje));
-        pts.push(`${x.toFixed(1)},${(fy(i) + relleno).toFixed(1)}`, `${x.toFixed(1)},${fy(i).toFixed(1)}`);
-      }
-      silueta += `<polyline points="${pts.join(' ')}" fill="none" stroke="${IMPRIMIENDO ? C.gris : C.negro}" `
-               + `stroke-width="${IMPRIMIENDO ? 0.9 : 1.3}" stroke-linejoin="round"/>`;
-    }
   }
 
   // ---- franjas de lectura ----
@@ -512,12 +467,11 @@ function construirPiramide(p, w, h, vistaFija = null) {
   }
 
   const svg = abrirSVG(w, h, 'Pirámide de población en porcentaje sobre el total de cada población')
-    + rejilla + barras + negros + silueta + etiquetas + franjas + '</svg>';
+    + rejilla + barras + negros + etiquetas + franjas + '</svg>';
 
   return {
     svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, total,
     fy, relleno, marco, off, altoFila, trazo: s, glifo: glifoNegro,
-    silueta: dibujarSilueta,
     // La franja de lectura cubre la fila entera, no sólo la barra.
     fyFranja: (i) => m.t + (n - 1 - i) * altoFila,
     // El municipio completo, que es lo que enseña la lectura en reposo.
@@ -692,10 +646,7 @@ function pintarLeyendaPiramide(vista) {
     `<span><i class="llave" style="background:${C.azulMedio}"></i>${esc(vista.rotH)}</span>`,
     `<span><i class="llave" style="background:${C.azulClaro}"></i>${esc(vista.rotM)}</span>`,
   ];
-  if (vista.negro) {
-    const forma = PIRAMIDE && PIRAMIDE.silueta ? 'llave linea' : 'llave hueca';
-    llaves.push(`<span><i class="${forma}"></i>${esc(vista.rotNegro)}</span>`);
-  }
+  if (vista.negro) llaves.push(`<span><i class="llave hueca"></i>${esc(vista.rotNegro)}</span>`);
   cont.innerHTML = llaves.join('');
 }
 
@@ -708,9 +659,20 @@ function mostrarVista(i, animar = true) {
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   pintarLeyendaPiramide(v);
-  // El eje de la pestaña, con sus verticales y sus rótulos. Cambia de 7 a 14.
+  /* El eje de la pestaña, con sus verticales y sus rótulos. Cambia de 7 a 14,
+     y lo hace fundiéndose mientras las barras se mueven: un salto seco en la
+     rejilla se leía como un parpadeo. */
   const eje = document.querySelector('#g-piramide #eje-piramide');
-  if (eje) eje.innerHTML = P.ejeSVG(v.eje);
+  if (eje) {
+    const cambia = eje.dataset.eje !== String(v.eje);
+    if (cambia && animar && !reducido() && !document.hidden) {
+      eje.style.opacity = '0';
+      setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 220);
+    } else if (cambia || !eje.dataset.eje) {
+      eje.innerHTML = P.ejeSVG(v.eje);
+    }
+    eje.dataset.eje = String(v.eje);
+  }
 
   if (!P.nodos) {
     P.nodos = {}; P.actual = {};
@@ -1029,7 +991,10 @@ function conectarLecturaEvolucion() {
   const linea = guia.querySelector('line'), punto = guia.querySelector('circle');
   const cazador = svg.querySelector('#cazador-evolucion');
 
-  cazador.addEventListener('mousemove', (ev) => {
+  /* pointermove y pointerdown, no mousemove: con el ratón es lo mismo, y en el
+     móvil un toque o un arrastre sobre la curva dan el año y el dato, que antes
+     solo se podían leer con puntero. */
+  const situar = (ev) => {
     const caja = svg.getBoundingClientRect();
     const escalaX = svg.viewBox.baseVal.width / caja.width;
     const xSvg = (ev.clientX - caja.left) * escalaX;
@@ -1040,8 +1005,10 @@ function conectarLecturaEvolucion() {
     punto.setAttribute('cx', x.toFixed(1)); punto.setAttribute('cy', y.toFixed(1));
     guia.setAttribute('opacity', '1');
     salida.innerHTML = `<b>${X[mejor]}</b> · ${nf(Y[mejor])} habitantes`;
-  });
-  cazador.addEventListener('mouseleave', () => {
+  };
+  cazador.addEventListener('pointermove', situar);
+  cazador.addEventListener('pointerdown', situar);
+  cazador.addEventListener('pointerleave', () => {
     guia.setAttribute('opacity', '0');
     salida.textContent = '';
   });
