@@ -672,13 +672,6 @@ select {
   .cifra em { font-size: 11.5px; min-height: 16px; }
   .buscador { width: 100%; }
 }
-/* «Imprimir en A3» es cosa de escritorio: por debajo de 966 px de ancho la
-   barra necesitaba una fila más para él (a 768 px, el iPad vertical, pasaba
-   de 160 a 212 px de alto) y en móvil, reducido a su icono, era un segundo
-   icono de descarga idéntico al de al lado. */
-@media (max-width: 965px) {
-  #btn-pdf-a3 { display: none; }
-}
 @media (max-width: 620px) {
   .marca span { display: none; }
   /* Cinco botones con texto dejaban la barra en 288 px de alto: casi toda la
@@ -731,11 +724,10 @@ select {
 .desplegable { max-width: calc(100vw - 24px); }
 
 /* Fuente de cada gráfico (datos-ui.js): una línea al pie de la tarjeta, con la
-   redacción de Pedro. Debajo, plegado, «Datos y método»: fecha, cálculo,
-   enlace al recurso y la tabla de valores. */
+   redacción de Pedro. El desplegable de debajo solo lo usa ya la guía
+   («Fuente y fecha» de cada indicador). */
 .fuente-grafico { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--gris); text-wrap: pretty; }
 .datos-detalle { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--linea); text-align: left; }
-.fuente-grafico + .datos-detalle { margin-top: 8px; }
 .datos-detalle > summary {
   display: flex; align-items: center; gap: 7px; width: fit-content; padding: 4px 0;
   list-style: none; cursor: pointer; color: var(--gris); font-size: 11.5px; font-weight: 500;
@@ -752,13 +744,6 @@ select {
 .fuente-dato { margin: 10px 0; }
 .fuente-dato p { margin: 3px 0; line-height: 1.55; text-wrap: pretty; }
 .fuente-dato b { color: var(--negro); }
-.tabla-scroll { max-width: 100%; overflow: auto; margin: 6px 0 14px; }
-.tabla-datos { border-collapse: collapse; width: 100%; min-width: 420px; font-variant-numeric: tabular-nums; font-size: 12px; }
-.tabla-datos caption { text-align: left; color: var(--negro); font-weight: 600; padding: 4px 0 8px; }
-.tabla-datos th, .tabla-datos td { padding: 6px 10px; border-bottom: 1px solid var(--linea); text-align: right; white-space: nowrap; }
-.tabla-datos th { color: var(--negro); font-weight: 600; }
-.tabla-datos th:first-child { text-align: left; }
-.tabla-datos thead { background: var(--caja); }
 .pie-fuentes-papel { display: none; }
 @media (pointer: coarse) { .datos-detalle > summary { min-height: 44px; } }
 
@@ -767,9 +752,6 @@ select {
    origen, los tres mapas, pirámide e índices, componentes y nacimiento. Se
    dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
 @page { size: A4 portrait; margin: 9mm 10mm 7mm; }
-/* La ampliación a A3 («Imprimir en A3») la inyecta ficha.js con su propio
-   @page: con el tamaño fijado aquí en A4, elegir A3 en el diálogo no
-   ampliaba nada, la ficha salía a tamaño A4 centrada en la hoja grande. */
 
 /* ------------------------------------------------------------ presentación -- */
 #presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }

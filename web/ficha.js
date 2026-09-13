@@ -360,7 +360,10 @@ function construirPiramide(p, w, h, vistaFija = null) {
      origen extranjero": la base lleva Canarias y la otra es la añadida. */
   /* `rotH`, `rotM` y `rotNegro` son la leyenda de cada pestaña, tal cual la
      dictó Pedro para la segunda: "Hombres españoles, Mujeres españolas,
-     Extranjeros". */
+     Extranjeros". Estuvo cambiada a "nacidos en España / en el extranjero"
+     porque la fuente mide lugar de nacimiento y no nacionalidad; son sus
+     palabras y su método, y la línea de fuente ya dice "según sexo, edad y
+     lugar de nacimiento". */
   const vistas = [
     {
       clave: 'canarias', etiqueta: 'Municipio y Canarias',
@@ -373,7 +376,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       clave: 'municipio', etiqueta: 'Por lugar de nacimiento',
       relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
       negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
-      rotH: 'Hombres nacidos en España', rotM: 'Mujeres nacidas en España', rotNegro: 'Nacidos en el extranjero',
+      rotH: 'Hombres españoles', rotM: 'Mujeres españolas', rotNegro: 'Extranjeros',
       cuentaRelleno: esp, cuentaNegro: ext,
     },
   ];
@@ -384,7 +387,10 @@ function construirPiramide(p, w, h, vistaFija = null) {
   const centro = w / 2;
   const anchoLado = centro - hueco / 2 - m.l;
   const altoFila = (h - m.t - m.b) / n;
-  const relleno = altoFila * 0.70;          // 0,76 dejaba la calle de papel en 0,36 mm
+  /* 0,8 de la fila, como ALTO_BAR en el cuaderno de Pedro. En papel 0,7: con
+     0,76 la calle quedaba en 0,36 mm y los marcos negros de Canarias de dos
+     filas seguidas se pegaban. */
+  const relleno = altoFila * (IMPRIMIENDO ? 0.70 : 0.80);
   /* La capa negra tiene la MISMA altura que la barra azul, porque lo que Pedro
      pidió es una barra: "que las barras sean negras", "poner Canarias en barras
      negras vacías". A media altura se leía como una marca o un bigote, que es
@@ -401,18 +407,20 @@ function construirPiramide(p, w, h, vistaFija = null) {
   // ---- rejilla y eje ----
   /* Las verticales y sus rótulos dependen del eje de la pestaña, así que van en
      un grupo propio que `mostrarVista` vuelve a escribir al cambiar. Hasta 8
-     hay una línea por punto y rótulo cada dos; de 10 en adelante, línea cada
-     dos y rótulo cada cuatro, y el tope siempre rotulado: con el 14 sin rótulo
-     Pedro leyó que el eje «estaba puesto al 12». El 0 se rotula a los dos
-     lados, como pidió Pedro. */
+     hay una línea por punto; de 10 en adelante, cada dos. Los rótulos van de
+     dos en dos, como en el cuaderno de Pedro (`arange(-lim, lim, 2)`), salvo
+     donde dos por ciento no llegan a 30 px (el móvil con eje de 10 o más):
+     ahí cada cuatro. El tope siempre rotulado, que con el 14 sin rótulo Pedro
+     leyó que el eje «estaba puesto al 12». El 0 a los dos lados, como pidió. */
   const ejeSVG = (eje) => {
     const paso = eje <= 8 ? 1 : 2;
+    const cada = escala(2, eje) >= 30 ? 2 : 4;
     let out = '';
     for (let v = 0; v <= eje; v += paso) {
       for (const [, signo] of LADOS) {
         const x = centro + signo * (hueco / 2 + escala(v, eje));
         out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-        if (v % (paso * 2) === 0 || v === eje) {
+        if (v % cada === 0 || v === eje) {
           out += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
                + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
         }
@@ -892,9 +900,8 @@ function pintar(f) {
   }
   conectarLecturaEvolucion();
   conectarIndices();
-  // La fuente de cada gráfico se imprime; el desplegable de datos, no.
+  // La fuente de cada gráfico, también en papel.
   fuentesFicha(VISTA);
-  if (!IMPRIMIENDO) datosFicha(f);
 }
 
 /* ------------------------------------------------------- lecturas al vuelo -- */
@@ -1465,35 +1472,7 @@ addEventListener('afterprint', () => {
   IMPRIMIENDO = false;
   VISTA = VISTA_ANTES;
   pintar(FICHA);
-  const formato = document.getElementById('formato-impresion');
-  if (formato) formato.remove();
 });
-
-/* «Imprimir en A3»: la misma hoja, ampliada un 41 %, para quien elija A3 como
-   papel en el diálogo de impresión. Con el @page en A4 de estilos.css, elegir
-   A3 dejaba la ficha a tamaño A4 centrada en la hoja grande (medido en el
-   PDF: 17 pt de título en las dos). Aquí el @page A3 y la ampliación van
-   dentro de una condición sobre el papel de verdad elegido (≥ 250 × 380 mm),
-   que Chromium evalúa contra ese papel: con A3 la ficha sale ampliada
-   (título 24 pt, mismos textos que la A4); con A4 o carta, la A4 normal de
-   siempre. Un @page A3 sin condición hacía que Chromium encogiera la página
-   al 71 % si el usuario dejaba A4, peor que el botón normal. Safari no
-   atiende a @page size: ahí también hay que elegir A3 en el diálogo. La
-   ampliación va con transform y no con zoom —zoom recomponía y Chromium
-   partía la hoja en dos—. */
-function imprimirFicha(ampliada = false) {
-  document.getElementById('formato-impresion')?.remove();
-  if (ampliada) {
-    const estilo = document.createElement('style');
-    estilo.id = 'formato-impresion';
-    estilo.textContent = `@media print and (min-width: 250mm) and (min-height: 380mm) {
-        @page { size: A3 portrait; margin: 12.7mm 14.1mm 9.9mm; }
-        .envoltorio { width: 190mm; margin: 0; transform: scale(1.414); transform-origin: top left; }
-      }`;
-    document.head.appendChild(estilo);
-  }
-  window.print();
-}
 
 let temporizador = null, anchoPrevio = window.innerWidth;
 addEventListener('resize', () => {
@@ -1505,8 +1484,8 @@ addEventListener('resize', () => {
 
 async function iniciar() {
   montarIconos();
-  document.getElementById('btn-pdf').addEventListener('click', () => imprimirFicha(false));
-  document.getElementById('btn-pdf-a3').addEventListener('click', () => imprimirFicha(true));
+  // Abre el diálogo de impresión: la hoja es una A4, la que pidió Pedro.
+  document.getElementById('btn-pdf').addEventListener('click', () => window.print());
   enlacesAbsolutos();
   /* El pie de la hoja impresa dice dónde están las fuentes y el método: una
      dirección que se pueda teclear desde el papel. */
@@ -1523,7 +1502,6 @@ async function iniciar() {
     leerJSON('datos/geo/municipios.json'),
   ]);
 
-  configurarFuentes(INDICE);
   const sel = document.getElementById('sel-municipio');
   sel.innerHTML = Object.entries(INDICE.islas).map(([isla, muns]) =>
     `<optgroup label="${esc(isla)}">` + muns.map((n) => {

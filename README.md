@@ -69,7 +69,7 @@ web/dossier.html     las 88 fichas en un documento A4 de 98 hojas
 
 web/config.js        la URL pública, generada desde sitio.json
 web/comun.js         cifras, escapado, carga con error visible y el cruce con desenfoque
-web/datos-ui.js      la fuente de cada gráfico y el desplegable «Datos y método»: fecha y tabla
+web/datos-ui.js      la fuente de cada gráfico, y el desplegable de fuente y fecha de la guía
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja
 web/portada.js       buscador, listas por isla y entrada de la portada
 web/comparar.js      el comparador
@@ -158,14 +158,17 @@ vuelven blancos sin duplicar el marcado.
 azules y Canarias en barras negras huecas, cada uno sobre su población total.
 «Por lugar de nacimiento»: nacidos en España en azul y nacidos en el
 extranjero (hoja C24) en negro hueco, cada población sobre su propio total, que
-es como lo calcula Pedro. Los rótulos dicen *nacidos en* y no *españoles /
-extranjeros*: la fuente (ISTAC, E30243A_000004) mide dónde nació cada persona,
-no su nacionalidad, y una persona nacida fuera puede ser española. El eje lo
+es como lo calcula Pedro. La leyenda dice «Hombres españoles · Mujeres
+españolas · Extranjeros», que son las palabras que dictó él; la fuente (ISTAC,
+E30243A_000004) mide dónde nació cada persona, no su nacionalidad, y eso lo
+dice la línea de fuente de la pestaña («según sexo, edad y lugar de
+nacimiento»). Las barras ocupan 0,8 de la fila, como en su cuaderno. El eje lo
 decide cada pestaña de cada municipio en la escalera de los pares: el menor de
 6, 8, 10, 12… que cubre todas sus barras (`ejeAutomatico` en `web/comun.js`),
 que es la regla que dio Pedro: «al 6 u 8 por cien dependiendo del valor; si hay
 excepciones, que se ajuste automáticamente». Los rótulos van siempre de dos en
-dos y el tope siempre rotulado. Sale 6 en 86 municipios (8 en Artenara y
+dos, como en su cuaderno, salvo en el móvil con eje de 10 o más, donde van
+de cuatro en cuatro; el tope siempre rotulado. Sale 6 en 86 municipios (8 en Artenara y
 Tejeda) en la primera pestaña, y 6 en 49, 8 en 34, 10 en tres, 12 en Agulo y
 14 en Artenara en la segunda: sobre base propia los extranjeros de un
 municipio pequeño se concentran mucho, y un eje que corta una barra miente.
@@ -197,13 +200,11 @@ origen (la serie de cifras oficiales arranca en 1996 aunque un municipio
 empiece más tarde), así que no se calculan con los datos: se revisan a mano
 con cada actualización, y `pruebas/invariantes.py` avisa si el año de
 referencia del índice deja de aparecer en ellas. Las cifras clave no llevan
-línea de fuente: no son un gráfico. Debajo, plegado, «Datos y método»
-(«Método de cálculo» en cifras y mapas): fecha o periodo del dato, cómo se
-calcula, enlace al recurso estadístico y la tabla completa con los valores
-que el gráfico dibuja, para quien no pueda leer el gráfico o quiera el
-número exacto. Describe el dato, no lo interpreta, y va plegado para que la
-tarjeta cerrada siga siendo el gráfico y su fuente. En papel el desplegable
-no se imprime, y el camino a la guía va en la esquina de la cabecera.
+línea de fuente: no son un gráfico. Nada más al pie de la tarjeta: hubo
+un desplegable «Datos y método» con la tabla de valores, el cálculo y el
+enlace al recurso, y se retiró porque cargaba la ficha con información que
+Pedro no pidió; el método y los enlaces siguen en la guía. En papel el camino
+a la guía va en la esquina de la cabecera.
 
 En la hoja A4 cada fila de la retícula crece la línea de fuente (2,3 mm); se
 compensa con menos relleno en el pie y el rótulo de las tarjetas. Medido: la
@@ -251,26 +252,11 @@ propios. Escalar por CSS un gráfico pensado para 640 px hasta 60 mm dejaba las
 etiquetas del eje en tres puntos y unas encima de otras. En la hoja el reparto de
 la retícula pasa de 8/4 a 7/5: los índices repiten el nombre del municipio tres
 veces y a cuatro columnas se partía en tres líneas, que era lo que hacía que la
-ficha no cupiera en una cara. «Imprimir en A3» es la misma ficha ampliada un
-41 %, para quien la lectura de 5-6 pt le resulte pequeña; la A4 de una hoja
-sigue siendo el formato habitual. En el diálogo hay que elegir A3 como papel
-(el botón lo dice en su tooltip). Con `@page` fijado en A4, elegir A3 dejaba
-la ficha a tamaño A4 centrada en la hoja grande (medido en el PDF: 17 pt de
-título en las dos). El botón inyecta un `@page { size: A3 }` y un
-`transform: scale(1.414)` —no `zoom`, que cambiaba la composición y partía la
-hoja en dos— dentro de una condición sobre el papel elegido (250 × 380 mm o
-más), que Chromium evalúa contra ese papel: con A3, ampliada; con A4 o carta,
-la A4 de siempre. Un `@page` A3 sin condición hacía que Chromium encogiera la
-página al 71 % si el usuario dejaba A4, peor que el botón normal; Safari no
-atiende a `@page size` y también necesita elegir A3 a mano. La prueba mide el
-texto dentro del PDF: con A3, mismo número de textos que la A4 y todos ×1,41
-(título 17 → 24 pt); con A4 dejada, idéntica a la A4 normal. Lo que no se ha
-medido es el diálogo real de cada navegador: conviene probarlo a mano en
-Chrome y en Safari una vez (pulsar el botón, elegir A3, guardar PDF).
+ficha no cupiera en una cara. La hoja es una A4 y nada más: hubo un botón
+«Imprimir en A3» (la misma ficha ampliada un 41 % con un `@page` condicionado
+al papel elegido) y se retiró porque Pedro solo ha pedido la A4.
 El papel lleva al pie las fuentes y la dirección de la guía, para que se pueda
-llegar desde una hoja impresa a cada recurso estadístico. El botón no se
-muestra por debajo de 966 px de ancho: en tableta añadía una fila a la barra
-y en móvil, reducido a su icono, era un segundo icono de descarga.
+llegar desde una hoja impresa a cada recurso estadístico.
 
 ## Verificación
 
@@ -302,7 +288,7 @@ npm test
   lugar de nacimiento; la fuente de cada gráfico con la redacción de Pedro,
   que en la pirámide sigue a la pestaña; la pirámide sin cifras en reposo, con
   las del grupo señalado dentro del dibujo, el eje de 6 en Santa Cruz y de 8 y
-  14 en Artenara, y sin horizontales; «Datos y método» con sus 42 filas;
+  14 en Artenara, y sin horizontales; sin desplegables en las tarjetas;
   teclado de la
   pirámide y de la evolución tras redibujar e imprimir; la presentación es
   modal, Mayús+Tab recién abierta va a Salir y el foco vuelve al botón; el
@@ -310,8 +296,7 @@ npm test
   colores fijos, tabla semántica y sin texto en azul claro, con 1, 2 y 3
   municipios a 1280 y 375 px; el fallo de carga inicial visible; las siete
   islas abiertas dentro de la pantalla a 320, 375 y 1280, e Inicio/Fin desde el
-  disparador; el foco del buscador; la guía; las 88 fichas en una A4; la A3 con
-  los mismos textos que la A4 y todos ×1,41 medidos en el PDF; el dossier de
+  disparador; el foco del buscador; la guía; las 88 fichas en una A4; el dossier de
   98 páginas con su barra visible, sin hojas desbordadas y con la guía que
   calcula el último año de los componentes.
 
@@ -334,10 +319,10 @@ horizontales, también con los desplegables abiertos; sin texto por debajo de
 grande): el nombre del municipio en el comparador iba en el azul claro de su
 serie (2,1:1) y ahora va en negro con una marca de color debajo. Objetivos
 táctiles de 44 px con puntero grueso. Pirámide y evolución se recorren con
-teclado (flechas, Inicio, Fin) y cada tarjeta ofrece su tabla; las cifras del
-grupo de edad señalado en la pirámide, que en pantalla van dentro del dibujo,
-las dice en palabras una región viva invisible; las cifras del comparador son
-una tabla con encabezados de fila y columna. La presentación
+teclado (flechas, Inicio, Fin); las cifras del grupo de edad señalado en la
+pirámide, que en pantalla van dentro del dibujo, las dice en palabras una
+región viva invisible; cada gráfico lleva su descripción y su fuente, y las
+cifras del comparador son una tabla con encabezados de fila y columna. La presentación
 es un diálogo modal: el resto queda inerte, el tabulador no sale y al cerrar
 el foco vuelve al botón. El buscador de la portada enseña el foco en su caja.
 Las transiciones se desactivan con `prefers-reduced-motion` y con la pestaña
@@ -345,17 +330,13 @@ oculta, donde el navegador congela `requestAnimationFrame`.
 
 ## Pendiente
 
-- [ ] Que Pedro dé por buenos los rótulos «Nacidos en España» y «Nacidos en el
-      extranjero» de la pestaña por lugar de nacimiento (él había dicho
-      «españoles / extranjeros»; la fuente mide nacimiento, no nacionalidad).
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
 - [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk. Al
       mudarlo, cambiar `sitio.json` y ejecutar `generar_tarjetas.py`. El
       `<iframe>` de WordPress necesita `allow="fullscreen; clipboard-write"`
       y `allowfullscreen` para el modo presentación y el botón de copiar.
-- [ ] Probar a mano «Imprimir en A3» en el diálogo de Chrome y de Safari
-      (elegir A3, guardar PDF) y, tras publicar, la vista previa de un enlace
-      `m/<código>.html` en WhatsApp.
+- [ ] Tras publicar, probar la vista previa de un enlace `m/<código>.html`
+      en WhatsApp.
 - [ ] Ojo: la web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
       hereda el iframe. Está en la auditoría como hallazgo M1.

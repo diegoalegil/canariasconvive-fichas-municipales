@@ -3,8 +3,8 @@
    que no vuelven: última selección manda, comparador con tres plazas y sin
    duplicados, colores estables, errores visibles con reintento, menús de isla
    dentro de la pantalla, contraste de los nombres, tabla semántica, teclado
-   tras redibujar e imprimir, foco de la presentación, rótulos por lugar de
-   nacimiento, redondeo único, las 88 fichas en una A4, la A3 ampliada y el
+   tras redibujar e imprimir, foco de la presentación, leyenda de la pirámide
+   con las palabras de Pedro, redondeo único, las 88 fichas en una A4 y el
    dossier de 98 hojas con su barra visible.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
@@ -25,49 +25,6 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 let navegador, servidor, base, indice;
 const json = async (f) => JSON.parse(await fs.readFile(f, 'utf8'));
 const paginasPDF = (pdf) => (pdf.toString('latin1').match(/\/Type\s*\/Page(?:\s|\/|>)/g) || []).length;
-const zlib = require('node:zlib');
-/** Tamaño efectivo de cada texto de un PDF de Chromium: Tf × escala(Tm × CTM),
- *  entrando en los Form XObject, donde Chromium mete el contenido transformado.
- *  Sirve para demostrar que la A3 amplía de verdad, no solo que cabe. */
-function medirPDF(pdf) {
-  const mul = (a, b) => [a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3], a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
-  const d = pdf.toString('latin1');
-  const objs = {}; for (const m of d.matchAll(/(\d+) 0 obj([\s\S]*?)endobj/g)) objs[m[1]] = m[2];
-  const flujo = (o) => { const L = +(/\/Length\s+(\d+)/.exec(o) || [0, 0])[1]; const i = o.indexOf('stream') + 7; try { return zlib.inflateSync(Buffer.from(o.slice(i, i + L), 'latin1')).toString('latin1'); } catch { return ''; } };
-  const xobjects = (o) => { const r = /\/XObject\s*<<([^>]*)>>/.exec(o); const out = {}; if (r) for (const m of r[1].matchAll(/\/(\w+)\s+(\d+) 0 R/g)) out[m[1]] = m[2]; return out; };
-  const tam = []; let glifos = 0;
-  const recorrer = (recursos, contenido, ctm0) => {
-    const xo = xobjects(recursos);
-    const tok = contenido.match(/\[[^\]]*\]|<[0-9A-Fa-f]*>|\([^)]*\)|\/[^\s\[\]<>(/]+|-?\d*\.?\d+|[A-Za-z*'"]+/g) || [];
-    let ctm = ctm0, tm = [1, 0, 0, 1, 0, 0], tf = 1, nombre = null, cadena = ''; const pila = []; let nums = [];
-    for (const k of tok) {
-      if (/^-?\d*\.?\d+$/.test(k)) { nums.push(+k); continue; }
-      if (k[0] === '/') { nombre = k.slice(1); continue; }
-      if (k[0] === '<' || k[0] === '[' || k[0] === '(') { cadena = k; continue; }
-      if (k === 'q') pila.push(ctm); else if (k === 'Q') ctm = pila.pop() || ctm;
-      else if (k === 'cm') ctm = mul(nums.slice(-6), ctm);
-      else if (k === 'Tm') tm = nums.slice(-6); else if (k === 'BT') tm = [1, 0, 0, 1, 0, 0];
-      else if (k === 'Tf') tf = nums[nums.length - 1];
-      else if (k === 'Tj' || k === 'TJ') {
-        const m = mul(tm, ctm); tam.push(tf * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])));
-        // Glifos dibujados (un byte por glifo en las fuentes simples de Chromium): la cifra que
-        // tiene que coincidir entre A4 y A3. El número de operadores no sirve, porque Chromium
-        // parte las líneas en tramos distintos según la escala.
-        for (const h of cadena.matchAll(/<([0-9A-Fa-f]*)>/g)) glifos += h[1].length / 2;
-      }
-      else if (k === 'Do' && nombre && xo[nombre]) { const x = objs[xo[nombre]]; const mx = /\/Matrix\s*\[([^\]]+)\]/.exec(x); recorrer(x, flujo(x), mul(mx ? mx[1].trim().split(/\s+/).map(Number) : [1, 0, 0, 1, 0, 0], ctm)); }
-      nums = [];
-    }
-  };
-  let mediaBox = null;
-  for (const o of Object.values(objs)) {
-    if (!/\/Type\s*\/Page\b/.test(o) || /\/Type\s*\/Pages/.test(o)) continue;
-    const mb = /\/MediaBox\s*\[([^\]]+)\]/.exec(o); if (mb && !mediaBox) mediaBox = mb[1].trim().split(/\s+/).map(Number);
-    const c = /\/Contents\s+(\d+) 0 R/.exec(o); if (c) recorrer(o, flujo(objs[c[1]]), [1, 0, 0, 1, 0, 0]);
-  }
-  tam.sort((a, b) => a - b);
-  return { paginas: paginasPDF(pdf), anchoMm: mediaBox ? mediaBox[2] / 72 * 25.4 : 0, textos: tam.length, glifos, min: tam[0], max: tam[tam.length - 1] };
-}
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function abrir(ruta, { ancho = 1280, alto = 900, movimiento = 'reduce' } = {}) {
@@ -108,7 +65,7 @@ after(async () => { await navegador?.close(); await new Promise((r) => servidor?
 test('ficha: la última selección manda, el error se ve y se reintenta, y la TVMA se redondea una sola vez', async () => {
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   // Las Palmas tarda más que Betancuria: gana Betancuria, que fue la última.
   await retrasar(page, '**/datos/mun/35016.json', 500);
   await page.selectOption('#sel-municipio', '35016');
@@ -148,7 +105,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   // Se entra por el envoltorio estático (el que reciben los rastreadores): redirige a la
   // ficha, que vuelve a poner la dirección estable y sigue cargando datos desde la raíz.
   const { page, contexto, errores } = await abrir('m/38038.html');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   assert.equal(await page.locator('#nombre').textContent(), 'Santa Cruz de Tenerife');
   assert.ok(page.url().endsWith('/fichas/m/38038.html'), page.url());
   await page.selectOption('#sel-municipio', '38001');
@@ -158,29 +115,26 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
   // El fragmento sobrevive al cambio de dirección y a la redirección del envoltorio.
   await page.goto(base + 'ficha.html?municipio=38038#g-evolucion');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   assert.ok(page.url().endsWith('/fichas/m/38038.html#g-evolucion'), page.url());
   await page.goto(base + 'm/38038.html#g-evolucion');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   await espera(300);
   assert.ok(page.url().endsWith('/fichas/m/38038.html#g-evolucion'), page.url());
   assert.ok((await page.evaluate(() => scrollY)) > 0, 'el ancla se aplica tras la redirección');
   await page.goto(base + 'ficha.html?municipio=38038');
-  await page.waitForSelector('#datos-g-piramide');
-  const a3btn = page.locator('#btn-pdf-a3');
-  assert.equal(await a3btn.getAttribute('aria-label'), null, 'el nombre accesible es el texto visible');
-  assert.equal((await a3btn.textContent()).trim(), 'Imprimir en A3');
-  assert.ok((await a3btn.getAttribute('title') || '').includes('A3'));
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#btn-pdf-a3').count(), 0, 'sin botón de A3: la hoja es la A4 que pidió Pedro');
   await page.locator('.vista').nth(1).click();
   await espera(200);
-  assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres nacidos en España\nMujeres nacidas en España\nNacidos en el extranjero');
+  assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres españoles\nMujeres españolas\nExtranjeros', 'la leyenda que dictó Pedro');
   // En reposo la pirámide no enseña ninguna cifra (Pedro: «lo de todas las edades no debe salir»);
   // al señalar un grupo, las cifras van dentro del dibujo y la región viva las dice en palabras.
   assert.equal(await page.locator('#lectura-piramide').textContent(), '');
   assert.equal(await page.locator('#marcas-activas text').count(), 0);
   await page.locator('#g-piramide').focus();
   await page.keyboard.press('Home');
-  assert.match(await page.locator('#lectura-piramide').textContent(), /^0 a 4 años\. Hombres nacidos en España: .* Nacidos en el extranjero: hombres .*, mujeres /);
+  assert.match(await page.locator('#lectura-piramide').textContent(), /^0 a 4 años\. Hombres españoles: .* Extranjeros: hombres .*, mujeres /);
   assert.equal(await page.locator('#marcas-activas text').count(), 2, 'una cifra por lado');
   assert.match(await page.locator('#marcas-activas text').first().textContent(), /^\d+,\d\d\u00a0% · \d+,\d\d\u00a0%$/);
   await page.keyboard.press('Escape');
@@ -197,14 +151,9 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal(await page.locator('.fuente-grafico').count(), 7, 'siete gráficos con fuente; las cifras clave no la llevan');
   assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de los municipios, 1996–${indice.anio}.`);
   assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, cifras de población ${indice.anio}. Elaboración propia.`);
-  assert.deepEqual(await page.locator('.datos-detalle > summary').allTextContents(), ['Método de cálculo', 'Datos y método', 'Datos y método', 'Método de cálculo', ...Array(4).fill('Datos y método')]);
-  assert.equal(await page.locator('#fuente-g-evolucion + details').getAttribute('id'), 'datos-g-evolucion', 'la fuente va justo antes del desplegable');
-  // Datos y método: plegado, con enlace https y la tabla de las 21 edades.
-  const detalle = page.locator('#datos-g-piramide');
-  assert.equal(await detalle.getAttribute('open'), null);
-  await detalle.locator('summary').click();
-  assert.equal(await detalle.locator('tbody tr').count(), 42);
-  assert.ok((await detalle.locator('a[href^="https://"]').count()) >= 1);
+  // Sin desplegables de datos en las tarjetas: la fuente cierra la tarjeta.
+  assert.equal(await page.locator('.tarjeta details').count(), 0, 'las tarjetas no llevan desplegable');
+  assert.equal(await page.locator('#g-evolucion').evaluate((e) => e.parentElement.lastElementChild.id), 'fuente-g-evolucion');
   // Cada redibujo (ancho nuevo, impresión) conectaba otro manejador de teclado y
   // una flecha saltaba varios grupos. Home + ↑ tiene que dar siempre "5 a 9".
   for (const ancho of [1280, 1000, 375]) {
@@ -232,7 +181,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal(await rotulosEje(), '0% 2% 4% 6% 8%');
   await page.locator('.vista').nth(1).click();
   await espera(1000);
-  assert.equal(await rotulosEje(), '0% 4% 8% 12% 14%');
+  assert.equal(await rotulosEje(), '0% 2% 4% 6% 8% 10% 12% 14%', 'rótulos de dos en dos, como en el cuaderno de Pedro');
   await page.locator('.vista').nth(0).click();
   await espera(1000);
   await page.selectOption('#sel-municipio', '38038');
@@ -247,7 +196,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
 
 test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   await page.locator('#btn-presentar').click();
   assert.equal(await page.locator('#presentacion').getAttribute('aria-modal'), 'true');
   assert.equal(await page.locator('main').evaluate((e) => e.inert), true);
@@ -262,7 +211,7 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   await espera(900);
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
-  assert.match(await page.locator('#pres-leyenda').textContent(), /nacidos en España/);
+  assert.match(await page.locator('#pres-leyenda').textContent(), /Hombres españolesMujeres españolasExtranjeros/);
   assert.equal(await page.locator('#pres-lectura').count(), 0, 'la presentación tampoco lleva el bloque de lectura');
   await page.keyboard.press('Home');
   assert.equal(await page.locator('#pres-piramide text[paint-order]').count(), 2, 'las cifras del grupo, en el dibujo');
@@ -284,7 +233,7 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
 
 test('ficha: el cambio de municipio no deja fantasmas y con movimiento reducido no hay ninguno', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038', { movimiento: 'no-preference' });
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   await page.selectOption('#sel-municipio', '38001');
   await espera(150);
   assert.ok((await page.locator('.fantasma').count()) > 0, 'el cruce deja fantasmas mientras dura');
@@ -292,7 +241,7 @@ test('ficha: el cambio de municipio no deja fantasmas y con movimiento reducido 
   assert.equal(await page.locator('.fantasma').count(), 0);
   await contexto.close();
   const r = await abrir('ficha.html?municipio=38038');
-  await r.page.waitForSelector('#datos-g-piramide');
+  await r.page.waitForSelector('#fuente-g-origen');
   await r.page.selectOption('#sel-municipio', '38001');
   await espera(60);
   assert.equal(await r.page.locator('.fantasma').count(), 0);
@@ -328,9 +277,8 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   assert.equal(await page.locator('table.cmp-tabla th[scope="col"]').count(), 4);
   const claros = await page.locator('#cmp-resultado *').evaluateAll((els) => els.filter((e) => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).color === 'rgb(133, 183, 235)').length);
   assert.equal(claros, 0, 'texto en #85B7EB sobre blanco');
-  assert.equal(await page.locator('#datos-cmp-piramides table').count(), 6);
   assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}. Elaboración propia.`);
-  assert.equal(await page.locator('#cmp-extranjero .fuente-grafico + details > summary').textContent(), 'Datos y método');
+  assert.equal(await page.locator('#cmp-resultado details').count(), 0, 'el comparador tampoco lleva desplegables');
   for (const ancho of [1280, 375]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);
@@ -393,7 +341,7 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
   assert.notEqual(await page.locator('.buscador').evaluate((e) => getComputedStyle(e).outlineStyle), 'none');
   await page.fill('#buscar', 'guia');
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   assert.match(await page.locator('#nombre').textContent(), /Guía/);
   assert.deepEqual(errores, []);
   await contexto.close();
@@ -410,49 +358,28 @@ test('guía: fuentes cargadas, variación media anual y edad media explicadas', 
   await contexto.close();
 });
 
-test('papel: las 88 fichas caben en una A4, la A3 amplía la misma hoja y el dossier tiene 98 páginas con su barra', { timeout: 300000, ...SOLO_CHROMIUM }, async () => {
+test('papel: las 88 fichas caben en una A4 y el dossier tiene 98 páginas con su barra', { timeout: 300000, ...SOLO_CHROMIUM }, async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
   for (const m of indice.municipios) {
     await page.goto(base + `ficha.html?municipio=${m.codmun}`);
-    await page.waitForSelector('#datos-g-piramide');
+    await page.waitForSelector('#fuente-g-origen');
     await page.evaluate(() => document.fonts.ready);
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     assert.equal(paginasPDF(pdf), 1, `A4 de ${m.nombre}`);
   }
-  // «Imprimir en A3»: una hoja A3 con los mismos textos que la A4 y todos un 41 % más
-  // grandes, medido dentro del PDF (antes la hoja era A3 pero el texto seguía a 17 pt).
   await page.goto(base + 'ficha.html?municipio=38048');
-  await page.waitForSelector('#datos-g-piramide');
+  await page.waitForSelector('#fuente-g-origen');
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
   assert.equal(await page.locator('.pie-fuentes-papel a').textContent(), (sitio.url_publica + 'guia.html').replace(/^https?:\/\//, ''), 'el pie del papel lleva la dirección de la guía');
-  // En la hoja se imprime la fuente de cada gráfico y no el desplegable de datos.
+  // En la hoja se imprime la fuente de cada gráfico, y la ficha es una A4.
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('.fuente-grafico:visible').count(), 7, 'siete fuentes en la hoja');
-  assert.equal(await page.locator('.datos-detalle:visible').count(), 0, 'el desplegable no se imprime');
   assert.ok(await page.locator('.cabecera .pie-fuentes-papel').isVisible(), 'el camino a la guía va en la cabecera de la hoja');
   await page.emulateMedia({ media: null });
-  const a4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
-  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
-  // Papel A3 elegido en el diálogo: la condición de la ampliación se evalúa contra ese papel.
-  const a3 = medirPDF(await page.pdf({ format: 'A3', printBackground: true, margin: { top: '12.7mm', right: '14.1mm', bottom: '9.9mm', left: '14.1mm' } }));
-  // Si el usuario deja A4 (o carta), tiene que salir la A4 de siempre, no una hoja encogida.
-  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
-  const a4Dejada = medirPDF(await page.pdf({ format: 'A4', printBackground: true, margin: { top: '9mm', right: '10mm', bottom: '7mm', left: '10mm' } }));
-  assert.equal(a4Dejada.paginas, 1, 'A3 pedido con A4 dejado: una hoja');
-  assert.ok(Math.abs(a4Dejada.anchoMm - 210) < 1 && Math.abs(a4Dejada.max - a4.max) < 0.01 && Math.abs(a4Dejada.min - a4.min) < 0.01, `A3 pedido con A4 dejado: título ${a4Dejada.max.toFixed(2)} pt (A4 normal ${a4.max.toFixed(2)})`);
-  await page.evaluate(() => { const real = window.print; window.print = () => {}; imprimirFicha(true); window.print = real; });
-  const carta = medirPDF(await page.pdf({ format: 'Letter', printBackground: true, margin: { top: '9mm', right: '10mm', bottom: '7mm', left: '10mm' } }));
-  assert.equal(carta.paginas, 1, 'A3 pedido con carta dejada: una hoja');
-  await page.evaluate(() => dispatchEvent(new Event('afterprint')));
-  assert.equal(await page.locator('#formato-impresion').count(), 0, 'la hoja de estilo de la A3 se retira al acabar');
-  assert.equal(a3.paginas, 1, 'A3 en una hoja');
-  assert.ok(Math.abs(a3.anchoMm - 297) < 1, `la hoja mide ${a3.anchoMm.toFixed(1)} mm de ancho, no 297`);
-  assert.equal(a3.glifos, a4.glifos, 'la A3 lleva los mismos textos que la A4');
-  assert.ok(a4.glifos > 2000, `glifos contados en la A4: ${a4.glifos}`);
-  assert.ok(a3.max / a4.max > 1.40 && a3.max / a4.max < 1.43, `título ${a4.max.toFixed(2)} pt en A4 y ${a3.max.toFixed(2)} pt en A3`);
-  assert.ok(a3.min / a4.min > 1.40 && a3.min / a4.min < 1.43, `texto menor ${a4.min.toFixed(2)} pt en A4 y ${a3.min.toFixed(2)} pt en A3`);
-  const otraVezA4 = medirPDF(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
-  assert.ok(Math.abs(otraVezA4.max - a4.max) < 0.01 && otraVezA4.paginas === 1, 'tras la A3, la A4 vuelve a ser la de siempre');
+  const a4 = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+  assert.equal(paginasPDF(a4), 1);
+  const caja = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/.exec(a4.toString('latin1'));
+  assert.ok(caja && Math.abs(caja[1] / 72 * 25.4 - 210) < 1 && Math.abs(caja[2] / 72 * 25.4 - 297) < 1, `la hoja es una A4 (${caja && caja.slice(1).join(' × ')} pt)`);
   await page.goto(base + 'dossier.html');
   await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);

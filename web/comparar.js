@@ -289,7 +289,7 @@ function pintar(cruzar = false) {
   document.getElementById('cmp-indices').innerHTML = seccionIndices();
   document.getElementById('cmp-nacimiento').innerHTML = seccionNacimiento();
   document.getElementById('cmp-extranjero').innerHTML = seccionExtranjero();
-  datosComparador(ordenados());
+  fuentesComparador();
   soltar();
 }
 
@@ -359,7 +359,6 @@ async function iniciar() {
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 
   INDICE = await leerJSON('datos/indice.json');
-  configurarFuentes(INDICE);
 
   document.getElementById('sel-orden').addEventListener('change', (e) => {
     ORDEN = e.target.value;
