@@ -33,6 +33,8 @@ const TRAZOS = {
   flecha:      '<path d="M5 12h13M13 6l6 6-6 6"/>',
   descargar:   '<path d="M12 4v11M7.5 11L12 15.5 16.5 11"/><path d="M5 19h14"/>',
   enlace:      '<path d="M10 13.5a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1.3 1.3"/><path d="M14 10.5a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1.3-1.3"/>',
+  presentar:   '<rect x="3.5" y="4.5" width="17" height="12" rx="1.5"/><path d="M9 20h6M12 16.5V20"/>',
+  cerrar:      '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 
 /** Devuelve el icono como cadena SVG. El tamaño va en píxeles y el color lo

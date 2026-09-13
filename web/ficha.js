@@ -470,7 +470,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
     + rejilla + barras + negros + etiquetas + franjas + '</svg>';
 
   return {
-    svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, total,
+    svg, vistas, escala, ejeSVG, centro, hueco, edades: p.edades, total, w, h,
     fy, relleno, marco, off, altoFila, trazo: s, glifo: glifoNegro,
     // La franja de lectura cubre la fila entera, no sólo la barra.
     fyFranja: (i) => m.t + (n - 1 - i) * altoFila,
@@ -506,7 +506,7 @@ function bloqueIndices(ind, codigos) {
     return `<div class="indice">
       <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio}${d.unidad ? ' · ' + esc(d.unidad) : ''}</em></div>
       <div class="escala">${filas.map(([n, v], i) => `
-        <div class="peldano">
+        <div class="peldano" data-ambito="${esc(n)}">
           <span>${esc(n)}</span>
           <b>${nf(v, dec)}</b>
           <i style="background:${TONOS[i]}"></i>
@@ -621,10 +621,36 @@ function cifrasClave(f) {
 let GEO = null, INDICE = null, FICHA = null, PIRAMIDE = null, VISTA = 0;
 let FILA = null;   // grupo de edad señalado en la pirámide, o null
 
+/* CAMBIO DE MUNICIPIO SIN PARPADEO. Cada tarjeta deja un fantasma de su
+   contenido viejo encima, se repinta debajo y el fantasma se funde en 150 ms
+   (la cabecera, en 120). Nada se desplaza ni cambia de tamaño: solo opacidad.
+   La pirámide no lleva fantasma porque se transforma. */
+function fantasmas() {
+  if (reducido() || document.hidden) return () => {};
+  const objetivos = [[document.querySelector('.cabecera'), 120],
+    ...[...document.querySelectorAll('.tarjeta:not(.destacada) > .cuerpo')].map((e) => [e, 150])];
+  const clones = [];
+  for (const [el, ms] of objetivos) {
+    if (!el) continue;
+    const clon = el.cloneNode(true);
+    clon.classList.add('fantasma');
+    clon.removeAttribute('id');
+    clon.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
+    clon.style.transitionDuration = ms + 'ms';
+    el.style.position = 'relative';
+    el.appendChild(clon);
+    clones.push([clon, ms]);
+  }
+  return () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    for (const [clon, ms] of clones) { clon.style.opacity = '0'; setTimeout(() => clon.remove(), ms + 40); }
+  }));
+}
+
 async function cargar(codmun) {
   const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
-  VISTA = 0;
+  const soltar = FICHA ? fantasmas() : () => {};
   pintar(f);
+  soltar();
   history.replaceState(null, '', `?municipio=${codmun}`);
 }
 
@@ -686,6 +712,7 @@ function mostrarVista(i, animar = true) {
     }
   }
   if (!P.nodos.h.r[0]) return;
+  for (const [lado] of LADOS_PI) P.nodos[lado].n.forEach((c) => c && c.removeAttribute('opacity'));
 
   const hacia = {}, desde = {};
   for (const [lado, , cl] of LADOS_PI) {
@@ -805,9 +832,22 @@ function pintar(f) {
      puede llevar las dos, porque en 2,56 mm de fila dos contornos negros se
      entretejen y no se puede seguir ninguno. */
   if (IMPRIMIENDO) VISTA = 0;
-  PIRAMIDE = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : acotar(wPi * 0.70, 360, 470));
-  doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
-  mostrarVista(VISTA, false);
+  const nueva = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : acotar(wPi * 0.70, 360, 470));
+  /* Si ya hay una pirámide en pantalla con la misma geometría, no se borra:
+     sus 42 barras se mueven hasta la forma del municipio nuevo con la misma
+     transición del cambio de pestaña. El movimiento es la cantidad: se ve
+     cuánto cambia cada grupo de edad. Canarias, que es la misma, no se mueve.
+     En papel, al cambiar de ancho y la primera vez se dibuja de cero. */
+  const enPantalla = !!(PIRAMIDE && PIRAMIDE.nodos && !IMPRIMIENDO
+    && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && doc.querySelector('#g-piramide svg'));
+  if (enPantalla) {
+    Object.assign(PIRAMIDE, { vistas: nueva.vistas, municipio: nueva.municipio, total: nueva.total, edades: nueva.edades });
+    mostrarVista(VISTA, true);
+  } else {
+    PIRAMIDE = nueva;
+    doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
+    mostrarVista(VISTA, false);
+  }
 
   doc.getElementById('g-indices').innerHTML =
     bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14']);
@@ -832,8 +872,12 @@ function pintar(f) {
       </div>
     </div>`).join('');
 
-  conectarLecturaPiramide();
+  if (!enPantalla) {
+    conectarLecturaPiramide();
+    if (!ENTRADA_HECHA) { ENTRADA_HECHA = true; animarEntrada(); }
+  }
   conectarLecturaEvolucion();
+  conectarIndices();
 }
 
 /* ------------------------------------------------------- lecturas al vuelo -- */
@@ -1039,6 +1083,287 @@ function conectarCompartir() {
   });
 }
 
+/* ----------------------------------------------------------------- entrada -- */
+/* Al abrir la ficha, las barras azules crecen desde el canal central, de
+   abajo arriba —0 a 4 primero, 8 ms de desfase por grupo, 260 ms cada una con
+   easeOutCubic— y Canarias aparece después por fundido, sin crecer, porque no
+   es el municipio. Una sola vez por carga; ni en papel, ni con reduced-motion,
+   ni con la pestaña oculta, donde requestAnimationFrame se congela. */
+let ENTRADA_HECHA = false;
+function animarEntrada() {
+  const P = PIRAMIDE;
+  if (!P || !P.nodos || IMPRIMIENDO || reducido() || document.hidden) return;
+  const v = P.vistas[VISTA], n = v.relleno.H.length;
+  const DESFASE = 8, BARRA = 260, TOTAL = DESFASE * (n - 1) + BARRA;
+  const hacia = {};
+  for (const [lado, , cl] of LADOS_PI) {
+    hacia[lado] = {
+      r: v.relleno[cl].map((x) => P.escala(x, v.eje)),
+      n: (v.negro ? v.negro[cl] : v.relleno[cl].map(() => 0)).map((x) => P.escala(x, v.eje)),
+    };
+  }
+  const t0 = performance.now();
+  const paso = (t) => {
+    const ms = t - t0;
+    const opNegro = acotar((ms - 150) / 200, 0, 1).toFixed(2);
+    for (const [lado, sg] of LADOS_PI) {
+      const x0 = P.centro + sg * P.hueco / 2;
+      for (let k = 0; k < n; k++) {
+        const pr = acotar((ms - DESFASE * k) / BARRA, 0, 1);
+        const aR = hacia[lado].r[k] * (1 - Math.pow(1 - pr, 3));
+        const rect = P.nodos[lado].r[k];
+        rect.setAttribute('width', aR.toFixed(2));
+        rect.setAttribute('x', (sg < 0 ? x0 - aR : x0).toFixed(2));
+        P.actual[lado].r[k] = aR;
+        const cam = P.nodos[lado].n[k];
+        if (cam) {
+          cam.setAttribute('d', P.glifo(x0, sg, hacia[lado].n[k], P.fy(k) + P.off, P.marco, P.trazo));
+          cam.setAttribute('opacity', opNegro);
+          P.actual[lado].n[k] = hacia[lado].n[k];
+        }
+      }
+    }
+    if (ms < TOTAL) { animacion = requestAnimationFrame(paso); return; }
+    for (const [lado] of LADOS_PI) P.nodos[lado].n.forEach((c) => c && c.removeAttribute('opacity'));
+    if (P.senalar && FILA != null) P.senalar(FILA);
+  };
+  cancelAnimationFrame(animacion);
+  animacion = requestAnimationFrame(paso);
+}
+
+/* ------------------------------------------------ índices que se responden -- */
+/* Señalar "Municipio" en un índice lo resalta en los cuatro a la vez y atenúa
+   las otras columnas: se sigue un territorio a través de los índices sin
+   cambiar el orden ni el tono, que son el diseño de Pedro. Con ratón, al
+   pasar; con el dedo, un toque fija y otro suelta. */
+function conectarIndices() {
+  const cont = document.getElementById('g-indices');
+  if (!cont) return;
+  cont.dataset.fijo = '';
+  if (cont.dataset.conectado) return;
+  cont.dataset.conectado = '1';
+  const marcar = (amb) => cont.querySelectorAll('.peldano').forEach((c) => {
+    c.classList.toggle('foco', !!amb && c.dataset.ambito === amb);
+    c.classList.toggle('tenue', !!amb && c.dataset.ambito !== amb);
+  });
+  cont.addEventListener('pointerover', (e) => {
+    const c = e.target.closest('.peldano');
+    if (c && e.pointerType !== 'touch' && !cont.dataset.fijo) marcar(c.dataset.ambito);
+  });
+  cont.addEventListener('pointerleave', () => { if (!cont.dataset.fijo) marcar(null); });
+  cont.addEventListener('click', (e) => {
+    const c = e.target.closest('.peldano');
+    if (!c) return;
+    cont.dataset.fijo = cont.dataset.fijo === c.dataset.ambito ? '' : c.dataset.ambito;
+    marcar(cont.dataset.fijo || null);
+  });
+}
+
+/* ------------------------------------------------------------ presentación -- */
+/* Para proyectar la ficha en un pleno: seis diapositivas de 1920×1080 a
+   pantalla completa con los mismos datos, el mismo orden y la misma paleta.
+   Solo cambia el tamaño; no hay ninguna cifra ni palabra que no esté ya en la
+   ficha. ← → pasan de diapositiva, ↑ ↓ recorren los grupos de edad en las
+   pirámides, Esc sale. Las diapositivas 3 y 4 comparten la pirámide: entre
+   ellas no se funde, se transforma, con el eje pasando de 7 a 14. */
+const PRES = { abierta: false, paso: 1, fila: null, vista: 0, P: null };
+const PRES_CAPA = [0, 1, 2, 2, 3, 4];   // diapositiva → capa
+
+function presLectura() {
+  const P = PRES.P, v = P.vistas[PRES.vista], i = PRES.fila;
+  const base = P.vistas[1], vc = P.vistas[0];
+  const suma = (V) => V.reduce((a, b) => a + (b || 0), 0);
+  const val = (V) => i == null ? suma(V) : (V[i] || 0);
+  const pH = val(P.municipio.pct.H), pM = val(P.municipio.pct.M);
+  const cH = val(P.municipio.cuenta.H), cM = val(P.municipio.cuenta.M);
+  const fila = (rot, a, b, na, nb) => `<div class="pl-fila"><span>${rot}</span><span><b>${nf(a, 2)}${UNI}% · ${nf(b, 2)}${UNI}%</b>`
+    + (na == null ? '' : ` <em>${nf(na)} · ${nf(nb)}</em>`) + `</span></div>`;
+  const filas = [
+    fila('Españoles', val(base.relleno.H), val(base.relleno.M), val(base.cuentaRelleno.H), val(base.cuentaRelleno.M)),
+    fila('Extranjeros', val(base.negro.H), val(base.negro.M), val(base.cuentaNegro.H), val(base.cuentaNegro.M)),
+    fila('Canarias', val(vc.negro.H), val(vc.negro.M), null, null),
+  ];
+  if (PRES.vista === 0) filas.unshift(filas.pop());
+  document.getElementById('pres-lectura').innerHTML = `
+    <div class="pl-grupo">${i == null ? 'Todas las edades' : esc(P.edades[i]) + ' años'} · ${nf(i == null ? P.total : cH + cM)} personas</div>
+    <div class="pl-cab">Municipio</div>
+    <div class="pl-fila"><span>Hombres</span><span><b>${nf(pH, 2)}${UNI}%</b> <em>${nf(cH)}</em></span></div>
+    <div class="pl-fila"><span>Mujeres</span><span><b>${nf(pM, 2)}${UNI}%</b> <em>${nf(cM)}</em></span></div>
+    <div class="pl-cab">hombres · mujeres</div>${filas.join('')}`;
+  document.getElementById('pres-leyenda').innerHTML =
+    `<span><i class="llave" style="background:${C.azulMedio}"></i>${esc(v.rotH)}</span>`
+    + `<span><i class="llave" style="background:${C.azulClaro}"></i>${esc(v.rotM)}</span>`
+    + `<span><i class="llave hueca"></i>${esc(v.rotNegro)}</span>`;
+}
+
+/** Franja iluminada y los cuatro marcadores del grupo señalado, como en la ficha. */
+function presSenalar() {
+  const P = PRES.P, i = PRES.fila, g = PRES.marcas;
+  if (i == null) { g.innerHTML = ''; presLectura(); return; }
+  let out = `<rect x="12" y="${P.fyFranja(i).toFixed(1)}" width="${(P.w - 24).toFixed(1)}" height="${P.altoFila.toFixed(1)}" fill="${C.azul}" opacity=".07"/>`;
+  for (const [lado, sg] of LADOS_PI) {
+    const x0 = P.centro + sg * P.hueco / 2, y = P.fy(i) + P.relleno / 2;
+    const xr = x0 + sg * PRES.actual[lado].r[i], xn = x0 + sg * PRES.actual[lado].n[i];
+    out += `<circle cx="${xr.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4" fill="${C.azul}" stroke="#FFFFFF" stroke-width="1.2"/>`
+         + `<rect x="${(xn - 3.1).toFixed(1)}" y="${(y - 3.1).toFixed(1)}" width="6.2" height="6.2" fill="#FFFFFF" stroke="${C.negro}" stroke-width="1.3"/>`;
+  }
+  g.innerHTML = out;
+  presLectura();
+}
+
+/** La pirámide de la presentación pasa a la vista pedida; animada, se transforma. */
+function presMostrar(vista, animar) {
+  const P = PRES.P, v = P.vistas[vista], n = P.edades.length;
+  PRES.vista = vista;
+  const hacia = {}, desde = {};
+  for (const [lado, , cl] of LADOS_PI) {
+    hacia[lado] = { r: v.relleno[cl].map((x) => P.escala(x, v.eje)), n: v.negro[cl].map((x) => P.escala(x, v.eje)) };
+    desde[lado] = { r: PRES.actual[lado].r.slice(), n: PRES.actual[lado].n.slice() };
+  }
+  const aplicar = (t) => {
+    for (const [lado, sg] of LADOS_PI) {
+      const x0 = P.centro + sg * P.hueco / 2;
+      for (let k = 0; k < n; k++) {
+        const aR = desde[lado].r[k] + (hacia[lado].r[k] - desde[lado].r[k]) * t;
+        const aN = desde[lado].n[k] + (hacia[lado].n[k] - desde[lado].n[k]) * t;
+        const rect = PRES.nodos[lado].r[k];
+        rect.setAttribute('width', Math.max(0, aR).toFixed(2));
+        rect.setAttribute('x', (sg < 0 ? x0 - aR : x0).toFixed(2));
+        PRES.nodos[lado].n[k].setAttribute('d', P.glifo(x0, sg, aN, P.fy(k) + P.off, P.marco, P.trazo));
+        PRES.actual[lado].r[k] = aR; PRES.actual[lado].n[k] = aN;
+      }
+    }
+  };
+  document.getElementById('pres-titulo-pir').textContent = 'Estructura de la población · ' + v.etiqueta;
+  cancelAnimationFrame(PRES.animacion);
+  // Con la pestaña oculta requestAnimationFrame se congela: se cambia en seco.
+  if (!animar || reducido() || document.hidden) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presSenalar(); return; }
+  presLectura();
+  PRES.eje.style.opacity = '0';
+  setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 220);
+  const dur = 620, t0 = performance.now();
+  const paso = (t) => {
+    const p = Math.min(1, (t - t0) / dur);
+    aplicar(p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    if (p < 1) PRES.animacion = requestAnimationFrame(paso); else presSenalar();
+  };
+  PRES.animacion = requestAnimationFrame(paso);
+}
+
+function presIr(paso) {
+  paso = acotar(paso, 1, 6);
+  const capaAntes = PRES_CAPA[PRES.paso - 1], capa = PRES_CAPA[paso - 1];
+  PRES.paso = paso;
+  document.querySelectorAll('#presentacion .pres-diapo').forEach((d, k) => d.classList.toggle('activa', k === capa));
+  document.getElementById('pres-contador').textContent = `${paso} / 6`;
+  if (capa === 2) presMostrar(paso === 3 ? 0 : 1, capaAntes === 2);
+}
+
+function cerrarPresentacion() {
+  if (!PRES.abierta) return;
+  PRES.abierta = false;
+  cancelAnimationFrame(PRES.animacion);
+  document.removeEventListener('keydown', PRES.teclas);
+  removeEventListener('resize', PRES.escalar);
+  const cont = document.getElementById('presentacion');
+  if (cont) cont.remove();
+  document.body.classList.remove('presentando');
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+
+function abrirPresentacion() {
+  if (!FICHA || PRES.abierta) return;
+  const f = FICHA, c = f.cifras, ev = f.evolucion, o = f.origen;
+  const signo = c.tvma >= 0 ? '+' : '−';
+  const P = construirPiramide(f.piramide, 640, 400, 0);
+  const ultimaCan = ultimoValido(f.extranjero.canarias);
+  const anillo = (tit, vals) => `<div class="pres-anillo"><h3>${tit}</h3>${anilloOrigen(vals, 74, 30).replace(/width="148" height="148"/, 'width="300" height="300"')}
+    <div class="pres-reparto">${o.categorias.map((cat, k) => `<div><i style="background:${TONOS_ORIGEN[k]}"></i><span>${esc(cat)}</span><b>${nf(vals[k], 1)}${UNI}%</b></div>`).join('')}</div></div>`;
+  const capas = [
+    `<div class="pres-fila"><div><p class="pres-kicker">${esc(f.isla)} · ${esc(f.comarca.replace(/^.*? - /, ''))}</p><h1>${esc(f.nombre)}</h1>
+      <p class="pres-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
+     <div class="pres-cifras">
+      <div><b>${signo}${nf(Math.abs(c.tvma), 1)}<span>${UNI}%</span></b><i>Variación media anual</i><em>Serie ${ev.anio_base}–${ev.anio_fin}</em></div>
+      <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
+      <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
+      <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
+     <img class="pres-logo" src="img/logo-canariasconvive.png" alt="Canarias Convive">`,
+    `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
+     <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>`,
+    `<h2 id="pres-titulo-pir">Estructura de la población · Municipio y Canarias</h2>
+     <div class="pres-pir"><div><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1120" height="700"')}</figure>
+     <div class="leyenda" id="pres-leyenda"></div></div><div class="pres-lectura" id="pres-lectura"></div></div>`,
+    `<h2>Información geodemográfica</h2><p class="pres-sub">Los tres ámbitos, ordenados de menor a mayor valor</p>
+     <div class="pres-indices">${bloqueIndices(f.indices, ['C10', 'C11', 'C17', 'C14'])}</div>`,
+    `<div class="pres-dos"><div><h2>Lugar de nacimiento</h2><div class="pres-anillos">${anillo('Municipio', o.municipio)}${anillo('Canarias', o.canarias)}</div></div>
+     <div><h2>Origen extranjero</h2>${graficoExtranjero(f.extranjero, 560, 300).replace('width="100%"', 'width="840" height="450"')}
+     <div class="leyenda" style="justify-content:flex-start"><span><i class="llave" style="background:${C.negro};height:3px;border-radius:0"></i>Canarias${UNI}<b>${pct(ultimaCan)}</b></span></div></div></div>`,
+  ];
+  const cont = document.createElement('div');
+  cont.id = 'presentacion';
+  cont.setAttribute('role', 'dialog'); cont.setAttribute('aria-label', 'Presentación de la ficha'); cont.tabIndex = -1;
+  cont.innerHTML = `<div class="pres-escenario">${capas.map((h, k) => `<section class="pres-diapo${k === 0 ? ' activa' : ''}">${h}</section>`).join('')}</div>
+    <button class="pres-zona izq" type="button" aria-label="Anterior"></button><button class="pres-zona der" type="button" aria-label="Siguiente"></button>
+    <button class="pres-cerrar" type="button" aria-label="Salir de la presentación">${icono('cerrar', 20)}</button>
+    <span class="pres-contador" id="pres-contador">1 / 6</span>`;
+  document.body.appendChild(cont);
+  document.body.classList.add('presentando');
+
+  // La pirámide: nodos, estado y el grupo de marcas.
+  const svg = cont.querySelector('#pres-piramide svg');
+  const rects = [...svg.querySelectorAll(`rect[fill="${C.azulMedio}"], rect[fill="${C.azulClaro}"]`)];
+  const paths = [...svg.querySelectorAll(`path[stroke="${C.negro}"]`)];
+  PRES.P = P; PRES.paso = 1; PRES.fila = null; PRES.vista = 0; PRES.abierta = true;
+  PRES.nodos = { h: { r: [], n: [] }, m: { r: [], n: [] } };
+  PRES.actual = { h: { r: [], n: [] }, m: { r: [], n: [] } };
+  const v0 = P.vistas[0];
+  for (let k = 0; k < P.edades.length; k++) {
+    for (const [lado, , cl] of LADOS_PI) {
+      const j = k * 2 + (lado === 'h' ? 0 : 1);
+      PRES.nodos[lado].r.push(rects[j]); PRES.nodos[lado].n.push(paths[j]);
+      PRES.actual[lado].r.push(P.escala(v0.relleno[cl][k], v0.eje));
+      PRES.actual[lado].n.push(P.escala(v0.negro[cl][k], v0.eje));
+    }
+  }
+  PRES.eje = svg.querySelector('g');
+  PRES.eje.style.transition = 'opacity .22s ease';
+  PRES.marcas = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  svg.appendChild(PRES.marcas);
+  presLectura();
+
+  // Escala del escenario, teclado, zonas y cierre.
+  const escenario = cont.querySelector('.pres-escenario');
+  PRES.escalar = () => {
+    const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+    escenario.style.transform = `translate(-50%, -50%) scale(${k.toFixed(4)})`;
+  };
+  PRES.escalar();
+  addEventListener('resize', PRES.escalar);
+  PRES.teclas = (e) => {
+    const n = P.edades.length, enPiramide = PRES_CAPA[PRES.paso - 1] === 2;
+    switch (e.key) {
+      case 'ArrowRight': case 'PageDown': case ' ': presIr(PRES.paso + 1); break;
+      case 'ArrowLeft': case 'PageUp': presIr(PRES.paso - 1); break;
+      case 'ArrowUp': if (!enPiramide) return; PRES.fila = PRES.fila == null ? 0 : Math.min(n - 1, PRES.fila + 1); presSenalar(); break;
+      case 'ArrowDown': if (!enPiramide) return; PRES.fila = PRES.fila == null ? n - 1 : Math.max(0, PRES.fila - 1); presSenalar(); break;
+      case 'Home': if (!enPiramide) return; PRES.fila = 0; presSenalar(); break;
+      case 'End': if (!enPiramide) return; PRES.fila = n - 1; presSenalar(); break;
+      case 'Escape': cerrarPresentacion(); break;
+      default: return;
+    }
+    e.preventDefault();
+  };
+  document.addEventListener('keydown', PRES.teclas);
+  cont.querySelector('.pres-zona.izq').addEventListener('click', () => presIr(PRES.paso - 1));
+  cont.querySelector('.pres-zona.der').addEventListener('click', () => presIr(PRES.paso + 1));
+  cont.querySelector('.pres-cerrar').addEventListener('click', cerrarPresentacion);
+  cont.focus();
+  // Pantalla completa si el navegador (y el iframe que nos aloje) lo permiten;
+  // si no, la presentación ocupa el marco de la ficha, que ya es algo.
+  if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+}
+addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && PRES.abierta) cerrarPresentacion(); });
+
 /* ------------------------------------------------------------------ inicio -- */
 /** Coloca el icono del set en cada rótulo y en cada botón que lo pida. Se
  *  inyecta desde aquí y no se escribe en el HTML para que los trazos vivan en
@@ -1080,6 +1405,7 @@ addEventListener('resize', () => {
 async function iniciar() {
   montarIconos();
   document.getElementById('btn-pdf').addEventListener('click', () => window.print());
+  document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
   [INDICE, GEO] = await Promise.all([

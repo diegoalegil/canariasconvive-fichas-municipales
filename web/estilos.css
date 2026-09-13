@@ -282,6 +282,18 @@ select {
   color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
 }
 .peldano i { display: block; height: 7px; border-radius: var(--r-1); }
+/* Los índices se responden: la columna señalada se resalta en los cuatro y
+   las otras se atenúan. Solo color y opacidad; nada cambia de sitio. */
+.peldano { transition: opacity .12s linear; cursor: default; }
+.peldano span, .peldano b { transition: color .12s linear; }
+.peldano.foco span { color: var(--negro); font-weight: 700; }
+.peldano.foco b { text-decoration: underline; text-decoration-color: var(--azul); text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.peldano.tenue { opacity: .45; }
+
+/* Fantasma del contenido anterior al cambiar de municipio: se funde encima
+   del nuevo, sin desplazar nada. */
+.fantasma { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--fondo);
+  overflow: hidden; transition: opacity linear; margin: 0; }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
@@ -729,7 +741,66 @@ select {
    dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
 @page { size: A4 portrait; margin: 9mm 10mm 7mm; }
 
+/* ------------------------------------------------------------ presentación -- */
+#presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }
+body.presentando { overflow: hidden; }
+.pres-escenario { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center; }
+.pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; opacity: 0; transition: opacity .2s linear; pointer-events: none; }
+.pres-diapo.activa { opacity: 1; pointer-events: auto; }
+.pres-diapo h1 { font-size: 120px; font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--azul); margin: 12px 0 0; }
+.pres-diapo h2 { font-size: 44px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 32px; color: var(--negro); }
+.pres-fila { display: flex; justify-content: space-between; align-items: flex-start; }
+.pres-kicker { font-size: 22px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--gris); }
+.pres-anio { font-size: 96px; font-weight: 700; color: var(--azul-anio); letter-spacing: -.03em; line-height: 1; }
+.pres-hab { margin-top: 40px; }
+.pres-hab b { font-size: 64px; font-weight: 400; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.pres-hab span { font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-left: 16px; }
+.pres-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
+.pres-cifras b { display: block; font-size: 72px; font-weight: 600; color: var(--azul); letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pres-cifras b span { font-size: .42em; }
+.pres-cifras i { display: block; font-style: normal; font-size: 20px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); margin-top: 16px; }
+.pres-cifras em { display: block; font-style: normal; font-size: 18px; color: var(--gris-40); margin-top: 8px; min-height: 22px; font-variant-numeric: tabular-nums; }
+.pres-logo { position: absolute; left: 48px; bottom: 32px; height: 40px; }
+.pres-centro { display: flex; justify-content: center; }
+.pres-sub { font-size: 24px; color: var(--gris); margin: -16px 0 40px; }
+.pres-pir { display: grid; grid-template-columns: 1120px minmax(0, 1fr); gap: 56px; align-items: start; }
+.pres-pir .leyenda { gap: 40px; margin-top: 8px; }
+.pres-pir .leyenda span { font-size: 24px; gap: 12px; }
+.pres-pir .llave { width: 22px; height: 22px; border-radius: 5px; }
+.pres-pir .llave.hueca { border-width: 2.4px; }
+.pres-lectura { font-size: 32px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.pl-grupo { font-size: 40px; font-weight: 700; margin-bottom: 24px; }
+.pl-cab { font-size: 18px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); margin: 24px 0 8px; }
+.pl-fila { display: grid; grid-template-columns: 200px auto; gap: 24px; }
+.pl-fila b { font-weight: 700; color: var(--negro); }
+.pl-fila em { font-style: normal; color: var(--gris-40); font-size: 24px; }
+.pres-indices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 120px; }
+.pres-indices .indice-tit { margin-bottom: 24px; }
+.pres-indices .indice-tit b { font-size: 34px; }
+.pres-indices .indice-tit em { font-size: 20px; }
+.pres-indices .escala { gap: 16px; }
+.pres-indices .peldano span { font-size: 20px; min-height: 0; }
+.pres-indices .peldano b { font-size: 56px; margin: 8px 0 14px; letter-spacing: -.03em; }
+.pres-indices .peldano i { height: 14px; border-radius: 7px; }
+.pres-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+.pres-dos .leyenda span { font-size: 24px; gap: 12px; }
+.pres-anillos { display: flex; gap: 56px; justify-content: center; }
+.pres-anillo { text-align: center; }
+.pres-anillo h3 { font-size: 26px; font-weight: 700; margin-bottom: 16px; }
+.pres-reparto { font-size: 24px; display: grid; gap: 12px; margin: 24px auto 0; max-width: 360px; text-align: left; }
+.pres-reparto div { display: grid; grid-template-columns: 22px 1fr auto; gap: 16px; align-items: center; }
+.pres-reparto i { width: 22px; height: 22px; border-radius: 5px; display: block; }
+.pres-reparto b { font-variant-numeric: tabular-nums; }
+.pres-contador { position: absolute; right: 48px; bottom: 36px; font-size: 20px; color: var(--gris-40); font-variant-numeric: tabular-nums; z-index: 3; }
+.pres-cerrar { position: absolute; top: 24px; right: 24px; z-index: 3; width: 48px; height: 48px; border-radius: var(--r-full);
+  border: 1px solid var(--linea); background: var(--fondo); color: var(--gris); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pres-cerrar:hover { color: var(--azul); border-color: var(--azul); }
+.pres-zona { position: absolute; top: 0; bottom: 0; width: 22%; background: transparent; border: 0; cursor: pointer; z-index: 2; }
+.pres-zona.izq { left: 0; }
+.pres-zona.der { right: 0; }
+
 @media print {
+  #presentacion { display: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
