@@ -290,10 +290,12 @@ select {
 .peldano.foco b { text-decoration: underline; text-decoration-color: var(--azul); text-decoration-thickness: 2px; text-underline-offset: 5px; }
 .peldano.tenue { opacity: .45; }
 
-/* Fantasma del contenido anterior al cambiar de municipio: se funde encima
-   del nuevo, sin desplazar nada. */
-.fantasma { position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--fondo);
-  overflow: hidden; transition: opacity linear; margin: 0; }
+/* Fantasma del contenido anterior (comun.js, `cruce`): copia exacta colocada
+   encima, sin fondo ni borde propios para que se vea el cruce, que se difumina
+   y se apaga mientras el contenido nuevo se enfoca debajo. */
+.fantasma { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; overflow: hidden;
+  margin: 0 !important; background: transparent !important; border-color: transparent !important;
+  box-shadow: none !important; animation: none !important; }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
@@ -481,7 +483,7 @@ select {
 .vacio { font-size: 13px; color: var(--gris); }
 
 /* --------------------------------------------------------------- entrada --- */
-@keyframes surgir { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes surgir { from { opacity: 0; transform: translateY(10px); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
 .cabecera, .tarjeta { animation: surgir .45s cubic-bezier(.22,.7,.3,1) backwards; }
 .tarjeta:nth-of-type(1) { animation-delay: .04s; }
 .tarjeta:nth-of-type(2) { animation-delay: .08s; }
@@ -748,10 +750,16 @@ body.presentando { overflow: hidden; }
 /* Cada diapositiva centra su contenido en vertical: la de nacimiento y origen
    extranjero, más baja que las demás, quedaba pegada arriba con media pantalla
    vacía debajo. */
-.pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; opacity: 0; transition: opacity .2s linear; pointer-events: none;
+/* Entre diapositivas, fundido con desenfoque: la que sale se difumina y la que
+   entra se enfoca, a la vez, en 320 ms. La oculta pasa a visibility:hidden al
+   acabar para no tener cinco capas de 1920×1080 desenfocadas en memoria. */
+.pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; pointer-events: none;
+  opacity: 0; filter: blur(14px); visibility: hidden;
+  transition: opacity .32s ease, filter .32s ease, visibility 0s linear .32s;
   display: flex; flex-direction: column; justify-content: center; }
 .pres-diapo > * { flex: none; }
-.pres-diapo.activa { opacity: 1; pointer-events: auto; }
+.pres-diapo.activa { opacity: 1; filter: blur(0); visibility: visible; pointer-events: auto; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) { .pres-diapo { transition: none; filter: none; } }
 .pres-diapo h1 { font-size: 120px; font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--azul); margin: 12px 0 0; }
 .pres-diapo h2 { font-size: 44px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 32px; color: var(--negro); }
 .pres-fila { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -806,6 +814,7 @@ body.presentando { overflow: hidden; }
 
 @media print {
   #presentacion { display: none !important; }
+  .fantasma { display: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }

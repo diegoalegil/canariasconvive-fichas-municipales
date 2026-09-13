@@ -256,19 +256,23 @@ function anchoColumna() {
   return Math.max(150, Math.floor((total - 20 * (cols - 1)) / cols));
 }
 
-function pintar() {
+/* `cruzar`: al añadir, quitar o reordenar, cada sección cambia por cruce con
+   desenfoque (comun.js). Al redibujar por un cambio de ancho, en seco. */
+function pintar(cruzar = false) {
+  const soltar = cruzar ? cruce('#cmp-elegidos, #cmp-cifras, #cmp-piramides, #cmp-indices, #cmp-nacimiento, #cmp-extranjero') : () => {};
   const vacio = ELEGIDOS.length === 0;
   document.getElementById('cmp-vacio').hidden = !vacio;
   document.getElementById('cmp-resultado').hidden = vacio;
   pintarElegidos();
   history.replaceState(null, '', ELEGIDOS.length ? `?m=${ELEGIDOS.map((f) => f.codmun).join(',')}` : location.pathname);
-  if (vacio) return;
+  if (vacio) { soltar(); return; }
 
   document.getElementById('cmp-cifras').innerHTML = seccionCifras();
   document.getElementById('cmp-piramides').innerHTML = seccionPiramides(anchoColumna());
   document.getElementById('cmp-indices').innerHTML = seccionIndices();
   document.getElementById('cmp-nacimiento').innerHTML = seccionNacimiento();
   document.getElementById('cmp-extranjero').innerHTML = seccionExtranjero();
+  soltar();
 }
 
 function pintarElegidos() {
@@ -290,12 +294,12 @@ async function anadir(codmun) {
   if (ELEGIDOS.some((f) => String(f.codmun) === String(codmun))) return;
   const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
   ELEGIDOS.push(f);
-  pintar();
+  pintar(true);
 }
 
 function quitar(codmun) {
   ELEGIDOS = ELEGIDOS.filter((f) => String(f.codmun) !== String(codmun));
-  pintar();
+  pintar(true);
 }
 
 function montarIconos() {
@@ -325,7 +329,7 @@ async function iniciar() {
 
   document.getElementById('sel-orden').addEventListener('change', (e) => {
     ORDEN = e.target.value;
-    if (ELEGIDOS.length) pintar();
+    if (ELEGIDOS.length) pintar(true);
   });
 
   const sel = document.getElementById('sel-anadir');

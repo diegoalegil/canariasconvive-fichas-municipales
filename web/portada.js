@@ -149,7 +149,6 @@ function montarBuscador() {
 }
 
 /* -------------------------------------------------------------- entrada --- */
-const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 let yaEntro = false;
 
 /** Arranca la animación cuando la portada entra en pantalla, una sola vez. */

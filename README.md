@@ -185,6 +185,20 @@ retira al acabar, para que un giro de pantalla no vuelva a lanzar la oleada.
 Con `prefers-reduced-motion` no hay animación ni se registra el observador: se
 ve directamente el estado final.
 
+**Todo cambio de contenido es un cruce con desenfoque.** Al cambiar de municipio
+en la ficha, de pestaña en la pirámide, de diapositiva en la presentación o de
+municipios en el comparador, lo que había se difumina y se apaga encima (260 ms)
+mientras lo nuevo aparece debajo enfocándose (460 ms). Nada se desplaza ni cambia
+de tamaño: el ojo ve *que* ha cambiado sin tener que releer para saberlo. Es una
+sola función, `cruce` en `comun.js`, que deja un fantasma de cada bloque, se
+repinta y suelta. La pirámide no se cruza: sus 42 barras se mueven hasta la
+forma nueva —arranque rápido y frenada larga, porque entre dos municipios
+parecidos el recorrido es de pocos píxeles y con una curva simétrica el primer
+tercio no se veía nada— con un pulso de desenfoque que acompaña al movimiento.
+La entrada de la ficha espera a que la pestaña se mire: abierta en segundo plano,
+antes se daba por hecha sin que nadie la viera. En papel, con `prefers-reduced-
+motion` y con la pestaña oculta no hay cruce ni pulso: se ve el estado final.
+
 **El listado no es un extra, sostiene la accesibilidad del mapa.** En un móvil
 hay trece municipios del norte de Tenerife cuya forma baja de los 24 px que pide
 la norma para un objetivo táctil; el más pequeño es Puerto de la Cruz, con 16x11.

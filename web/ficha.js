@@ -621,40 +621,18 @@ function cifrasClave(f) {
 let GEO = null, INDICE = null, FICHA = null, PIRAMIDE = null, VISTA = 0;
 let FILA = null;   // grupo de edad señalado en la pirámide, o null
 
-/* CAMBIO DE MUNICIPIO SIN PARPADEO. Cada tarjeta deja un fantasma de su
-   contenido viejo encima, se repinta debajo y el fantasma se funde en 150 ms
-   (la cabecera, en 120). Nada se desplaza ni cambia de tamaño: solo opacidad.
-   La pirámide no lleva fantasma porque se transforma. */
-function fantasmas() {
-  if (reducido() || document.hidden) return () => {};
-  const objetivos = [[document.querySelector('.cabecera'), 120],
-    ...[...document.querySelectorAll('.tarjeta:not(.destacada) > .cuerpo')].map((e) => [e, 150])];
-  const clones = [];
-  for (const [el, ms] of objetivos) {
-    if (!el) continue;
-    const clon = el.cloneNode(true);
-    clon.classList.add('fantasma');
-    clon.removeAttribute('id');
-    clon.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
-    clon.style.transitionDuration = ms + 'ms';
-    el.style.position = 'relative';
-    el.appendChild(clon);
-    clones.push([clon, ms]);
-  }
-  return () => requestAnimationFrame(() => requestAnimationFrame(() => {
-    for (const [clon, ms] of clones) { clon.style.opacity = '0'; setTimeout(() => clon.remove(), ms + 40); }
-  }));
-}
+/* CAMBIO DE MUNICIPIO. La cabecera, el cuerpo de cada tarjeta y la lectura de
+   la pirámide cambian por cruce con desenfoque (`cruce`, en comun.js). La
+   pirámide no: sus barras se transforman en `pintar`. */
+const CRUCE_MUNICIPIO = '.cabecera, .tarjeta:not(.destacada) > .cuerpo, #lectura-piramide';
 
 async function cargar(codmun) {
   const f = await (await fetch(`datos/mun/${codmun}.json`)).json();
-  const soltar = FICHA ? fantasmas() : () => {};
+  const soltar = FICHA ? cruce(CRUCE_MUNICIPIO) : () => {};
   pintar(f);
   soltar();
   history.replaceState(null, '', `?municipio=${codmun}`);
 }
-
-const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Transición entre pestañas. Interpola a la vez el ancho del relleno azul y el
  *  largo del glifo negro. Al pasar a "Por lugar de nacimiento" el eje se dobla
@@ -676,7 +654,10 @@ function pintarLeyendaPiramide(vista) {
   cont.innerHTML = llaves.join('');
 }
 
-function mostrarVista(i, animar = true, dur = 620) {
+/** `salida` = arranque rápido y frenada larga (easeOutCubic): es lo que se usa
+ *  entre municipios, donde el recorrido puede ser de pocos píxeles y con la
+ *  curva simétrica el primer tercio no se veía moverse. */
+function mostrarVista(i, animar = true, dur = 620, salida = false) {
   if (!PIRAMIDE) return;
   const P = PIRAMIDE;
   VISTA = i;
@@ -691,7 +672,7 @@ function mostrarVista(i, animar = true, dur = 620) {
   const eje = document.querySelector('#g-piramide #eje-piramide');
   if (eje) {
     const cambia = eje.dataset.eje !== String(v.eje);
-    if (cambia && animar && !reducido() && !document.hidden) {
+    if (cambia && animar && animable()) {
       eje.style.opacity = '0';
       setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 220);
     } else if (cambia || !eje.dataset.eje) {
@@ -749,12 +730,14 @@ function mostrarVista(i, animar = true, dur = 620) {
      cambio de eje es un desplazamiento grande. `senalar` existe en cuanto la
      lectura está conectada; si no, basta con repintar la lectura. */
   const refrescar = () => (P.senalar && FILA != null) ? P.senalar(FILA) : pintarLectura(FILA);
-  if (!animar || reducido() || document.hidden) { aplicar(1); refrescar(); return; }
+  if (!animar || !animable()) { aplicar(1); refrescar(); return; }
 
+  pulsoDesenfoque(document.querySelector('#g-piramide svg'), Math.min(dur, 640));
   const t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
-    const e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // easeInOutCubic
+    const e = salida ? 1 - Math.pow(1 - p, 3)                                  // easeOutCubic
+      : (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);         // easeInOutCubic
     aplicar(e);
     if (p < 1) animacion = requestAnimationFrame(paso); else refrescar();
   };
@@ -842,9 +825,11 @@ function pintar(f) {
     && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && doc.querySelector('#g-piramide svg'));
   if (enPantalla) {
     Object.assign(PIRAMIDE, { vistas: nueva.vistas, municipio: nueva.municipio, total: nueva.total, edades: nueva.edades });
-    /* 900 ms y no los 620 de la pestaña: entre dos municipios parecidos las
-       barras se mueven pocos píxeles, y a 620 el cambio pasaba desapercibido. */
-    mostrarVista(VISTA, true, 900);
+    /* Arranque rápido (`salida`) y 700 ms: entre dos municipios parecidos las
+       barras recorren pocos píxeles, y con la curva simétrica de la pestaña el
+       primer tercio del tiempo no se veía nada. El pulso de desenfoque que
+       acompaña al movimiento hace visible el cambio aunque sea de 3 px. */
+    mostrarVista(VISTA, true, 700, true);
   } else {
     PIRAMIDE = nueva;
     doc.getElementById('g-piramide').innerHTML = PIRAMIDE.svg;
@@ -876,7 +861,7 @@ function pintar(f) {
 
   if (!enPantalla) {
     conectarLecturaPiramide();
-    if (!ENTRADA_HECHA) { ENTRADA_HECHA = true; animarEntrada(); }
+    if (!ENTRADA_HECHA && !IMPRIMIENDO) { ENTRADA_HECHA = true; programarEntrada(); }
   }
   conectarLecturaEvolucion();
   conectarIndices();
@@ -1092,6 +1077,39 @@ function conectarCompartir() {
    es el municipio. Una sola vez por carga; ni en papel, ni con reduced-motion,
    ni con la pestaña oculta, donde requestAnimationFrame se congela. */
 let ENTRADA_HECHA = false;
+
+/* La entrada espera a que la pestaña se mire: abierta en segundo plano (desde
+   el comparador o con la tecla de comando), antes se daba por hecha sin que
+   nadie la viera y la ficha aparecía ya quieta. */
+function programarEntrada() {
+  const entrar = () => { animarEntrada(); entradaContenido(); };
+  if (!document.hidden) { entrar(); return; }
+  const alVolver = () => {
+    if (document.hidden) return;
+    removeEventListener('visibilitychange', alVolver);
+    entrar();
+  };
+  addEventListener('visibilitychange', alVolver);
+}
+
+/* El contenido de la cabecera y de cada tarjeta se enfoca al llegar los datos,
+   de arriba abajo con 35 ms entre bloques. */
+function entradaContenido() {
+  if (!animable()) return;
+  document.querySelectorAll('.cabecera, .tarjeta > .cuerpo').forEach((el, i) =>
+    el.animate([{ opacity: 0, filter: 'blur(8px)' }, { opacity: 1, filter: 'blur(0px)' }],
+      { duration: 520, delay: 35 * i, easing: SUAVE, fill: 'backwards' }));
+}
+
+/* Cambio de pestaña: las barras se transforman y la leyenda y la lectura,
+   que cambian de rótulos, se cruzan con desenfoque. */
+function cambiarVista(i) {
+  if (!PIRAMIDE || i === VISTA) return;
+  const soltar = cruce('#leyenda-piramide, #lectura-piramide');
+  mostrarVista(i);
+  soltar();
+}
+
 function animarEntrada() {
   const P = PIRAMIDE;
   if (!P || !P.nodos || IMPRIMIENDO || reducido() || document.hidden) return;
@@ -1239,8 +1257,11 @@ function presMostrar(vista, animar) {
   document.getElementById('pres-titulo-pir').textContent = 'Estructura de la población · ' + v.etiqueta;
   cancelAnimationFrame(PRES.animacion);
   // Con la pestaña oculta requestAnimationFrame se congela: se cambia en seco.
-  if (!animar || reducido() || document.hidden) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presSenalar(); return; }
+  if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presSenalar(); return; }
+  const soltar = cruce('#pres-leyenda, #pres-lectura');
   presLectura();
+  soltar();
+  pulsoDesenfoque(document.querySelector('#pres-piramide svg'), 620, 4);
   PRES.eje.style.opacity = '0';
   setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 220);
   const dur = 620, t0 = performance.now();
@@ -1428,7 +1449,7 @@ async function iniciar() {
   sel.addEventListener('change', () => cargar(sel.value));
 
   document.querySelectorAll('.vista').forEach((b, i) =>
-    b.addEventListener('click', () => mostrarVista(i)));
+    b.addEventListener('click', () => cambiarVista(i)));
 
   await cargar(inicial);
 }
