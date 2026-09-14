@@ -207,17 +207,18 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.keyboard.press('End');
   assert.match(await page.locator('#lectura-piramide').textContent(), /^100 o más años\. Hombres: < 0,01\u00a0%;/);
   await page.keyboard.press('Escape');
-  // Una franja fijada con el clic no se pierde al redibujar ni se imprime.
-  await page.locator('.franja[data-i="10"]').click();
+  // Una franja fijada con el clic no se pierde al redibujar ni se imprime. La fila de 90 a 94
+  // tiene barras cortas: la cifra cabe fuera con holgura, sea cual sea la medida del texto.
+  await page.locator('.franja[data-i="18"]').click();
   await espera(150);
-  assert.equal(await page.evaluate(() => FILA), 10);
+  assert.equal(await page.evaluate(() => FILA), 18);
   const cajas = await page.locator('#marcas-activas text').evaluateAll((ts) => ts.map((t) => t.getBoundingClientRect().right));
-  const barra = await page.locator('#ph10').evaluate((b) => b.getBoundingClientRect().left);
+  const barra = await page.locator('#ph18').evaluate((b) => b.getBoundingClientRect().left);
   assert.ok(cajas[0] < barra, 'la cifra de la izquierda cae fuera de la barra cuando cabe');
   await page.setViewportSize({ width: 1100, height: 900 });
   await espera(500);
   await page.locator('.franja[data-i="3"]').hover();
-  assert.equal(await page.evaluate(() => FILA), 10, 'tras redibujar, el ratón no cambia la franja fijada');
+  assert.equal(await page.evaluate(() => FILA), 18, 'tras redibujar, el ratón no cambia la franja fijada');
   await page.evaluate(() => dispatchEvent(new Event('beforeprint')));
   await espera(150);
   assert.equal(await page.locator('#marcas-activas text').count(), 0, 'en la hoja no hay franja señalada');
@@ -225,7 +226,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal(await page.locator('#g-componentes svg text').evaluateAll((ts) => ts.map((t) => t.textContent).filter((t) => /^20\d\d$/.test(t)).length), 12, 'en la hoja el eje de componentes va cada dos años, con 2002');
   await page.evaluate(() => dispatchEvent(new Event('afterprint')));
   await espera(150);
-  assert.equal(await page.evaluate(() => FILA), 10, 'la franja fijada vuelve tras imprimir');
+  assert.equal(await page.evaluate(() => FILA), 18, 'la franja fijada vuelve tras imprimir');
   await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1280, height: 900 });
   await espera(500);

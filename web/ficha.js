@@ -687,6 +687,9 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
 addEventListener('visibilitychange', () => {
   if (document.hidden && PIRAMIDE) mostrarVista(VISTA, false);
 });
+// Las cifras de la fila señalada se colocan midiendo el texto: si la tipografía
+// llega después de medir, se recolocan con la definitiva.
+document.fonts?.addEventListener('loadingdone', () => { if (PIRAMIDE?.senalar && FILA != null) PIRAMIDE.senalar(FILA); });
 
 function pintar(f) {
   FICHA = f;
