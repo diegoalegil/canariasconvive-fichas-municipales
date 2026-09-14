@@ -1,13 +1,7 @@
-# =============================================================================
-#  FICHAS MUNICIPALES · CANARIAS CONVIVE
-#  MUNICIPIOS.gpkg (17,8 MB) -> GeoJSON simplificado para web.
-#
-#  Lee el GeoPackage con sqlite3 y un parser WKB propio, y simplifica con
-#  Douglas-Peucker. Sin geopandas ni GDAL: solo biblioteca estándar.
-#
-#  Las coordenadas se dejan en EPSG:4083 (REGCAN95 / UTM 28N, metros). No hace
-#  falta reproyectar para dibujar: el front escala cada mapa a su recuadro.
-# =============================================================================
+# MUNICIPIOS.gpkg -> GeoJSON simplificado para la web. Lee el GeoPackage con
+# sqlite3 y un lector WKB propio y simplifica con Douglas-Peucker; solo
+# biblioteca estándar. Las coordenadas quedan en EPSG:4083 (metros): la web
+# escala cada mapa a su recuadro sin reproyectar.
 import json
 import sqlite3
 import struct

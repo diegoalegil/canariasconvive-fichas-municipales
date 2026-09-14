@@ -4,8 +4,9 @@ Prototipo de las 88 fichas demográficas municipales como página web interactiv
 para colgar en canariasconvive.com.
 
 Parte del trabajo de **Pedro Delgado** (`FICHAS_MUNICIPALES.ipynb` + `BASE_DATOS_CANCON.xlsx`),
-que sigue siendo la fuente de verdad de los datos y de la metodología. Aquí no se
-recalcula ningún indicador: los índices se leen ya calculados desde el Excel.
+que sigue siendo la fuente de verdad de los datos y de la metodología. Los cuatro
+índices se leen ya calculados desde el Excel; la variación media anual, la edad
+media y los puestos se calculan en el exportador.
 
 ## Cómo se levanta
 
@@ -41,8 +42,8 @@ Los dos primeros leen de `~/Downloads/`; la ruta está en una constante al
 principio de cada script. **Los tres van juntos**: las tarjetas y los
 envoltorios llevan la población y el año escritos, y si se regeneran los datos
 sin regenerarlos se quedan viejos. `exportar_datos.py` guarda también, en
-`indice.json`, la fuente de cada indicador —organismo, enlace, años cubiertos
-y fecha de revisión— leída del índice `INDEX-F` del libro por `metadatos.py`.
+`indice.json`, la fuente de cada indicador —organismo, enlace y años cubiertos—
+leída del índice `INDEX-F` del libro por `metadatos.py`.
 La URL pública del sitio está en un solo sitio, `sitio.json`; de ahí salen las
 canónicas y las etiquetas `og:` de las cinco páginas, los envoltorios de
 `web/m/` y `web/config.js`, que la da al JS para el botón de compartir. Mudar
@@ -135,7 +136,7 @@ cápsula centrada de borde fino: competía con el título de la sección y dejab
 tarjeta sin anclaje. Espaciados de base 4, cuatro radios y dos sombras, siempre
 tintadas en azul y nunca en negro puro.
 
-**Iconografía propia.** Diez iconos sobre retícula de 24, trazo 1,5 uniforme y
+**Iconografía propia.** Quince iconos sobre retícula de 24, trazo 1,5 uniforme y
 monocromo, en `iconos.js`. Ninguno usa banderas ni siluetas humanas: al hablar de
 personas, un signo geométrico no arrastra los sesgos que arrastra un retrato. El
 color lo pone el contenedor con `currentColor`, así que sobre la cabecera azul se
@@ -213,9 +214,9 @@ lo mismo porque en El Pinar y Frontera el gráfico de componentes cede a su nota
 de 2007 los 3 mm que las hacían más altas), y la hoja más alta del dossier
 294,0 mm de 297.
 
-**Lo que corrigió la auditoría del 14 de septiembre.** Se revisó el chat
-completo con Pedro, las 85 peticiones que hizo y todo el código; lo que no
-necesitaba decisión se corrigió en la v=80. En la portada, las cuatro cifras
+**Lo que corrigió la revisión del 14 de septiembre.** Se repasaron todas las
+peticiones de Pedro y todo el código; lo que no necesitaba decisión se corrigió
+en la v=80. En la portada, las cuatro cifras
 van junto al título (el hueco de 48 px las mandaba siempre debajo y media caja
 azul quedaba vacía), bajo el título no queda nada, los siete desplegables de
 isla miden lo mismo (`height`, no `max-height`), los chips caben en una fila,
@@ -313,9 +314,9 @@ npm test
   páginas), las cinco cargan la misma versión de recursos, ningún texto
   atribuye los datos al padrón, y una mudanza a una URL ficticia no deja
   rastro del dominio anterior.
-- `pruebas/conciliar_excel.py`: 3.784 comparaciones contra el libro, celda a
+- `pruebas/conciliar_excel.py`: 2.992 comparaciones contra el libro, celda a
   celda —población, series, origen extranjero con el decimal que se muestra,
-  componentes con sus anomalías, los siete índices en los tres ámbitos,
+  componentes con sus anomalías, los cuatro índices en los tres ámbitos,
   puestos y pesos, las 42 barras de cada pirámide y el lugar de nacimiento—.
   Corre dentro de `npm test`; necesita el Excel en `~/Downloads` y `openpyxl`
   (si falta cualquiera de los dos, se omite avisando). No corre en GitHub
@@ -336,7 +337,7 @@ npm test
   islas abiertas dentro de la pantalla a 320, 375 y 1280, e Inicio/Fin desde el
   disparador; el foco del buscador; la guía; las 88 fichas en una A4; el dossier de
   98 páginas con su barra visible, sin hojas desbordadas y con la guía que
-  calcula el último año de los componentes y nombra a GRAFCAN; y lo corregido en la auditoría del 14 de septiembre: las
+  calcula el último año de los componentes y nombra a GRAFCAN; y lo corregido en la revisión del 14 de septiembre: las
   cifras de la portada junto al título, los desplegables del mismo alto, los
   chips en una fila, Escape en el buscador, los rótulos de evolución,
   componentes y origen extranjero sin pisarse a 320, 375 y 414 px en cuatro
@@ -384,4 +385,4 @@ oculta, donde el navegador congela `requestAnimationFrame`.
 - [ ] Tras publicar, probar la vista previa de un enlace `m/<código>.html`
       en WhatsApp.
 - [ ] Ojo: la web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
-      hereda el iframe. Está en la auditoría como hallazgo M1.
+      hereda el iframe.

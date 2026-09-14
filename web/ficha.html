@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=80">
+<link rel="stylesheet" href="estilos.css?v=81">
 </head>
 <body>
 
@@ -39,8 +39,7 @@
     <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
     <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
     <button class="btn btn-liso" type="button" id="btn-presentar" data-ico="presentar" aria-label="Presentar"><span>Presentar</span></button>
-    <!-- «Imprimir / guardar PDF» y no «Descargar PDF»: abre el diálogo de
-         impresión, no descarga nada. La hoja es una A4, la que pidió Pedro. -->
+    <!-- Abre el diálogo de impresión (la hoja es una A4), no descarga nada. -->
     <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Imprimir / guardar PDF</button>
   </div>
 </header>
@@ -55,8 +54,7 @@
       <span class="anio" id="anio"></span>
     </div>
     <p class="habitantes" id="habitantes"></p>
-    <!-- Solo en papel, en la esquina inferior derecha de la cabecera: la fuente
-         de cada gráfico va bajo el gráfico, y aquí queda el camino a la guía. -->
+    <!-- Solo en papel: el camino a la guía, en la esquina de la cabecera. -->
     <p class="pie-fuentes-papel">Método, fechas y enlace a cada recurso estadístico: <a href="guia.html">guía de los indicadores</a></p>
   </section>
 
@@ -87,13 +85,10 @@
       </header>
       <div class="cuerpo">
         <figure id="g-extranjero"></figure>
-        <!-- La cifra la pone el JS: Pedro pidió "dejar solo Canarias" y
-             "resaltar debajo lo de Canarias y su valor". -->
         <div class="leyenda" id="leyenda-extranjero"></div>
       </div>
     </section>
 
-    <!-- Franja central: los tres mapas a tamaño grande. -->
     <section class="tarjeta">
       <header class="rotulo" data-ico="territorio">
         <div><h2>El municipio en su entorno</h2><p>Su puesto por población y el peso que tiene en cada ámbito</p></div>
@@ -103,7 +98,6 @@
       </div>
     </section>
 
-    <!-- La destacada de la página: es la única con cabecera plena. -->
     <section class="tarjeta dos-tercios destacada">
       <header class="rotulo" data-ico="edad">
         <div><h2>Estructura de la población</h2></div>
@@ -114,13 +108,8 @@
           <button class="vista" type="button" aria-pressed="false">Por lugar de nacimiento</button>
         </div>
         <figure id="g-piramide"></figure>
-        <!-- Las cifras del grupo señalado van dentro del dibujo; esta región
-             viva, invisible, es su versión en palabras para el lector de
-             pantalla. En reposo está vacía. -->
+        <!-- Región viva invisible: las cifras del grupo señalado, en palabras. -->
         <div class="oculto" id="lectura-piramide" aria-live="polite"></div>
-        <!-- La leyenda la escribe el JS a partir de lo que la pirámide ha
-             pintado de verdad: escrita aquí a mano, el PDF anunciaba un
-             Canarias que el dibujo no llevaba. -->
         <div class="leyenda" id="leyenda-piramide"></div>
       </div>
     </section>
@@ -160,10 +149,10 @@
 
 </main>
 
-<script src="config.js?v=80"></script>
-<script src="comun.js?v=80"></script>
-<script src="iconos.js?v=80"></script>
-<script src="datos-ui.js?v=80"></script>
-<script src="ficha.js?v=80"></script>
+<script src="config.js?v=81"></script>
+<script src="comun.js?v=81"></script>
+<script src="iconos.js?v=81"></script>
+<script src="datos-ui.js?v=81"></script>
+<script src="ficha.js?v=81"></script>
 </body>
 </html>

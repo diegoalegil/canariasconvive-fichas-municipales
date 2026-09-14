@@ -1,4 +1,5 @@
-"""Fuentes institucionales leídas del índice del libro, sin créditos personales."""
+"""Fuentes de cada indicador, leídas de la hoja INDEX-F del libro: organismo,
+enlace y años que cubre cada recurso estadístico."""
 from openpyxl import load_workbook
 
 ANIO_INICIO_COMPONENTES = 2002   # el mismo corte que web/ficha.js
@@ -14,12 +15,10 @@ def fuentes_indicadores(ruta, fichas):
             celda = hoja.cell(fila, 5)
             if not celda.hyperlink:
                 raise ValueError(f'Falta el enlace estadístico en INDEX-F!E{fila}')
-            revisado = hoja.cell(fila, 11).value
             salida.append({'organismo': hoja.cell(fila, 10).value,
                            'url': celda.hyperlink.target,
                            'desde': hoja.cell(fila, 7).value,
-                           'hasta': hoja.cell(fila, 8).value,
-                           'revision': revisado.date().isoformat() if revisado else None})
+                           'hasta': hoja.cell(fila, 8).value})
         return salida
 
     poblacion = enlaces([2, 3])

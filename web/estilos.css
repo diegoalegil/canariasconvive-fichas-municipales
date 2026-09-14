@@ -1,42 +1,25 @@
-/* =============================================================================
-   FICHAS MUNICIPALES · CANARIAS CONVIVE
-   Paleta azul, la misma que Pedro documentó en el LEEME de su notebook.
-
-   Dos criterios que vienen de la revisión con Pedro y que no se tocan:
-
-   1. No se usa el rojo para representar personas. En semiología gráfica el rojo
-      significa alerta, y estos gráficos hablan de población.
-   2. La ficha muestra datos y no los interpreta. Ningún elemento califica un
-      dato como bueno o malo.
-
-   Sobre esos dos criterios va el sistema de tarjeta: un solo contenedor con dos
-   tratamientos de rótulo —filete superior para todas, cabecera plena para la
-   destacada—, escala de espaciados de base 4, cuatro radios y dos sombras.
-   ============================================================================= */
+/* Fichas municipales · Canarias Convive. Paleta azul de Pedro, sin rojo sobre
+   personas. Un solo tipo de tarjeta con dos rótulos (filete superior o cabecera
+   plena para la destacada), espaciados de base 4, cuatro radios y dos sombras. */
 
 :root {
-  /* ---- paleta ---- */
+  /* ---- paleta (los tonos que solo pintan dentro de un gráfico van en ficha.js) ---- */
   --azul:        #185FA5;   /* principal, cifras destacadas, último dato */
   --azul-medio:  #2E75B6;   /* hombres en la pirámide */
   --azul-claro:  #85B7EB;   /* mujeres, fondo de mapas */
   --azul-palido: #B5D4F4;   /* tono más claro de las escalas */
-  --azul-anio:   #4A87C4;   /* el año junto al municipio: 3,8:1, pasa AA en texto grande */
-  /* Texto secundario sobre la cabecera azul. El #B5D4F4 de las escalas se queda
-     en 4,25:1 contra el #185FA5 y no llega al 4,5:1 que pide AA en texto
-     normal; este aclarado da 4,94:1. */
-  --azul-sobre:  #CFE2F8;
+  --azul-anio:   #4A87C4;   /* el año junto al municipio: 3,8:1, AA en texto grande */
+  --azul-sobre:  #CFE2F8;   /* texto secundario sobre la cabecera azul: 4,94:1 */
 
   --negro:  #1A1A1A;
-  --gris:   #5F5E5A;   /* 6,5:1 sobre blanco y 6,0:1 sobre la caja */
-  --gris-40:#6E6D69;   /* 5,2:1 sobre blanco y 4,7:1 sobre el papel: pasa AA */
+  --gris:   #5F5E5A;   /* 6,5:1 sobre blanco */
+  --gris-40:#6E6D69;   /* 5,2:1 sobre blanco, 4,7:1 sobre el papel */
   --linea:  #C9D4E0;
   --caja:   #F5F7FA;
   --fondo:  #FFFFFF;
   --papel:  #EFF3F7;
-  /* Los tonos que solo pintan dentro de un gráfico (rejilla de los ejes, humo)
-     no están aquí: viven en la constante C de ficha.js, que es quien los usa. */
 
-  /* ---- espaciado, base 4. Solo estos siete valores ---- */
+  /* ---- espaciado, base 4 ---- */
   --e-1: 4px;    /* icono a texto */
   --e-2: 8px;    /* elementos de leyenda */
   --e-3: 12px;   /* pie de tarjeta */
@@ -45,13 +28,13 @@
   --e-6: 32px;   /* entre tarjetas */
   --e-7: 40px;   /* entre secciones */
 
-  /* ---- radios: cuatro, no más ---- */
+  /* ---- radios ---- */
   --r-1: 4px;    /* barras, teselas, chips de leyenda */
   --r-2: 8px;    /* botones y campos */
   --r-3: 12px;   /* tarjeta */
   --r-full: 999px;
 
-  /* ---- sombras, tintadas en azul y nunca en negro puro ---- */
+  /* ---- sombras, tintadas en azul ---- */
   --s-1: 0 1px 2px rgba(24,95,165,.06);
   --s-2: 0 4px 12px rgba(24,95,165,.10), 0 1px 2px rgba(24,95,165,.06);
 }
@@ -75,9 +58,7 @@ svg { max-width: 100%; height: auto; display: block; }
 :focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
 
 /* ------------------------------------------------------------- barra ------- */
-/* La barra es pegajosa: un salto a un ancla (el índice de la guía, «#g-evolucion»)
-   o el foco por teclado dejaban el destino escondido debajo. */
-html { scroll-padding-top: 76px; }
+html { scroll-padding-top: 76px; }   /* la barra es pegajosa: anclas y foco por debajo de ella */
 .barra {
   position: sticky; top: 0; z-index: 30;
   background: rgba(255,255,255,.94);
@@ -130,10 +111,8 @@ select {
   font-size: 11.5px; font-weight: 600; letter-spacing: .9px;
   text-transform: uppercase; color: var(--gris); margin-bottom: var(--e-2);
 }
-/* nowrap + min-width:0 en el h1: con un nombre largo como Santa María de Guía
-   de Gran Canaria, el año se descolgaba a la línea de abajo y cada ficha
-   colocaba el año en un sitio distinto. Ahora el nombre parte líneas por
-   dentro y el año se queda pegado al margen derecho, igual en las 88. */
+/* nowrap + min-width:0 en el h1: el nombre parte líneas por dentro y el año
+   queda pegado al margen derecho, igual en las 88. */
 .titular { display: flex; align-items: baseline; justify-content: space-between;
            gap: 20px; flex-wrap: nowrap; }
 .cabecera h1 {
@@ -154,14 +133,11 @@ select {
 .habitantes span { font-size: 14px; color: var(--gris); }
 
 /* ------------------------------------------------------------ rejilla ------ */
-/* align-items:start para que cada tarjeta mida lo que mide su contenido. Si se
-   estiran a la altura de la fila, la más corta queda con un hueco blanco. */
+/* align-items:start: cada tarjeta mide lo que mide su contenido. */
 .rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); align-items: start; }
 
 /* ----------------------------------------------- tarjeta: rótulo A --------- */
-/* El filete superior de 3 px hace de cartela. El título va a la izquierda, que
-   es donde empieza la lectura; la cápsula centrada de borde fino se retira
-   porque competía con el título de la sección y dejaba la tarjeta sin anclaje. */
+/* Filete superior de 3 px y título a la izquierda. */
 .tarjeta {
   grid-column: span 12;
   background: var(--fondo);
@@ -192,8 +168,7 @@ select {
 .cuerpo { padding: 20px var(--e-5) 22px; }
 
 /* ----------------------------------------------- tarjeta: rótulo B --------- */
-/* Cabecera plena. Se reserva a una tarjeta por pantalla —la destacada—; usada
-   en todas, la página se convierte en una escalera de bloques azules. */
+/* Cabecera plena, solo para la tarjeta destacada (la pirámide). */
 .tarjeta.destacada {
   border-top: 1px solid var(--linea);
   border-radius: var(--r-3);
@@ -206,11 +181,7 @@ select {
 .tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
-/* Cuatro celdas y nada más: la cifra, lo que es y el pie que la sitúa. Antes
-   cada una llevaba debajo un micro-gráfico con su propio dato; se retiran, y el
-   espacio que dejan se lo queda el número. La cifra va en azul porque es la que
-   responde a la pregunta de la tarjeta: en toda la página el azul señala el
-   dato principal y el negro lo que lo acompaña. */
+/* Cuatro celdas: la cifra (en azul, el dato principal), lo que es y el pie. */
 .cifras {
   display: grid; grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--linea); border-radius: var(--r-3); overflow: hidden;
@@ -232,7 +203,7 @@ select {
   font-size: 13.5px; font-weight: 600; letter-spacing: .05em;
   text-transform: uppercase; color: var(--gris);
 }
-/* min-height para que la edad media, que no lleva pie, no descuadre la fila. */
+/* min-height: la edad media no lleva pie y no debe descuadrar la fila. */
 .cifra em {
   font-style: normal; display: block; margin-top: 8px; min-height: 18px;
   font-size: 12.5px; color: var(--gris-40);
@@ -240,17 +211,14 @@ select {
 }
 
 /* -------------------------------------------------------------- mapas ------ */
-/* Franja central: los tres mapas grandes, que es donde Pedro los quiere. */
 .mapas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-/* En El Hierro la comarca es la isla entera: dos mapas, centrados, del mismo
-   tamaño que los tres de las demás fichas. */
+/* En El Hierro la comarca es la isla: dos mapas centrados, del mismo tamaño. */
 .mapas.dos { grid-template-columns: repeat(2, auto); justify-content: center; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
 .mapa-pie { margin-top: 10px; }
 .mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .mapa-pie span { font-size: 12px; color: var(--gris); }
-/* El peso con la misma voz que el puesto: los dos son el dato de la tarjeta. */
 .mapa-pie p { margin-top: 5px; }
 .mapa-pie p b { display: inline; font-size: 15px; }
 .mapa-pie p span { font-size: 11.5px; }
@@ -267,19 +235,14 @@ select {
 .vista[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
 
 /* ------------------------------------------- índices geodemográficos ------- */
-/* Diseño de Pedro: los tres ámbitos ordenados de izquierda a derecha por valor,
-   y el tono de la escala indica la posición. El ISTAC no lo tiene así. */
+/* Diseño de Pedro: los tres ámbitos de menor a mayor y el tono marca la posición. */
 .indice { margin-bottom: 20px; }
 .indice:last-child { margin-bottom: 0; }
 .indice-tit { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; gap: 10px; }
 .indice-tit b { font-size: 13.5px; font-weight: 700; }
 .indice-tit em { font-style: normal; font-size: 11px; color: var(--gris-40); white-space: nowrap; }
-/* Tres columnas: el rótulo, el valor grande y debajo la pastilla de color.
-   `--n` permite al comparador poner cuatro (tres municipios y Canarias). Estuvo
-   cambiado a filas con barra medida; Pedro lo vio y escribió "no está como
-   estaba antes". Está como estaba antes. */
-/* Alineado por abajo: en el comparador un nombre de tres líneas no debe
-   descolocar los valores ni las pastillas de las otras columnas. */
+/* Columnas con el rótulo, el valor y la pastilla; `--n` deja al comparador poner
+   cuatro. Alineadas por abajo: un nombre de tres líneas no descoloca el resto. */
 .escala { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: var(--e-2); align-items: end; }
 .peldano { text-align: center; min-width: 0; }
 .peldano span { display: block; font-size: 10.5px; color: var(--gris); line-height: 1.25; min-height: 26px; }
@@ -288,17 +251,14 @@ select {
   color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
 }
 .peldano i { display: block; height: 7px; border-radius: var(--r-1); }
-/* Los índices se responden: la columna señalada se resalta en los cuatro y
-   las otras se atenúan. Solo color y opacidad; nada cambia de sitio. */
+/* El ámbito señalado se resalta en los cuatro índices y los otros se atenúan. */
 .peldano { transition: opacity .25s ease; cursor: default; }
 .peldano span, .peldano b { transition: color .25s ease; }
 .peldano.foco span { color: var(--negro); font-weight: 700; }
 .peldano.foco b { text-decoration: underline; text-decoration-color: var(--azul); text-decoration-thickness: 2px; text-underline-offset: 5px; }
 .peldano.tenue { opacity: .45; }
 
-/* Fantasma del contenido anterior (comun.js, `cruce`): copia exacta colocada
-   encima, sin fondo ni borde propios para que se vea el cruce, que se difumina
-   y se apaga mientras el contenido nuevo se enfoca debajo. */
+/* Fantasma del contenido anterior (comun.js, `cruce`), colocado encima sin fondo ni borde. */
 .fantasma { position: absolute; z-index: 2; pointer-events: none; box-sizing: border-box; overflow: hidden;
   margin: 0 !important; background: transparent !important; border-color: transparent !important;
   box-shadow: none !important; animation: none !important; }
@@ -320,16 +280,11 @@ select {
 .leyenda b { font-weight: 700; color: var(--negro); font-variant-numeric: tabular-nums; }
 .llave { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .llave.hueca { background: transparent; border: 1.4px solid var(--negro); border-radius: 0; }
-.llave.linea { height: 2px; border-radius: 0; background: var(--negro); }
 
 .nota { margin-top: var(--e-3); font-size: 11px; color: var(--gris); line-height: 1.5; text-align: center; }
 
 /* ------------------------------------------------------------- lecturas --- */
-/* Valor exacto del punto señalado en la evolución: una línea bajo el dibujo,
-   con altura reservada para que el contenido de abajo no dé un salto al
-   aparecer y desaparecer. La pirámide no lleva bloque: sus cifras van dentro
-   del dibujo, junto a la punta de las barras (ficha.js, `etiquetasFila`), y
-   en reposo no enseña nada, que es lo que pidió Pedro. */
+/* Valor del punto señalado en la evolución, con altura reservada para que nada salte. */
 .lectura {
   min-height: 20px; margin-top: 10px; text-align: center;
   font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums;
@@ -338,15 +293,13 @@ select {
 
 #g-piramide { outline: none; }
 #eje-piramide { transition: opacity .26s ease; }
-#g-piramide:focus-visible { outline: 2px solid var(--azul); outline-offset: 3px; border-radius: var(--r-1); }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
 
-/* =============================================================== portada === */
+/* ----------------------------------------------------------- portada ------ */
 .portada { max-width: 1180px; margin: 0 auto; padding: 22px 20px 70px; }
-/* Sin overflow:hidden. Lo llevaba para recortar el azul en las esquinas, pero
-   también recortaba los desplegables de las islas, que tienen que poder salirse
-   de la tarjeta. El redondeo lo ponen ahora la primera y la última franja. */
+/* Sin overflow:hidden: los desplegables de isla se salen de la tarjeta. El
+   redondeo lo ponen la primera y la última franja. */
 .tapa {
   border: 1px solid var(--linea); border-radius: var(--r-3);
   box-shadow: var(--s-1); background: var(--fondo);
@@ -358,8 +311,6 @@ select {
   padding: 26px var(--e-7) 30px;
   display: flex; flex-direction: column; gap: 22px;
 }
-/* Juntos y a la izquierda, como en la cabecera del resto de páginas: sueltos
-   en los dos extremos, la placa blanca quedaba flotando sobre el azul. */
 .tapa-marca { display: flex; align-items: center; gap: var(--e-4); flex-wrap: wrap; }
 .tapa-marca img { height: 32px; width: auto; display: block; }
 .tapa-marca .placa {
@@ -371,20 +322,14 @@ select {
   text-transform: uppercase; color: var(--azul-sobre);
   padding-left: var(--e-4); border-left: 1px solid rgba(255, 255, 255, .3);
 }
-/* Título a la izquierda y las cuatro cifras a la derecha, en la misma fila. El
-   hueco era de 48 px y con el título de 520 px y las cifras de 497 px sumaban
-   1.065 en una caja de 1.058: las cifras caían siempre debajo y media caja
-   quedaba vacía (Pedro: «sobra espacio»). Se pliegan solo en pantallas estrechas. */
+/* Título a la izquierda y las cuatro cifras a la derecha en la misma fila (con
+   28 px de hueco caben en la caja de 1.058); se pliegan en pantallas estrechas. */
 .tapa-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
 .tapa-cuerpo h1 {
   font-size: clamp(28px, 3.8vw, 40px); font-weight: 600;
   letter-spacing: -.02em; line-height: 1.1; text-wrap: balance;
 }
 .tapa-cuerpo > div:first-child { max-width: 520px; }
-.tapa-cuerpo p {
-  font-size: 15px; line-height: 1.55; color: var(--azul-sobre);
-  margin-top: var(--e-3); text-wrap: pretty;
-}
 .tapa-datos { display: grid; grid-template-columns: repeat(4, auto); gap: 34px; }
 .tapa-datos b {
   display: block; font-size: 26px; font-weight: 400; line-height: 1;
@@ -417,9 +362,7 @@ select {
   font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--gris); margin-right: var(--e-1);
 }
-/* Los siete chips más «Por isla» caben en una fila en cualquier escritorio
-   (desde 1.140 px de ventana): con 15 px de relleno sumaban 1.099 px en una
-   franja de 1.058 y Lanzarote se quedaba solo en una segunda línea. */
+/* Los siete chips más «Por isla» caben en una fila desde 1.140 px de ventana. */
 .chip {
   font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
   display: inline-flex; align-items: center; gap: 5px;
@@ -430,11 +373,8 @@ select {
 .chip em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
 .chip:hover { border-color: var(--azul); }
 
-/* Desplegable: lo comparten el buscador y las siete islas. Las de isla tienen
-   alto fijo («un desplegable del mismo tamaño en cada isla», Pedro): con
-   `max-height` cada caja se encogía a su lista, de 121 px en El Hierro a 292
-   en Tenerife. La que no cabe se desplaza por dentro; la del buscador crece
-   con los resultados. */
+/* Desplegable del buscador (crece con los resultados) y de las islas (alto fijo,
+   «del mismo tamaño en cada isla»; la lista que no cabe se desplaza por dentro). */
 .desplegable {
   position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
   width: 268px; max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
@@ -476,14 +416,11 @@ select {
 .tarjeta:nth-of-type(4) { animation-delay: .16s; }
 .tarjeta:nth-of-type(5) { animation-delay: .20s; }
 .tarjeta:nth-of-type(6) { animation-delay: .24s; }
+.tarjeta:nth-of-type(7) { animation-delay: .28s; }
+.tarjeta:nth-of-type(8) { animation-delay: .32s; }
 @media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
 
-
-/* ================================================================== guía == */
-/* Cada indicador cabe en tres cosas: qué mide, con qué cuenta se obtiene y en
-   qué unidad sale. La fórmula va escrita con barra de fracción de verdad, no
-   como "a / b": es como está en un libro y como la escribiría a mano quien la
-   explica en una reunión. */
+/* -------------------------------------------------------------- guía ------- */
 .guia-indice { display: flex; gap: var(--e-2); flex-wrap: wrap; margin-top: var(--e-4); }
 .guia-indice a {
   font-size: 12.5px; font-weight: 600; color: var(--gris);
@@ -506,17 +443,10 @@ select {
 .frac .num { padding: 0 .8em .3em; }
 .frac .den { padding: .3em .8em 0; border-top: 2px solid var(--azul); }
 .frm .coda { font-weight: 600; white-space: nowrap; }
-/* El exponente de la variación media anual: dentro del flex se centraba en
-   vertical y quedaba suelto a media altura; va arriba y pegado al corchete. */
-.frm sup { align-self: flex-start; font-size: .7em; line-height: 1; margin-left: -.35em; }
-.frm .lin { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: .1em; }
-.frm .lin i { font-style: normal; font-weight: 700; color: var(--azul); padding: 0 .45em; }
+.frm sup { align-self: flex-start; font-size: .7em; line-height: 1; margin-left: -.35em; }   /* el exponente, arriba */
 
-/* ============================================================= comparador == */
-/* Comparar no es clasificar: se puede ordenar las columnas por habitantes o por
-   nombre, pero no por ningún indicador, y no hay posiciones ni destacados. El
-   color distingue columnas, nunca valores, y viaja con el municipio: el azul
-   intenso es el primero que se eligió, no el mejor. */
+/* ---------------------------------------------------------- comparador ----- */
+/* El color distingue columnas, nunca valores, y viaja con el municipio. */
 .cmp-intro { font-size: 14px; color: var(--gris); margin-top: var(--e-3); max-width: 70ch; text-wrap: pretty; }
 .cmp-elegidos-caja {
   display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap;
@@ -542,19 +472,15 @@ select {
   padding: var(--e-7) var(--e-5); text-align: center; color: var(--gris); font-size: 14px;
 }
 
-/* Cifras clave: una tabla de verdad —encabezados de columna y de fila— con el
-   rótulo a la izquierda y una columna por municipio. Era una rejilla de divs y
-   un lector de pantalla no sabía a qué municipio pertenecía cada cifra. La
-   columna de rótulos es fija: con un solo municipio, una fracción se comía la
-   mitad de la tarjeta y la cifra quedaba perdida en el centro. */
+/* Cifras clave: una tabla con encabezados de columna y de fila; la columna de
+   rótulos es fija para que con un solo municipio la cifra no quede perdida. */
 .cmp-tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .cmp-tabla th, .cmp-tabla td { text-align: left; vertical-align: middle; font-weight: inherit; }
 .cmp-tabla th:first-child { width: 160px; }
 .cmp-cab { padding: 0 var(--e-3) var(--e-3); border-bottom: 2px solid var(--linea); }
 .cmp-cab b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--negro); }
 .cmp-cab span { font-size: 11.5px; color: var(--gris); }
-/* El color del municipio se lleva en una marca, no en el texto: el azul claro
-   sobre blanco daba 2,1:1 de contraste, por debajo del mínimo AA de 4,5. */
+/* El color del municipio va en una marca, no en el texto (el azul claro no da contraste AA). */
 .marca-municipio { display: block; height: 3px; width: 32px; margin-top: 8px; border-radius: 2px; }
 .cmp-rot { padding: var(--e-3); border-bottom: 1px solid var(--linea); }
 .cmp-rot b { display: block; font-size: 13px; font-weight: 600; }
@@ -578,38 +504,31 @@ select {
 .cmp-col svg { margin: 0 auto; }
 .cmp-aviso { font-size: 11px; color: var(--gris); line-height: 1.5; margin-top: var(--e-3); text-wrap: pretty; }
 
-/* Índices: una barra por municipio sobre la escala del propio índice. */
+/* Índices: el mismo bloque que la ficha, con Canarias en gris al final. */
 .cmp-indice { margin-bottom: var(--e-6); }
 .cmp-indice:last-child { margin-bottom: 0; }
 .cmp-indice-tit { margin-bottom: var(--e-3); }
 .cmp-indice-tit b { font-size: 14px; font-weight: 700; }
 .cmp-indice-tit span { display: block; font-size: 12px; color: var(--gris); margin-top: 2px; }
-.cmp-barra {
-  display: grid; grid-template-columns: minmax(110px, 1fr) 62px minmax(120px, 3fr);
-  align-items: center; gap: var(--e-3); margin-bottom: 6px;
-}
-.cmp-barra-rot { font-size: 12.5px; font-weight: 600; }
-.cmp-barra-val { font-size: 14px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-/* Solo en el comparador: en la ficha los rótulos van en el gris fino de Pedro. */
 .cmp-indice .peldano span { font-weight: 600; }
 .cmp-ref span, .cmp-ref b { color: var(--gris); }
 .cmp-ref b { font-weight: 600; }
 .cmp-escala { font-size: 11px; color: var(--gris); margin-top: var(--e-2); line-height: 1.5; text-wrap: pretty; }
 
+/* Lugar de nacimiento: rótulo, barra apilada y los tres valores. */
 .cmp-apilada {
   display: grid; grid-template-columns: minmax(110px, 1fr) minmax(140px, 2.4fr) auto;
   align-items: center; gap: var(--e-3); margin-bottom: var(--e-2);
 }
-.cmp-apilada .cmp-barra-val { font-size: 12px; font-weight: 600; color: var(--gris); }
+.cmp-barra-rot { font-size: 12.5px; font-weight: 600; }
+.cmp-barra-val { font-size: 12px; font-weight: 600; color: var(--gris); text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 780px) {
   .cmp-cols { grid-template-columns: 1fr; }
-  /* La tabla se apila. Las cabeceras de columna desaparecen porque cada valor
-     pasa a llevar escrito su municipio: en una sola columna, "384.023 / 805 /
-     2.949" obligaría a recordar en qué orden estaban. */
+  /* La tabla se apila y cada valor lleva escrito su municipio; la cabecera
+     queda solo para el lector de pantalla. */
   .cmp-tabla, .cmp-tabla tbody, .cmp-tabla tr, .cmp-tabla th { display: block; width: auto; }
   .cmp-tabla td.cmp-val { display: grid; width: auto; }
-  /* La cabecera queda para el lector de pantalla, no para la vista. */
   .cmp-tabla thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .cmp-rot { border-bottom: 0; padding: var(--e-4) 0 var(--e-2); }
   .cmp-val {
@@ -625,30 +544,20 @@ select {
   }
   .cmp-val em { grid-column: 2; text-align: right; margin-top: 0; }
   .cmp-elegidos-caja { flex-direction: column; align-items: flex-start; }
-  .cmp-barra, .cmp-apilada { grid-template-columns: 1fr auto; }
-  .cmp-barra svg, .cmp-apilada svg { grid-column: 1 / -1; }
+  .cmp-apilada { grid-template-columns: 1fr auto; }
+  .cmp-apilada svg { grid-column: 1 / -1; }
 }
 
-/* ================================================= entrada de la portada === */
-/* Reglas de movimiento que conviene no tocar:
-
-     · Desplazamiento máximo de 10 px, y de 6 px si el elemento lleva texto.
-       Ningún texto escala, rota ni se desenfoca: a mitad de transición ya es
-       legible.
-     · Las cuatro cifras aparecen escritas. No cuentan hacia arriba ni rebotan:
-       eso dramatizaría el dato, y aquí el dato son personas.
-
-   Antes la secuencia terminaba con los 88 municipios del mapa entrando en
-   oleada de oeste a este. Sin mapa se acaba en las islas, y la entrada dura
-   ahora unos 700 ms en vez de 1.440. Solo se usan opacity y transform. */
-
+/* ------------------------------------------------ entrada de la portada ---- */
+/* Solo opacity y transform, desplazamientos de pocos píxeles y ninguna cifra
+   que cuente hacia arriba. */
 @keyframes entrar {
   from { opacity: 0; transform: translateY(var(--y, 6px)); }
   to   { opacity: 1; transform: none; }
 }
 
-/* A la espera de que la sección entre en pantalla. Sin ninguna de las dos
-   clases, todo se ve: si el JS fallara, la portada no se queda en blanco. */
+/* A la espera de que la sección entre en pantalla; portada.js retira la clase
+   (y un <noscript> en index.html la anula si no hay JavaScript). */
 .tapa.espera .ent { opacity: 0; }
 
 .tapa.entra .ent {
@@ -663,15 +572,11 @@ select {
 .tapa .buscador   { --t: 220ms; --d: 280ms; --y: 4px; }
 .tapa .isla-menu  { --t: calc(280ms + var(--n) * 30ms); --d: 240ms; --y: 3px; }
 
-/* Con movimiento reducido no hay animación ni observador: se ve directamente
-   el fotograma del 100 %. Ni versión corta ni desvanecido de cortesía. */
 @media (prefers-reduced-motion: reduce) {
   .tapa.espera .ent, .tapa.entra .ent { opacity: 1; animation: none; transform: none; }
 }
 
 /* --------------------------------------------------------- responsive ------ */
-@media (max-width: 1080px) {
-}
 @media (max-width: 940px) {
   .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
   .cifras { grid-template-columns: repeat(2, 1fr); }
@@ -683,8 +588,6 @@ select {
   .tapa-datos { gap: var(--e-5); }
 }
 @media (max-width: 700px) {
-  /* Sin el micro-gráfico al lado, las cuatro celdas caben en 2x2 hasta en 320 px
-     y no hay que apilarlas en columna. */
   .cifra { padding: var(--e-5) var(--e-2) var(--e-4); }
   .cifra b { font-size: 34px; }
   .cifra i { font-size: 11.5px; letter-spacing: .04em; }
@@ -693,9 +596,7 @@ select {
 }
 @media (max-width: 620px) {
   .marca span { display: none; }
-  /* Cinco botones con texto dejaban la barra en 288 px de alto: casi toda la
-     pantalla antes de ver un dato. En móvil se quedan en su icono, y el nombre
-     accesible lo lleva el aria-label. */
+  /* En móvil los botones de la barra se quedan en su icono (el nombre accesible va en aria-label). */
   .barra .btn-liso span { display: none; }
   .barra .btn-liso.confirmado span { display: inline; }
   .barra .btn-liso { padding: 9px 12px; }
@@ -711,13 +612,8 @@ select {
   .tapa-alto, .filtros, .atajos { padding-inline: 18px; }
   .escala { gap: 6px; }
   .peldano span { font-size: 10px; }
-  /* minmax(0,1fr) y no 1fr a secas: el mínimo por defecto de una pista de
-     rejilla es el ancho de su contenido, así que "2.258.866" a 26 px
-     empujaba la columna a 138 px y las dos juntas se salían 4 px por la
-     derecha en una pantalla de 320. Con minmax pueden encogerse. */
+  /* minmax(0,1fr) y clamp: en 320 px las dos columnas tienen que poder encogerse. */
   .tapa-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--e-4); }
-  /* clamp y no un tamaño fijo: "2.258.866" a 23 px pide 118 px y la columna
-     mide 111 en una pantalla de 320. */
   .tapa-datos b { font-size: clamp(18px, 5.8vw, 23px); letter-spacing: -.02em; }
   .tapa-datos span { font-size: 10px; letter-spacing: .06em; }
 }
@@ -727,24 +623,17 @@ select {
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 
 /* ------------------------------------------------- carga, foco y fuentes -- */
-/* `hidden` manda aunque el elemento tenga display propio: el aviso de error del
-   comparador se escribía y seguía oculto. */
-[hidden] { display: none !important; }
+[hidden] { display: none !important; }   /* manda aunque el elemento tenga display propio */
 .aviso-carga {
   margin: 0 0 var(--e-4); padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   background: var(--fondo); border: 1px solid var(--azul); border-radius: var(--r-2);
   color: var(--azul); font-size: 13px;
 }
-/* El buscador de la portada quita el contorno del input; el foco se ve en la caja. */
-.buscador:focus-within { outline: 2px solid var(--azul); outline-offset: 3px; }
-/* Los gráficos con teclado —pirámide y evolución— enseñan dónde está el foco. */
+.buscador:focus-within { outline: 2px solid var(--azul); outline-offset: 3px; }   /* el input no lleva contorno */
 #g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
-/* El desplegable de una isla no puede salirse de la pantalla del móvil. */
 .desplegable { max-width: calc(100vw - 24px); }
 
-/* Fuente de cada gráfico (datos-ui.js): una línea al pie de la tarjeta, con la
-   redacción de Pedro. El desplegable de debajo solo lo usa ya la guía
-   («Fuente y fecha» de cada indicador). */
+/* Fuente de cada gráfico (datos-ui.js); el desplegable solo lo usa la guía. */
 .fuente-grafico { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--gris); text-wrap: pretty; }
 .datos-detalle { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--linea); text-align: left; }
 .datos-detalle > summary {
@@ -766,24 +655,16 @@ select {
 .pie-fuentes-papel { display: none; }
 @media (pointer: coarse) { .datos-detalle > summary { min-height: 44px; } }
 
-/* ============================================================== impresión == */
-/* Ficha de una hoja A4 vertical: cabecera azul, cifras clave, evolución y
-   origen, los tres mapas, pirámide e índices, componentes y nacimiento. Se
-   dimensiona en milímetros para que quepa entera y no reparta en dos páginas. */
+/* ----------------------------------------------------------- impresión ----- */
+/* Ficha de una hoja A4 vertical, dimensionada en milímetros para que quepa entera. */
 @page { size: A4 portrait; margin: 9mm 10mm 7mm; }
 
 /* ------------------------------------------------------------ presentación -- */
 #presentacion { position: fixed; inset: 0; z-index: 100; background: var(--papel); color: var(--negro); outline: none; }
 body.presentando { overflow: hidden; }
 .pres-escenario { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center; }
-/* Cada diapositiva centra su contenido en vertical: la de nacimiento y origen
-   extranjero, más baja que las demás, quedaba pegada arriba con media pantalla
-   vacía debajo. */
-/* Entre diapositivas, fundido con desenfoque: la que sale se difumina y la que
-   entra se enfoca, a la vez, en 480 ms; la que sale con la curva de salida y
-   la que entra con la suave (la curva es la del estado al que se va). La oculta
-   pasa a visibility:hidden al acabar para no tener cinco capas de 1920×1080
-   desenfocadas en memoria. */
+/* Cada diapositiva centra su contenido en vertical. Entre diapositivas, fundido
+   con desenfoque de 480 ms; la oculta pasa a visibility:hidden al acabar. */
 .pres-diapo { position: absolute; inset: 0; padding: 96px 120px; box-sizing: border-box; pointer-events: none;
   opacity: 0; filter: blur(8px); visibility: hidden;
   transition: opacity .48s cubic-bezier(.4,0,.6,1), filter .48s cubic-bezier(.4,0,.6,1), visibility 0s linear .48s;
@@ -806,7 +687,6 @@ body.presentando { overflow: hidden; }
 .pres-cifras i { display: block; font-style: normal; font-size: 20px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); margin-top: 16px; }
 .pres-cifras em { display: block; font-style: normal; font-size: 18px; color: var(--gris-40); margin-top: 8px; min-height: 22px; font-variant-numeric: tabular-nums; }
 .pres-logo { position: absolute; left: 48px; bottom: 32px; height: 40px; }
-/* La fuente de cada gráfico, también en la diapositiva. */
 .pres-fuente { font-size: 20px; color: var(--gris-40); margin-top: 28px; text-align: center; }
 .pres-dos .pres-fuente { text-align: left; }
 .pres-centro { display: flex; justify-content: center; }
@@ -844,38 +724,29 @@ body.presentando { overflow: hidden; }
 @media print {
   #presentacion { display: none !important; }
   .fantasma, .datos-detalle, .aviso-carga { display: none !important; }
-  /* La fuente de cada gráfico sí se imprime, en el cuerpo más pequeño de la
-     hoja. Cada fila de la retícula crece esa línea (2,3 mm); se compensa con
-     menos relleno en el pie y el rótulo de las tarjetas y con el pie de la
-     guía metido en la cabecera. Medido: la ficha más alta pasa de 276,0 mm
-     (sin fuentes) a 276,4 con ellas, de 281 disponibles; y las 88 miden lo
-     mismo, porque en El Pinar y Frontera el gráfico de componentes cede a su
-     nota los 3 mm que las hacían más altas. */
+  /* La fuente de cada gráfico sí se imprime, en el cuerpo más pequeño de la hoja;
+     el camino a la guía va en la esquina de la cabecera. */
   .fuente-grafico { margin: .6mm 0 0; font-size: 5.5pt; line-height: 1.2; color: var(--gris); }
   .pie-fuentes-papel { display: block; position: absolute; right: 5mm; bottom: 2.2mm; margin: 0; font-size: 6pt; color: var(--azul-sobre); }
   .pie-fuentes-papel a { color: inherit; text-decoration: none; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
-  /* Se oculta lo que en papel no hace nada: controles y lecturas al vuelo. */
-  .barra, .vistas, .filtros, .atajos, .lectura { display: none !important; }
-  .leyenda { margin-top: 1mm; gap: 3mm; }
+  .barra, .vistas, .filtros, .atajos, .lectura { display: none !important; }   /* controles y lecturas al vuelo */
   .envoltorio { max-width: none; padding: 0; }
-  .cabecera, .tarjeta, .tapa { animation: none; box-shadow: none; }
+  /* Duración 0 y no `animation: none`: al cerrar el diálogo de impresión, las
+     tarjetas volvían a hacer su entrada. */
+  .cabecera, .tarjeta, .tapa { animation-duration: 0s; animation-delay: 0s; box-shadow: none; }
 
-  /* La anchura de una A4 en píxeles CSS cae por debajo de los 940 px del
-     salto a móvil, así que hay que devolver la retícula a su reparto. */
-  /* En la hoja el reparto es 7/5 en vez de 8/4: los índices llevan el nombre
-     del municipio repetido tres veces y a cuatro columnas se parte en tres
-     líneas, que es lo que hacía que la ficha no cupiera en una cara. */
+  /* La A4 en píxeles CSS cae por debajo del salto a móvil: se devuelve la
+     retícula a su reparto, con 7/5 en vez de 8/4 para que los índices no se
+     partan en tres líneas. */
   .rejilla { gap: 1.8mm; grid-template-columns: repeat(12, 1fr); }
   .tarjeta.mitad { grid-column: span 6; }
   .tarjeta.tercio { grid-column: span 5; }
   .tarjeta.dos-tercios { grid-column: span 7; }
 
-  /* Cabecera azul: el año pegado al margen derecho y los habitantes debajo del
-     nombre. Antes la población ocupaba una segunda columna a la derecha, con el
-     año al lado del nombre; en la hoja quedaban los dos disputándose el sitio. */
+  /* Cabecera azul: el año pegado al margen derecho y los habitantes bajo el nombre. */
   .cabecera {
     background: var(--azul); border: 0; border-radius: 0;
     padding: 2mm 5mm; margin-bottom: 1.6mm; display: block; position: relative;
@@ -902,8 +773,7 @@ body.presentando { overflow: hidden; }
   .tarjeta.destacada .rotulo h2 { color: var(--negro); }
   .tarjeta.destacada .rotulo p { color: var(--gris); }
 
-  /* Cifras clave: filete azul superior y cuatro columnas, sin caja. En la hoja
-     hay sitio para las cuatro aunque en pantalla, a esta anchura, irían 2x2. */
+  /* Cifras clave: filete azul superior y cuatro columnas, sin caja. */
   .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
   .cifra { padding: 1.8mm 3mm 1.6mm; border-left: 0; border-top: 0; text-align: center; }
   .cifra + .cifra { border-left: .2mm solid var(--linea); }
@@ -917,9 +787,6 @@ body.presentando { overflow: hidden; }
   .mapa-pie { margin-top: 1mm; }
   .mapa-pie b { font-size: 8.5pt; }
   .mapa-pie span { font-size: 6pt; }
-  /* El peso lleva su propia regla porque `.mapa-pie p b` de pantalla pesa mas
-     en la cascada que `.mapa-pie b` de aqui: sin esto, el porcentaje se
-     imprimia a 15 px, mas grande que el puesto que va encima. */
   .mapa-pie p { margin-top: .6mm; }
   .mapa-pie p b { font-size: 7.5pt; }
   .mapa-pie p span { font-size: 6pt; }

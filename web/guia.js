@@ -1,29 +1,10 @@
-/* =============================================================================
-   GUÍA DE LECTURA DE LOS INDICADORES · CANARIAS CONVIVE
-
-   El público de la ficha son concejales y cargos públicos, no demógrafos. La
-   guía dice qué mide cada indicador y con qué cuenta se obtiene. Nada más.
-
-   Antes traía además, por cada indicador, qué significa un valor alto, qué
-   significa uno bajo, qué no se puede concluir y un ejemplo con datos reales.
-   Era demasiado para lo que hay que explicar, y lo de "alto" y "bajo" rozaba el
-   calificativo, que es justo lo que la ficha no hace.
-
-   Las cuatro fórmulas de los índices están en el Excel como fórmulas
-   matriciales (C10M!C27, C11M!C27, C14M!C27 y C17M!C27, sobre los grupos de
-   C8M y C13M); las de aquí son esas. Debajo de cada indicador, plegada, va su
-   fuente con enlace y fecha, leída de indice.json.
-   ============================================================================= */
-
+/* Guía de lectura: qué mide cada indicador y con qué cuenta se obtiene. Las
+   fórmulas de los cuatro índices son las del Excel (C10M, C11M, C14M y C17M).
+   Bajo cada indicador va su fuente con enlace y fecha, de indice.json. */
 
 /* ------------------------------------------------------------- fórmulas --- */
-/** División con barra horizontal, escrita como en un libro y no como "a / b".
- *  `coda` es lo que va detrás de la fracción, normalmente el × 100.
- *
- *  Los dos indicadores que son una resta —crecimiento vegetativo y saldo
- *  migratorio— no llevan fórmula: escrita, repetía palabra por palabra la
- *  frase de encima. Pedro los separó del resto por eso mismo: "en crecimiento
- *  vegetativo solo el enunciado con su descripción cortita". */
+/** División con barra horizontal; `coda` es lo que va detrás (× 100). Los dos
+ *  indicadores que son una resta no llevan fórmula. */
 function fraccion(arriba, abajo, coda = '') {
   return `<span class="frm">
     <span class="frac"><span class="num">${esc(arriba)}</span><span class="den">${esc(abajo)}</span></span>
@@ -94,8 +75,7 @@ const INDICADORES = [
 ];
 
 /* -------------------------------------------------------------- montaje --- */
-/* pintarGuia y no pintar: el dossier carga este fichero junto a ficha.js,
-   que ya tiene su pintar(f). */
+// El dossier carga este fichero solo por INDICADORES, junto a ficha.js.
 function pintarGuia() {
   document.getElementById('guia-indice').innerHTML = INDICADORES.map((x) =>
     `<a href="#${x.id}">${esc(x.nombre.replace(/^Índice (de |del )?/, '').replace(/^./, (l) => l.toUpperCase()))}</a>`).join('');
@@ -119,13 +99,12 @@ function pintarGuia() {
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 }
 
-/* El dossier carga este fichero solo por INDICADORES; ahí no hay guía que pintar. */
 if (document.getElementById('guia-fichas')) {
-pintarGuia();
-leerJSON('datos/indice.json').then((indice) => {
-  configurarFuentes(indice);
-  INDICADORES.forEach((x) => ponerDetalle(document.getElementById(`fuente-guia-${x.id}`), `detalle-guia-${x.id}`, fuenteHTML(x.id), String(indice.anio), 'Fuente y fecha'));
-}).catch(() => {
-  document.querySelector('.cmp-intro').insertAdjacentHTML('afterend', '<p class="aviso-carga" role="status">No se han podido cargar las fuentes. <a href="guia.html">Reintentar</a></p>');
-});
+  pintarGuia();
+  leerJSON('datos/indice.json').then((indice) => {
+    configurarFuentes(indice);
+    INDICADORES.forEach((x) => ponerDetalle(document.getElementById(`fuente-guia-${x.id}`), `detalle-guia-${x.id}`, fuenteHTML(x.id), String(indice.anio)));
+  }).catch(() => {
+    document.querySelector('.cmp-intro').insertAdjacentHTML('afterend', '<p class="aviso-carga" role="status">No se han podido cargar las fuentes. <a href="guia.html">Reintentar</a></p>');
+  });
 }

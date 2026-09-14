@@ -1,14 +1,10 @@
-# =============================================================================
-#  FICHAS MUNICIPALES · CANARIAS CONVIVE
-#  Exportación de la base de datos a JSON para la versión web.
+# Exportación del libro BASE_DATOS_CANCON.xlsx a JSON para la web, con las
+# funciones de lectura del cuaderno FICHAS_MUNICIPALES.ipynb. Los cuatro índices
+# se leen ya calculados del Excel; la TVMA, la edad media y los puestos se
+# calculan aquí.
 #
-#  Reutiliza literalmente las funciones de lectura de FICHAS_MUNICIPALES.ipynb
-#  (celdas 1-4, Pedro Delgado). No recalcula ningún indicador: los índices
-#  estructurales se leen ya calculados desde el Excel.
-#
-#  Salida:  web/datos/indice.json     · listado de municipios + metadatos
+#  Salida:  web/datos/indice.json       · municipios, islas y fuentes
 #           web/datos/mun/<codmun>.json · una ficha por municipio
-# =============================================================================
 import json
 import math
 import unicodedata
@@ -145,7 +141,6 @@ print("Leyendo el Excel…")
 NM, SM, EDADES, DM = preparar("C23M")          # pirámide total, municipios
 NR, SR, _, DR = preparar("C23R")               # pirámide total, Canarias
 NMX, SMX, _, DMX = preparar("C24M")            # pirámide origen extranjero, mun.
-NRX, SRX, _, DRX = preparar("C24R")            # pirámide origen extranjero, Can.
 
 MUNICIPIOS = list(dict.fromkeys(NM.tolist()))
 
@@ -186,16 +181,12 @@ _, SERIE_C22_R = serie_completa("C22R")
 ORIGEN_M = reparto_origen("C25M")
 ORIGEN_R = reparto_origen("C25R")
 
-# Índices de la ficha actual + los tres de "mirada de convivencia".
-#   codigo: (etiqueta, multiplicador, decimales, unidad)
+# Los cuatro índices de la ficha. codigo: (etiqueta, multiplicador, decimales, unidad)
 INDICES = {
     "C10": ("Envejecimiento", 1, 2, ""),
     "C11": ("Juventud", 100, 1, "%"),
     "C17": ("Dependencia", 1, 1, "%"),
     "C14": ("Reemplazo laboral", 1, 1, "%"),
-    "C19": ("Dependencia · nacidos en España", 1, 1, "%"),
-    "C16": ("Reemplazo laboral · nacidos en España", 1, 1, "%"),
-    "C21": ("Sex ratio", 1, 1, ""),
 }
 
 DATOS_IND, ANIO_IND = {}, {}
@@ -213,8 +204,7 @@ _CACHE.clear()
 
 
 # ------------------------------------------------------------ geometrías ---
-# codmun (código INE) leído del GeoPackage por SQLite: evita la dependencia
-# de geopandas/GDAL, que aquí solo haría falta para las geometrías.
+# codmun (código INE) leído del GeoPackage por SQLite, sin geopandas/GDAL.
 import sqlite3  # noqa: E402
 
 con = sqlite3.connect(f"file:{RUTA_GEO}?mode=ro", uri=True)
@@ -303,17 +293,10 @@ UMBRAL_ANOMALIA = 0.20   # de la población actual del municipio
 
 
 def depurar_componentes(comp, poblacion):
-    """Aparta los valores que no pueden ser un flujo demográfico anual real.
-
-    En 2007 El Pinar de El Hierro se segregó de Frontera, y el ISTAC anotó el
-    traspaso de vecinos como saldo migratorio: +1.880 en un municipio de 2.040
-    habitantes y −1.757 en el otro. Es un movimiento administrativo, no
-    migración, y dejarlo en la serie multiplica por 40 la escala del gráfico y
-    aplasta todos los años reales.
-
-    Se apartan a `anomalias` en lugar de borrarse, para que la ficha pueda
-    decir que existen en vez de fingir que no hay dato.
-    """
+    """Aparta a `anomalias` los valores que no pueden ser un flujo anual real:
+    en 2007 El Pinar se segregó de Frontera y el ISTAC anotó el traspaso de
+    vecinos como saldo migratorio (+1.880 y −1.757), que multiplicaba por 40 la
+    escala del gráfico. La ficha los anota en vez de fingir que no hay dato."""
     anomalias = []
     for clave in ("vegetativo", "migratorio"):
         for i, (anio, v) in enumerate(zip(comp["anios"], comp[clave])):
@@ -330,7 +313,6 @@ def depurar_componentes(comp, poblacion):
 (SALIDA / "mun").mkdir(parents=True, exist_ok=True)
 
 H_CAN, M_CAN = piramide(NR, SR, DR, "Canarias")
-HX_CAN, MX_CAN = piramide(NRX, SRX, DRX, "Canarias")
 POB_PIR_CAN = H_CAN.sum() + M_CAN.sum()
 
 fichas = []
@@ -361,16 +343,14 @@ for mun in MUNICIPIOS:
             "anio_fin": a1,
         },
 
-        # Sin redondeo intermedio: la web muestra un decimal y redondea una sola
-        # vez. Exportado a dos decimales, Las Palmas (16,5487) llegaba como 16,55
-        # y en pantalla salía «16,6 %» junto al 16,5 del lugar de nacimiento.
+        # Sin redondeo intermedio: la web muestra un decimal y redondea una sola vez.
         "extranjero": combinar({
             "municipio": (ANIOS_C22, SERIE_C22[mun]),
             "canarias": (ANIOS_C22, SERIE_C22_R["Canarias"]),
         }, None),
 
         "cifras": {
-            "tvma": tvma(x1, y1),  # La precisión se conserva hasta el único redondeo de presentación.
+            "tvma": tvma(x1, y1),  # sin redondear: la web redondea una sola vez
             "edad_media": r2(edad_media(h, m), 1),
             "hombres": int(h.sum()),
             "mujeres": int(m.sum()),
@@ -395,8 +375,7 @@ for mun in MUNICIPIOS:
             },
         },
 
-        # Pirámides en absolutos: el front decide si las pinta en % o en efectivos.
-        # "extranjera" = población de origen extranjero (C24).
+        # Pirámides del municipio en absolutos; Canarias en porcentaje. "extranjera" es C24.
         "piramide": {
             "edades": EDADES,
             "hombres": [int(v) for v in h],
@@ -445,21 +424,8 @@ for mun in MUNICIPIOS:
     })
     todas_las_fichas.append(ficha)
 
-# Recorrido de cada índice en el conjunto de Canarias. El comparador lo necesita
-# para dar a cada índice su propia escala: envejecimiento es una razón que va de
-# 0,8 a 5,6 y reemplazo laboral un porcentaje que llega a 103, así que una
-# escala común a los cuatro no diría nada.
-rangos = {}
-for c in INDICES:
-    vs = [ix[k] for f in todas_las_fichas
-          if (ix := f["indices"].get(c)) for k in ("municipio", "isla", "canarias")
-          if ix.get(k) is not None]
-    if vs:
-        rangos[c] = {"etiqueta": todas_las_fichas[0]["indices"][c]["etiqueta"],
-                     "min": r2(min(vs), 3), "max": r2(max(vs), 3)}
-
-# Un solo orden de islas para toda la web —portada, selectores y dossier—: de
-# oeste a este. El orden del diccionario se conserva en el JSON y en JavaScript.
+# Un solo orden de islas para toda la web (portada, selectores y dossier), de
+# oeste a este; el orden del diccionario se conserva en el JSON y en JavaScript.
 ORDEN_ISLAS = ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"]
 assert set(ORDEN_ISLAS) == set(ISLAS), "ORDEN_ISLAS no coincide con las islas de territorios.py"
 
@@ -468,25 +434,16 @@ indice = {
     "poblacion_canarias": int(POB_CANARIAS),
     "municipios": sorted(fichas, key=lambda f: _norm(f["nombre"])),
     "islas": {i: sorted(ISLAS[i], key=_norm) for i in ORDEN_ISLAS},
-    "comarcas": {c: sorted(ms, key=_norm) for c, ms in COMARCAS.items()},
     "fuentes_indicadores": fuentes_indicadores(RUTA, todas_las_fichas),
-    "fuentes": ["ISTAC — Instituto Canario de Estadística", "INE", "Cartografía: GRAFCAN"],
-    "rangos_indices": rangos,
 }
 with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
 
 # ---------------------------------------------------------------------------
-# El eje de cada pirámide lo calcula la web municipio a municipio (ejeAutomatico
-# en web/comun.js): el par más pequeño de 6, 8, 10, 12… que cubre el grupo más
-# numeroso de la pestaña. Es la regla de Pedro (13 sep 2026): «al 6 u 8 por
-# cien dependiendo del valor; si hay excepciones, que se ajuste
-# automáticamente». Aquí se repite el cálculo para dejar escrito el reparto en
-# cada exportación y para que un escalón raro (más de 14) no pase inadvertido.
-# Cada población va sobre su propio total: en "Municipio y Canarias" el
-# municipio sobre sus habitantes; en "Por lugar de nacimiento" los nacidos en
-# España sobre el total de nacidos en España y los de origen extranjero sobre
-# el total de origen extranjero (Artenara, con 65, tiene un grupo del 13,85 %).
+# El eje de cada pirámide lo calcula la web (ejeAutomatico en web/comun.js): el
+# par más pequeño de 6, 8, 10… que cubre el grupo más numeroso de la pestaña,
+# cada población sobre su propio total. Aquí se repite el cálculo para dejar
+# escrito el reparto en cada exportación y avisar de un escalón por encima de 14.
 def _eje_automatico(maximo):
     return max(6, math.ceil(maximo / 2) * 2)
 

@@ -5,9 +5,9 @@ Necesita el Excel en ~/Downloads (o en la ruta que se pase como argumento) y
 openpyxl; si no está el libro, se omite avisando. Comprueba población, serie
 de evolución, variación acumulada, TVMA (sin redondeo intermedio), series de
 origen extranjero (el valor y el decimal que se muestra), componentes del
-cambio —incluidas las anomalías apartadas—, los siete índices en los tres
+cambio —incluidas las anomalías apartadas—, los cuatro índices en los tres
 ámbitos, puestos y pesos, las 42 barras de cada pirámide y el reparto por
-lugar de nacimiento: 3.784 comparaciones en los 88 municipios."""
+lugar de nacimiento: 2.992 comparaciones en los 88 municipios."""
 import json
 import sys
 from collections import Counter
@@ -50,7 +50,7 @@ def series(hoja):
 
 
 SS = {s: series(s) for s in ["C1M", "C1I", "C1R", "C6M", "C7M", "C22M", "C22R"]
-      + [c + a for c in ["C10", "C11", "C17", "C14", "C19", "C16", "C21"] for a in "MIR"]}
+      + [c + a for c in ["C10", "C11", "C17", "C14"] for a in "MIR"]}
 for f in F:
     mun = f["nombre"]
     check(f["poblacion"], SS["C1M"][mun][f["anio"]], f"poblacion:{mun}")

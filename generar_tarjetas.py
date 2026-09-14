@@ -1,32 +1,14 @@
 #!/usr/bin/env python3
-"""
-Tarjetas de vista previa del enlace · Canarias Convive
-======================================================
+"""Tarjetas de vista previa del enlace (PNG de 1200 × 630 para WhatsApp, X y
+LinkedIn), una genérica y una por municipio, más los envoltorios web/m/<cod>.html
+con las etiquetas og: de cada municipio (los rastreadores no ejecutan
+JavaScript) y la URL pública de sitio.json en las cinco páginas y config.js.
 
-Genera los PNG de 1200 x 630 que leen WhatsApp, X y LinkedIn cuando alguien
-comparte un enlace del visor: una tarjeta genérica y una por municipio.
+    python3 generar_tarjetas.py  ->  web/og/portada.png, web/og/<cod>.png, web/m/<cod>.html
 
-    python3 generar_tarjetas.py        ->  web/og/portada.png  +  web/og/<codINE>.png
-                                           web/m/<codINE>.html
-
-Reglas de la tarjeta, que vienen del diseño:
-
-  · Un solo dato numérico, los habitantes. Ningún índice, ningún porcentaje y
-    ninguna pirámide: a 320 px de ancho un gráfico se vuelve una mancha.
-  · Nada de sellos, medallas ni etiquetas de posición. La tarjeta identifica un
-    municipio; no lo califica ni lo compara.
-  · Ningún texto por debajo de 26 px, para que aguante el tamaño de miniatura de
-    una lista de conversaciones.
-
-Sobre la tipografía: el sitio compone en Montserrat, que no está en el sistema.
-La tarjeta usa Avenir Next, que es la geométrica más parecida de las que hay.
-Si alguna vez se instala Montserrat, basta con ponerla la primera en FAMILIAS.
-
-Los .html de web/m/ son envoltorios: llevan las etiquetas og: de su municipio y
-redirigen a la ficha. Los rastreadores de WhatsApp y X no ejecutan JavaScript,
-así que las etiquetas tienen que estar en el HTML servido; una sola ficha.html
-con ?municipio= mostraría la misma tarjeta para los 88.
-"""
+La tarjeta lleva un solo dato, los habitantes, y ningún texto por debajo de
+26 px. Compone en Avenir Next (Montserrat no está en el sistema; si se instala,
+va la primera en FAMILIAS). Necesita macOS y Pillow."""
 import json
 import re
 from pathlib import Path
@@ -97,13 +79,7 @@ def partir(d, texto, fuente, limite):
 
 
 def cuerpo_que_cabe(d, texto, limite_ancho, alto_max, max_lineas, px_max, px_min):
-    """Baja el cuerpo hasta que el nombre quepa en la caja.
-
-    De Tías a Santa María de Guía de Gran Canaria hay mucha diferencia, y la
-    caja no cambia: lo que cambia es el cuerpo. No basta con contar líneas: tres
-    líneas a 76 px miden 260 px y se comen el pie de la tarjeta, así que la
-    condición es el alto total.
-    """
+    """Baja el cuerpo hasta que el nombre quepa en la caja (por alto total, no por líneas)."""
     for px in range(px_max, px_min - 1, -2):
         f = tf("demi", px)
         lineas = partir(d, texto, f, limite_ancho)
@@ -208,10 +184,8 @@ ENVOLTORIO = """<!DOCTYPE html>
 </html>
 """
 
-# La URL pública vive en un solo sitio, sitio.json: de ahí salen las etiquetas
-# og: y canónicas de las cinco páginas, los envoltorios de web/m/ y
-# web/config.js, que la da al JS para el botón de compartir. Cambiar de
-# alojamiento es cambiar ese fichero y volver a ejecutar este script.
+# La URL pública vive en sitio.json; cambiar de alojamiento es cambiar ese
+# fichero y volver a ejecutar este script.
 SITIO = json.loads((AQUI / "sitio.json").read_text(encoding="utf-8"))
 BASE = SITIO["url_publica"].rstrip("/")
 
@@ -259,12 +233,7 @@ def escribir_envoltorios(idx, base, web=WEB):
 
 
 def guardar(img, ruta):
-    """PNG con paleta de 64 colores.
-
-    La tarjeta son manchas planas más el suavizado del texto: 649 colores
-    distintos, casi todos en los bordes de las letras. Con 64 el resultado es
-    indistinguible a la vista y pesa 17 KB en vez de 41.
-    """
+    """PNG con paleta de 64 colores: indistinguible a la vista y pesa 17 KB en vez de 41."""
     img.convert("RGB").quantize(colors=64, method=Image.MEDIANCUT,
                                 dither=Image.NONE).save(ruta, optimize=True)
 

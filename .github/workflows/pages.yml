@@ -50,17 +50,9 @@ jobs:
           path: web
       - id: despliegue
         uses: actions/deploy-pages@v4
-        # 600000 ms es el máximo que admite la acción: pedirle más no da más
-        # margen, solo un aviso de que lo ha recortado. Diez minutos.
-        #
-        # Si un despliegue falla, mirar el error antes de actuar:
-        # - "multiple artifacts": se relanzó desde la web y la subida se repitió;
-        #   deploy-pages no elige entre dos "github-pages". Un commit nuevo
-        #   arranca una ejecución limpia.
-        # - timeout (los 600000 ms): la publicación se quedó consultando un
-        #   estado vacío. Volver a empujar suele bastar.
-        # - "deployment in progress": hay un despliegue anterior sin cerrar; un
-        #   commit nuevo no lo libera, hay que esperar a que termine o cancelarlo
-        #   en Settings › Environments › github-pages.
+        # 600000 ms (diez minutos) es el máximo que admite la acción. Si falla
+        # con "multiple artifacts" o por tiempo, un commit nuevo arranca una
+        # ejecución limpia; con "deployment in progress" hay que esperar a que
+        # termine el anterior o cancelarlo en Settings › Environments.
         with:
           timeout: 600000

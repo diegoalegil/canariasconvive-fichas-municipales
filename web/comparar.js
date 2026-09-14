@@ -1,41 +1,18 @@
-/* =============================================================================
-   COMPARADOR DE MUNICIPIOS · CANARIAS CONVIVE
-
-   Los dos criterios de Pedro siguen mandando, y aquí aparece un tercero que se
-   deriva de ellos:
-
-   1. Ningún color de alerta sobre personas.
-   2. La ficha muestra datos y no los interpreta.
-   3. **Comparar no es clasificar.** Sí hay ahora un control que ordena las
-      columnas —por habitantes o por nombre, que Pedro pidió— pero no hay
-      posiciones, ni destacados, ni umbrales. En el bloque de índices las filas
-      sí van de mayor a menor —Pedro lo pidió: "el mayor arriba"— pero eso
-      ordena una lista, no puntúa a nadie: no hay puesto, ni medalla, y
-      Canarias se queda abajo en gris, de referencia y no de competidor. El
-      color distingue columnas, nunca valores, y va pegado al municipio: al
-      reordenar, cada uno se lleva el suyo. Si el color cambiara de sitio, el
-      orden parecería significar algo.
-
-   La decisión de escala: todo lo que describe cómo se reparte una población va
-   en porcentaje sobre su propio total, así que Betancuria (805 habitantes) y
-   Las Palmas (384.023) ocupan el mismo ancho. Lo que es un recuento o una
-   magnitud con unidad propia se imprime como número, sin barra: una barra de
-   384.023 frente a 805 dejaría a la segunda en menos de un píxel y solo diría
-   cuál es más grande, que ya lo dice la cifra.
-   ============================================================================= */
+/* Comparador de hasta tres municipios. Comparar no es clasificar: no hay
+   puestos ni umbrales, el color distingue columnas (nunca valores) y va pegado
+   al municipio, y Canarias queda en gris como referencia. Lo que describe un
+   reparto va en porcentaje sobre el propio total; los recuentos, como número. */
 
 const MAXIMO = 3;
 const TONOS_COL = ['#185FA5', '#2E75B6', '#85B7EB'];   // distinguen columna, no valor
 const TONOS_ORIGEN = ['#185FA5', '#6FA6D8', '#B5D4F4'];
 const GRIS_REF = '#9AA0A6';
 
-
 let INDICE = null;
-let ELEGIDOS = [];        // fichas completas, en el orden en que las añadió el usuario
-let ORDEN = 'poblacion';   // lo que molestaba a Pedro era el orden de selección
+let ELEGIDOS = [];         // fichas completas, en el orden en que se añadieron
+let ORDEN = 'poblacion';   // orden de presentación: habitantes, nombre o elección
 
-/** Las fichas en el orden de presentación. `ELEGIDOS` guarda siempre el orden
- *  de elección, que es el que decide qué color le toca a cada una. */
+/** Las fichas en el orden de presentación (`ELEGIDOS` conserva el de elección). */
 function ordenados() {
   const l = [...ELEGIDOS];
   if (ORDEN === 'poblacion') l.sort((a, b) => b.poblacion - a.poblacion);
@@ -57,8 +34,7 @@ function reservarColor(codigo) {
 }
 
 /* --------------------------------------------------------------- pirámide -- */
-/** Pirámide en porcentaje sobre el total del propio municipio. El eje es común
- *  a todas las columnas para que las siluetas se puedan comparar. */
+/** Pirámide en porcentaje sobre el total del propio municipio, con un eje común a las columnas. */
 function piramide(f, tope, w) {
   const p = f.piramide, n = p.edades.length;
   const total = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0);
@@ -68,8 +44,7 @@ function piramide(f, tope, w) {
 
   const m = { t: 6, b: 20, l: 4, r: 4 };
   const h = 250;
-  // El hueco central deja sitio al eje de edad. Las etiquetas van compactas
-  // —"0–4", "100+"— porque a tres columnas no cabe "100 o más".
+  // Canal central para las edades, compactas («0–4», «100+»): a tres columnas no cabe más.
   const hueco = acotar(w * 0.16, 36, 54);
   const centro = w / 2, lado = centro - hueco / 2 - m.l;
   const fila = (h - m.t - m.b) / n, barra = fila * 0.78;
@@ -118,11 +93,7 @@ function barraApilada(valores, w = 280) {
 }
 
 /* ------------------------------------------------------------- anillo ------ */
-/** El mismo gráfico circular que la ficha, aquí con dos sectores. Sustituye al
- *  mosaico de cien cuadros por la razón que dio Pedro del lugar de nacimiento:
- *  "al ser porcentajes con decimal, en gráfico circular sería más preciso". El
- *  mosaico redondeaba —un 12,4 % se dibujaba con doce cuadros— y encima decía
- *  al pie que cada cuadro era un uno por ciento, que no era verdad. */
+/** Anillo de dos sectores: el porcentaje en el color del municipio y el resto en gris. */
 function anillo(porcentaje, color, radio = 62, grosor = 22) {
   const w = radio * 2, cx = radio, cy = radio, re = radio - 1, ri = radio - grosor;
   const Pt = (a, r) => `${(cx + Math.cos(a) * r).toFixed(2)},${(cy + Math.sin(a) * r).toFixed(2)}`;
@@ -132,8 +103,7 @@ function anillo(porcentaje, color, radio = 62, grosor = 22) {
          + `L${Pt(a1, ri)}A${ri},${ri} 0 ${g},0 ${Pt(a0, ri)}Z" `
          + `fill="${fill}" stroke="#FFFFFF" stroke-width="1.4"/>`;
   };
-  // Un sector de vuelta entera no se traza con un solo arco: los dos extremos
-  // caerían en el mismo punto y el camino saldría vacío.
+  // Un sector de vuelta entera no se puede trazar con un solo arco.
   const f = acotar((porcentaje || 0) / 100, 0, 1);
   const a0 = -Math.PI / 2, aq = a0 + Math.min(f, 0.9995) * 2 * Math.PI;
   let out = '';
@@ -198,20 +168,13 @@ function seccionIndices() {
   return codigos.map((cod) => {
     const ref = ELEGIDOS[0].indices[cod].canarias;
     const dec = cod === 'C10' ? 2 : 1;
-    /* El mismo bloque que la ficha —rótulo, valor grande y pastilla de color—,
-       que es lo que pidió Pedro: "ordenar igual que está eso pero con los
-       nombres de los municipios, 3 colores, de mayor a menor y Canarias como
-       eje gris al lado… ordenarlo de izquierda a derecha con el color
-       respectivo, como hacemos en la página de visualización". Aquí sí de
-       mayor a menor, que es lo que dijo para el comparador; el color es el de
-       cada municipio y no el de la posición, para que al reordenar cada uno se
-       lleve el suyo. La barra medida de antes era lo que le desconcertaba:
-       "no sabe el eje que está aportando". */
+    // El mismo bloque que la ficha, de mayor a menor y con Canarias en gris al
+    // final; el color es el del municipio, no el de la posición.
     const filas = [...ELEGIDOS].sort((a, b) =>
       (b.indices[cod].municipio ?? -Infinity) - (a.indices[cod].municipio ?? -Infinity));
     return `<div class="cmp-indice">
       <div class="cmp-indice-tit">
-        <b>${esc(INDICE.rangos_indices[cod].etiqueta)}</b>
+        <b>${esc(ELEGIDOS[0].indices[cod].etiqueta)}</b>
         <span>${comoSeLee[cod]}</span>
       </div>
       <div class="escala" style="--n:${filas.length + 1}">
@@ -248,13 +211,11 @@ function seccionNacimiento() {
     <p class="cmp-escala">Cada barra suma el 100 % de la población de su municipio, así que se pueden comparar entre sí sea cual sea su tamaño.</p>`;
 }
 
-function ultimo(v) { for (let i = v.length - 1; i >= 0; i--) if (v[i] != null) return v[i]; return null; }
-
 function seccionExtranjero() {
-  const canarias = ultimo(ELEGIDOS[0].extranjero.canarias);
+  const canarias = ultimoValido(ELEGIDOS[0].extranjero.canarias);
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
       ${ordenados().map((f) => {
-        const v = ultimo(f.extranjero.municipio);
+        const v = ultimoValido(f.extranjero.municipio);
         return `<div class="cmp-col">
           <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
           <p><b>${pct(v)}</b> de su población</p>
@@ -273,8 +234,8 @@ function anchoColumna() {
   return Math.max(150, Math.floor((total - 20 * (cols - 1)) / cols));
 }
 
-/* `cruzar`: al añadir, quitar o reordenar, cada sección cambia por cruce con
-   desenfoque (comun.js). Al redibujar por un cambio de ancho, en seco. */
+/** `cruzar`: al añadir, quitar o reordenar, las secciones cambian por cruce con
+ *  desenfoque; al redibujar por un cambio de ancho, en seco. */
 function pintar(cruzar = false) {
   const soltar = cruzar ? cruce('#cmp-elegidos, #cmp-cifras, #cmp-piramides, #cmp-indices, #cmp-nacimiento, #cmp-extranjero') : () => {};
   const vacio = ELEGIDOS.length === 0;
@@ -333,15 +294,6 @@ async function anadir(codmun) {
 function quitar(codmun) {
   ELEGIDOS = ELEGIDOS.filter((f) => String(f.codmun) !== String(codmun));
   pintar(true);
-}
-
-function montarIconos() {
-  document.querySelectorAll('[data-ico], [data-ico-fin]').forEach((e) => {
-    const px = Number(e.dataset.px) || 18;
-    if (e.dataset.ico) e.insertAdjacentHTML('afterbegin', icono(e.dataset.ico, px));
-    if (e.dataset.icoFin) e.insertAdjacentHTML('beforeend', icono(e.dataset.icoFin, px));
-  });
-  document.querySelectorAll('.rotulo[data-ico]').forEach(() => {});
 }
 
 let temporizador = null, anchoPrevio = window.innerWidth;

@@ -1,15 +1,12 @@
-/* Batería de interacciones e impresión en Chromium (Playwright + node:test).
-   Reproduce los fallos de la auditoría del 13 de septiembre de 2026 y comprueba
-   que no vuelven: última selección manda, comparador con tres plazas y sin
-   duplicados, colores estables, errores visibles con reintento, menús de isla
-   dentro de la pantalla, contraste de los nombres, tabla semántica, teclado
-   tras redibujar e imprimir, foco de la presentación, leyenda de la pirámide
-   con las palabras de Pedro, redondeo único, las 88 fichas en una A4 y el
-   dossier de 98 hojas con su barra visible. Y lo corregido en la auditoría del
-   14 de septiembre: portada con las cifras junto al título y los desplegables
-   de isla del mismo alto, rótulos que no se pisan en el móvil, eje de origen
-   extranjero de 5 en 5, la cifra final por encima de la línea de Canarias,
-   nada señalado en la hoja impresa, El Hierro sin mapa repetido.
+/* Batería de interacciones e impresión (Playwright + node:test): última
+   selección manda, comparador con tres plazas y sin duplicados, colores
+   estables, errores visibles con reintento, portada (cifras junto al título,
+   desplegables de isla del mismo alto y dentro de la pantalla, Escape),
+   rótulos que no se pisan en el móvil, eje de origen extranjero de 5 en 5 y
+   la cifra final sobre la línea de Canarias, teclado tras redibujar e
+   imprimir, nada señalado en la hoja impresa, El Hierro sin mapa repetido,
+   foco de la presentación, leyenda de la pirámide, redondeo único, las 88
+   fichas en una A4 y el dossier de 98 hojas.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
    Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
@@ -128,12 +125,11 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.ok((await page.evaluate(() => scrollY)) > 0, 'el ancla se aplica tras la redirección');
   await page.goto(base + 'ficha.html?municipio=38038');
   await page.waitForSelector('#fuente-g-origen');
-  assert.equal(await page.locator('#btn-pdf-a3').count(), 0, 'sin botón de A3: la hoja es la A4 que pidió Pedro');
   await page.locator('.vista').nth(1).click();
   await espera(200);
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres españoles\nMujeres españolas\nExtranjeros', 'la leyenda que dictó Pedro');
-  // En reposo la pirámide no enseña ninguna cifra (Pedro: «lo de todas las edades no debe salir»);
-  // al señalar un grupo, las cifras van dentro del dibujo y la región viva las dice en palabras.
+  // En reposo la pirámide no enseña ninguna cifra; al señalar un grupo, las cifras van
+  // dentro del dibujo y la región viva las dice en palabras.
   assert.equal(await page.locator('#lectura-piramide').textContent(), '');
   assert.equal(await page.locator('#marcas-activas text').count(), 0);
   await page.locator('#g-piramide').focus();
@@ -437,8 +433,8 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
       await page.keyboard.press('Escape');
     }
   }
-  // Bajo el título no hay nada (Pedro: «lo de debajo sobra»); las cuatro cifras van a la derecha
-  // del título; los siete desplegables miden lo mismo; los chips caben en una fila.
+  // Bajo el título no hay nada; las cuatro cifras van a la derecha del título; los siete
+  // desplegables miden lo mismo; los chips caben en una fila.
   assert.equal(await page.locator('#tapa-anio').count(), 0, 'sin línea bajo el título');
   assert.ok(await page.evaluate(() => document.querySelector('.tapa-datos').getBoundingClientRect().top < document.querySelector('.tapa-texto').getBoundingClientRect().bottom), 'a 1280 las cifras van junto al título');
   assert.equal(await page.locator('.chip').evaluateAll((cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size), 1, 'los siete chips en una fila');

@@ -1,22 +1,6 @@
-/* =============================================================================
-   PORTADA · CANARIAS CONVIVE
-
-   Dos maneras de llegar a una ficha, y solo dos: escribir el nombre, o abrir la
-   isla y elegir de la lista. Antes había tres —el buscador, un mapa con los 88
-   municipios dibujados y un listado alfabético completo debajo— y el mapa era
-   la peor de las tres: para pinchar un municipio de Tenerife había que acertar
-   en una figura de pocos píxeles, y hacía falta un recuadro al lado explicando
-   cómo leerlo. Cuando un control necesita instrucciones, sobra el control.
-
-   Las siete listas miden lo mismo aunque El Hierro tenga tres municipios y
-   Tenerife treinta y uno («un desplegable del mismo tamaño en cada isla»,
-   Pedro): la caja tiene alto fijo (`.desplegable` en estilos.css), y la lista
-   que no cabe se desplaza por dentro.
-   ============================================================================= */
-
-/* El orden de las islas es el de indice.json (de oeste a este, lo fija
-   exportar_datos.py): el mismo en la portada, los selectores y el dossier. */
-
+/* Portada: buscador por nombre y un desplegable por isla, en el orden de
+   indice.json (de oeste a este, lo fija exportar_datos.py). Los siete
+   desplegables miden lo mismo (`.isla-menu .desplegable` en estilos.css). */
 
 let INDICE = null;
 let abierto = null;          // { disparador, lista } del desplegable visible
@@ -31,7 +15,7 @@ function opciones(muns, conIsla) {
     + `</a>`).join('');
 }
 
-let cerrandoConEscape = false;   // el foco vuelve al disparador sin reabrir la lista
+let cerrandoConEscape = false;   // Escape devuelve el foco al campo sin reabrir la lista
 function cerrar(devolverFoco = false) {
   if (!abierto) return;
   const { disparador, lista } = abierto;
@@ -56,21 +40,17 @@ function abrir(disparador, lista) {
   lista.scrollTop = 0;
   disparador.setAttribute('aria-expanded', 'true');
   abierto = { disparador, lista };
-  // Safari no da el foco a un botón al pulsarlo con el ratón, y sin foco
-  // dentro del menú las teclas (flechas, Inicio, Fin, Escape) no llegan.
+  // Safari no da el foco a un botón al pulsarlo con el ratón, y sin foco no llegan las teclas.
   if (!disparador.contains(document.activeElement) && !lista.contains(document.activeElement)) disparador.focus();
 }
 
-/** Arriba y abajo recorren la lista; desde el disparador, la primera flecha
- *  entra en ella. Es lo que se espera de algo que se despliega. */
 addEventListener('resize', () => { if (abierto) cerrar(abierto.lista.contains(document.activeElement)); });
 
+/** Mueve el foco por la lista: un paso arriba o abajo, o 'inicio' / 'fin'. */
 function mover(lista, paso) {
   const ops = [...lista.querySelectorAll('a')];
   if (!ops.length) return;
   const i = ops.indexOf(document.activeElement);
-  // Inicio y Fin son absolutos: desde el disparador, con la lista abierta,
-  // Inicio iba a la última opción (un paso negativo «desde fuera»).
   const j = paso === 'inicio' ? 0 : paso === 'fin' ? ops.length - 1
     : i < 0 ? (paso > 0 ? 0 : ops.length - 1)
     : Math.min(ops.length - 1, Math.max(0, i + paso));
@@ -143,8 +123,7 @@ function montarBuscador() {
     const hallados = INDICE.municipios
       .filter((m) => plano(m.nombre).includes(q))
       .sort((a, b) => {
-        // Primero los que empiezan por lo tecleado: quien escribe "san" busca
-        // San Andrés antes que Alajeró de San Sebastián.
+        // Primero los que empiezan por lo tecleado.
         const ea = plano(a.nombre).startsWith(q), eb = plano(b.nombre).startsWith(q);
         if (ea !== eb) return ea ? -1 : 1;
         return a.nombre.localeCompare(b.nombre, 'es');
@@ -154,9 +133,7 @@ function montarBuscador() {
   };
 
   campo.addEventListener('input', buscar);
-  /* Al volver al campo con texto escrito se reabre la lista, salvo cuando es
-     Escape quien devuelve el foco: cerraba la lista y este `focus` la volvía a
-     abrir en el mismo instante, y Escape no cerraba nada. */
+  // Al volver al campo con texto se reabre la lista, salvo cuando es Escape quien devuelve el foco.
   campo.addEventListener('focus', () => { if (campo.value.trim() && !cerrandoConEscape) buscar(); });
   campo.parentElement.addEventListener('keydown', (e) => teclas(e, campo, lista, buscar));
   // Enter sobre el campo abre el primero de la lista, sin tener que bajar.
@@ -197,9 +174,7 @@ function prepararEntrada() {
   }, { threshold: umbral });
   ob.observe(objetivo);
 
-  /* Red de seguridad: con la pestaña en segundo plano el navegador no entrega
-     los avisos del IntersectionObserver, y la portada se quedaría en blanco
-     hasta que alguien volviera a ella. */
+  // Con la pestaña en segundo plano el IntersectionObserver no avisa: red de seguridad.
   setTimeout(() => {
     if (yaEntro) return;
     ob.disconnect();
@@ -221,8 +196,7 @@ async function iniciar() {
 
   INDICE = await (await fetch('datos/indice.json')).json();
 
-  // El porcentaje de Canarias viene de la serie regional que va dentro de cada
-  // ficha, así que se lee de una y no se recalcula.
+  // El porcentaje de Canarias va en la serie regional de cada ficha: se lee de una.
   const uno = await (await fetch(`datos/mun/${INDICE.municipios[0].codmun}.json`)).json();
   const serie = uno.extranjero.canarias;
   let pctCan = null;
@@ -247,8 +221,7 @@ async function iniciar() {
   prepararEntrada();
 }
 
-// Un enlace antiguo del tipo index.html?municipio=38038 apuntaba a la ficha
-// cuando la ficha vivía en la raíz. Se respeta.
+// Los enlaces antiguos index.html?municipio=38038 siguen llevando a la ficha.
 const heredado = new URLSearchParams(location.search).get('municipio');
 if (heredado) {
   location.replace(`ficha.html?municipio=${encodeURIComponent(heredado)}`);
