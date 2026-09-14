@@ -5,6 +5,7 @@
 import json
 import sqlite3
 import struct
+import unicodedata
 from pathlib import Path
 
 from territorios import ISLAS, COMARCAS, EXC_GEO
@@ -17,6 +18,10 @@ SALIDA = Path(__file__).parent / "web" / "datos"
 # comarca unos 50 m. 60 m mantiene el detalle a la escala mayor.
 TOLERANCIA = 60
 DECIMALES = 0          # metros enteros: el error es < 1 px a cualquier escala
+
+
+def _norm(s):
+    return unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().strip().lower()
 
 
 # ------------------------------------------------------------------- WKB ---
@@ -128,18 +133,10 @@ def main():
 
     ISLA_DE = {m: i for i, ms in ISLAS.items() for m in ms}
     COMARCA_DE = {m: c for c, ms in COMARCAS.items() for m in ms}
-    equiv = {}
-    for m in ISLA_DE:
-        import unicodedata
-        k = unicodedata.normalize("NFKD", m).encode("ascii", "ignore").decode().strip().lower()
-        equiv[k] = m
+    equiv = {_norm(m): m for m in ISLA_DE}
 
     def nombre_excel(cod, nom_geo):
-        import unicodedata
-        if int(cod) in EXC_GEO:
-            return EXC_GEO[int(cod)]
-        k = unicodedata.normalize("NFKD", str(nom_geo)).encode("ascii", "ignore").decode().strip().lower()
-        return equiv.get(k)
+        return EXC_GEO.get(int(cod), equiv.get(_norm(nom_geo)))
 
     rasgos, v_ini, v_fin = [], 0, 0
     for cod, nom_geo, isla_geo, blob in filas:

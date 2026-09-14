@@ -138,7 +138,7 @@ function hojaGuia(fichas) {
   // Partida solo en las barras: un guion al final de línea se teclearía mal desde el papel.
   const guia = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '')
     .split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
-  const definicion = (x) => `<p><b>${esc(x.nombre.replace(/^Índice de /, (s) => s))}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
+  const definicion = (x) => `<p><b>${esc(x.nombre)}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Cómo usar este dossier</h2>
     <div class="d-cols">

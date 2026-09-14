@@ -275,7 +275,6 @@ function medidasPiramide(w) {
   return           { m: { t: 14, r: 12, b: 30, l: 12 }, hueco: 50, s: 1.1, fe: 9.5, feEdad: 8.5, rej: 1 };
 }
 
-
 /** Marco negro de una barra: tres lados, abierto contra el eje (cerrado, las 21
  *  marcas formarían dos columnas negras). El trazo se mete media anchura para
  *  que el borde exterior caiga sobre el dato; por debajo de dos anchuras de

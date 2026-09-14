@@ -115,13 +115,13 @@ function anillo(porcentaje, color, radio = 62, grosor = 22) {
 /* ------------------------------------------------------------- secciones --- */
 function seccionCifras() {
   const filas = [
-    ['Habitantes', 'personas', (f) => nf(f.poblacion), null],
-    ['Edad media', 'años', (f) => nf(f.cifras.edad_media, 1), null],
+    ['Habitantes', 'personas', (f) => nf(f.poblacion)],
+    ['Edad media', 'años', (f) => nf(f.cifras.edad_media, 1)],
     ['Variación media anual', '% medio por año',
       (f) => `${f.cifras.tvma >= 0 ? '+' : '−'}${nf(Math.abs(f.cifras.tvma), 1)}${UNI}%`
-           + `<em>${f.evolucion.anio_base}–${f.evolucion.anio_fin}</em>`, null],
-    ['Mujeres', '% del total', (f) => pct(f.cifras.pct_mujeres), null],
-    ['Hombres', '% del total', (f) => pct(f.cifras.pct_hombres), null],
+           + `<em>${f.evolucion.anio_base}–${f.evolucion.anio_fin}</em>`],
+    ['Mujeres', '% del total', (f) => pct(f.cifras.pct_mujeres)],
+    ['Hombres', '% del total', (f) => pct(f.cifras.pct_hombres)],
   ];
   const municipios = ordenados();
   return `<table class="cmp-tabla" role="table">
@@ -196,15 +196,16 @@ function seccionIndices() {
 
 function seccionNacimiento() {
   const cats = ELEGIDOS[0].origen.categorias;
-  const fila = (rot, vals, color) => `
+  // El rótulo de cada municipio va en azul; el de Canarias, la referencia, en negro.
+  const fila = (rot, vals, municipio) => `
     <div class="cmp-apilada">
-      <span class="cmp-barra-rot" ${color ? 'style="color:var(--azul)"' : ''}>${esc(rot)}</span>
+      <span class="cmp-barra-rot" ${municipio ? 'style="color:var(--azul)"' : ''}>${esc(rot)}</span>
       ${barraApilada(vals)}
       <span class="cmp-barra-val">${vals.map((v) => nf(v, 1)).join(' · ')}</span>
     </div>`;
   return `
-    ${ordenados().map((f) => fila(f.nombre, f.origen.municipio, tono(f))).join('')}
-    ${fila('Canarias', ELEGIDOS[0].origen.canarias, null)}
+    ${ordenados().map((f) => fila(f.nombre, f.origen.municipio, true)).join('')}
+    ${fila('Canarias', ELEGIDOS[0].origen.canarias, false)}
     <div class="leyenda">
       ${cats.map((c, i) => `<span><i class="llave" style="background:${TONOS_ORIGEN[i]}"></i>${esc(c)}</span>`).join('')}
     </div>

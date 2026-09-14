@@ -194,13 +194,11 @@ function montarIconos() {
 async function iniciar() {
   montarIconos();
 
-  INDICE = await (await fetch('datos/indice.json')).json();
+  INDICE = await leerJSON('datos/indice.json');
 
   // El porcentaje de Canarias va en la serie regional de cada ficha: se lee de una.
-  const uno = await (await fetch(`datos/mun/${INDICE.municipios[0].codmun}.json`)).json();
-  const serie = uno.extranjero.canarias;
-  let pctCan = null;
-  for (let i = serie.length - 1; i >= 0; i--) if (serie[i] != null) { pctCan = serie[i]; break; }
+  const uno = await leerJSON(`datos/mun/${INDICE.municipios[0].codmun}.json`);
+  const pctCan = ultimoValido(uno.extranjero.canarias);
 
   document.getElementById('tapa-datos').innerHTML = [
     [nf(INDICE.poblacion_canarias), 'Habitantes'],

@@ -1,5 +1,5 @@
 # Publica la carpeta web/ en GitHub Pages. El sitio es estático: no hay build,
-# solo se sube tal cual lo que generan exportar_datos.py y exportar_geo.py.
+# solo se sube tal cual lo que generan los scripts de la raíz del repositorio.
 # Antes corre la batería de pruebas (pruebas/): invariantes de los datos,
 # interacciones en Chromium e impresión. Si algo falla, no se publica.
 name: Desplegar en GitHub Pages

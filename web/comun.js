@@ -93,7 +93,6 @@ addEventListener('beforeprint', () => {
   document.getAnimations().forEach((a) => { try { a.finish(); } catch (e) { a.cancel(); } });
 });
 
-
 /* ------------------------------------------------------------- carga ------- */
 /* Raíz de la web: el directorio de este script. Datos y enlaces se resuelven
    contra ella, porque la ficha cambia su dirección visible a m/<código>.html. */

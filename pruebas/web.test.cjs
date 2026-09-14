@@ -424,7 +424,7 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
   for (const ancho of [320, 375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 812 });
     await espera(200);
-    for (const boton of await page.locator('.isla-menu > button, .isla-menu > .chip').all()) {
+    for (const boton of await page.locator('.isla-menu > .chip').all()) {
       await boton.click();
       await espera(80);
       const caja = await page.locator('.isla-menu .desplegable:not([hidden])').boundingBox();
@@ -449,7 +449,7 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
   assert.equal(await page.locator('#buscar').getAttribute('aria-expanded'), 'false');
   await page.fill('#buscar', '');
   // Inicio y Fin con la lista abierta y el foco aún en el disparador.
-  const chip = page.locator('.isla-menu > button, .isla-menu > .chip').first();
+  const chip = page.locator('.isla-menu > .chip').first();
   const cajaChip = await chip.boundingBox();
   await page.mouse.click(cajaChip.x + cajaChip.width / 2, cajaChip.y + cajaChip.height / 2); await espera(80);
   assert.ok(await page.evaluate(() => document.activeElement !== document.body), 'abierta con el ratón, el foco está en el disparador');

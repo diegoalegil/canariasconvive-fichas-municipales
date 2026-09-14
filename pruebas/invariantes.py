@@ -16,7 +16,9 @@ La conciliación contra el Excel, que sí necesita el libro, está en
 conciliar_excel.py."""
 import json
 import re
+import shutil
 import sys
+import tempfile
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
@@ -139,10 +141,7 @@ for js in ("portada", "dossier", "ficha", "comparar", "guia", "datos-ui"):
 
 # Ensayo de mudanza: con otra URL pública en sitio.json, ¿queda alguna referencia
 # al dominio actual en las cinco páginas, los envoltorios o config.js?
-import shutil
-import sys as _sys
-import tempfile
-_sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ))
 try:
     from generar_tarjetas import reescribir_paginas, escribir_envoltorios
     with tempfile.TemporaryDirectory() as tmp:

@@ -7,12 +7,14 @@
 #           web/datos/mun/<codmun>.json · una ficha por municipio
 import json
 import math
+import sqlite3
 import unicodedata
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from metadatos import fuentes_indicadores
+from territorios import ISLAS, COMARCAS, EXC_GEO
 
 RUTA = Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
 RUTA_GEO = Path.home() / "Downloads" / "MUNICIPIOS.gpkg"
@@ -129,8 +131,6 @@ def _sin_nulos(x, y):
 
 
 # ------------------------------------------------------- islas y comarcas ---
-from territorios import ISLAS, COMARCAS, EXC_GEO  # noqa: E402
-
 ISLA_DE = {m: i for i, ms in ISLAS.items() for m in ms}
 COMARCA_DE = {m: c for c, ms in COMARCAS.items() for m in ms}
 
@@ -205,8 +205,6 @@ _CACHE.clear()
 
 # ------------------------------------------------------------ geometrías ---
 # codmun (código INE) leído del GeoPackage por SQLite, sin geopandas/GDAL.
-import sqlite3  # noqa: E402
-
 con = sqlite3.connect(f"file:{RUTA_GEO}?mode=ro", uri=True)
 _eq = {_norm(m): m for m in ISLA_DE}
 COD_DE = {}

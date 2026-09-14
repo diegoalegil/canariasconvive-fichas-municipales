@@ -244,15 +244,14 @@ select {
 /* Columnas con el rótulo, el valor y la pastilla; `--n` deja al comparador poner
    cuatro. Alineadas por abajo: un nombre de tres líneas no descoloca el resto. */
 .escala { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: var(--e-2); align-items: end; }
-.peldano { text-align: center; min-width: 0; }
+/* El ámbito señalado se resalta en los cuatro índices y los otros se atenúan. */
+.peldano { text-align: center; min-width: 0; transition: opacity .25s ease; cursor: default; }
 .peldano span { display: block; font-size: 10.5px; color: var(--gris); line-height: 1.25; min-height: 26px; }
 .peldano b {
   display: block; font-size: 17px; font-weight: 700; letter-spacing: -.4px;
   color: var(--negro); font-variant-numeric: tabular-nums; margin: 2px 0 5px;
 }
 .peldano i { display: block; height: 7px; border-radius: var(--r-1); }
-/* El ámbito señalado se resalta en los cuatro índices y los otros se atenúan. */
-.peldano { transition: opacity .25s ease; cursor: default; }
 .peldano span, .peldano b { transition: color .25s ease; }
 .peldano.foco span { color: var(--negro); font-weight: 700; }
 .peldano.foco b { text-decoration: underline; text-decoration-color: var(--azul); text-decoration-thickness: 2px; text-underline-offset: 5px; }
@@ -377,7 +376,7 @@ select {
    «del mismo tamaño en cada isla»; la lista que no cabe se desplaza por dentro). */
 .desplegable {
   position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
-  width: 268px; max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
+  width: 268px; max-width: calc(100vw - 24px); max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
   background: var(--fondo); border: 1px solid var(--linea);
   border-radius: var(--r-2); box-shadow: var(--s-2); padding: 6px;
 }
@@ -631,7 +630,6 @@ select {
 }
 .buscador:focus-within { outline: 2px solid var(--azul); outline-offset: 3px; }   /* el input no lleva contorno */
 #g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
-.desplegable { max-width: calc(100vw - 24px); }
 
 /* Fuente de cada gráfico (datos-ui.js); el desplegable solo lo usa la guía. */
 .fuente-grafico { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--gris); text-wrap: pretty; }
