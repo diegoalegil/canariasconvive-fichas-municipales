@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=79">
+<link rel="stylesheet" href="estilos.css?v=80">
 </head>
 <body>
 
@@ -35,7 +35,6 @@
       <div class="tapa-cuerpo">
         <div class="tapa-texto ent">
           <h1>Una ficha por cada municipio de Canarias</h1>
-          <p id="tapa-anio"></p>
         </div>
         <div class="tapa-datos" id="tapa-datos"></div>
       </div>
@@ -62,9 +61,12 @@
   </div>
 </main>
 
-<script src="config.js?v=79"></script>
-<script src="comun.js?v=79"></script>
-<script src="iconos.js?v=79"></script>
-<script src="portada.js?v=79"></script>
+<!-- Sin JavaScript, o si portada.js no llega a ejecutarse, la clase «espera»
+     no se retiraría nunca y la portada quedaría en blanco: aquí se anula. -->
+<noscript><style>.tapa.espera .ent { opacity: 1; }</style></noscript>
+<script src="config.js?v=80"></script>
+<script src="comun.js?v=80"></script>
+<script src="iconos.js?v=80"></script>
+<script src="portada.js?v=80" onerror="document.querySelector('.tapa').classList.remove('espera')"></script>
 </body>
 </html>

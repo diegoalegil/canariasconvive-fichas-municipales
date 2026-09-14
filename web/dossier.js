@@ -9,12 +9,10 @@
    ficha.js solo arranca solo si encuentra el selector de municipio, que aquí
    no existe.
 
-   El orden es el mismo que el del visor: las islas de oeste a este y, dentro de
-   cada una, los municipios por orden alfabético.
+   El orden es el de indice.json, el mismo que en la portada y los selectores:
+   las islas de oeste a este y, dentro de cada una, los municipios por orden
+   alfabético.
    ============================================================================= */
-
-const ISLAS_OESTE_ESTE = ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife',
-                          'Gran Canaria', 'Fuerteventura', 'Lanzarote'];
 
 /* Anchos de hoja, los mismos que usa la ficha al imprimir. */
 const HOJA_MM = 190;
@@ -53,17 +51,13 @@ function hojaFicha(f, pagina) {
   const c = f.cifras, ev = f.evolucion;
   const signo = c.tvma >= 0 ? '+' : '−';
 
-  const niveles = [
-    ['Canarias', () => true, f.rankings.canarias, false],
-    [f.isla, (g) => g.properties.isla === f.isla, f.rankings.isla, true],
-    [f.comarca.replace(/^.*? - /, ''), (g) => g.properties.comarca === f.comarca, f.rankings.comarca, true],
-  ];
+  const niveles = nivelesMapas(f);   // en ficha.js; «en la comarca» y sin tercer mapa en El Hierro
 
   const anom = f.componentes.anomalias || [];
 
   return `<article class="hoja hoja-ficha" data-pagina="${pagina}">
     <header class="d-cab">
-      <p class="d-migas">${esc(f.isla)} · ${esc(f.comarca.replace(/^.*? - /, ''))}</p>
+      <p class="d-migas">${esc([f.isla, comarcaDe(f)].filter(Boolean).join(' · '))}</p>
       <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
       <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
     </header>
@@ -100,11 +94,11 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta">
         <header class="rotulo">${icono('territorio', 13)}<div><h2>El municipio en su entorno</h2>
           <p>Su puesto por población y el peso que tiene en cada ámbito</p></div></header>
-        <div class="cuerpo"><div class="mapas">
+        <div class="cuerpo"><div class="mapas${niveles.length === 2 ? ' dos' : ''}">
           ${niveles.map(([tit, filtro, r, lim]) => `
             <figure class="mapa">${mapa(GEOD, f.codmun, filtro, wMapa, px(20), lim)}
               <figcaption class="mapa-pie"><b>${r.puesto}º de ${r.total}</b>
-                <span>en ${esc(tit)}</span>
+                <span>${esc(tit)}</span>
                 <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
         </div>${fuenteGrafico('mapas')}</div>
       </section>
@@ -189,8 +183,14 @@ function hojaGuia(fichas) {
   const anios = ['vegetativo', 'migratorio'].flatMap((clave) => fichas.flatMap((f) =>
     f.componentes.anios.filter((a, i) => f.componentes[clave][i] != null)));
   const anioComp = anios.length ? Math.max(...anios) : IDX.anio - 1;
+  /* Los organismos de los enlaces del índice (ISTAC, INE) más GRAFCAN, que no
+     tiene enlace estadístico pero firma los límites municipales de los mapas
+     (es la fuente que Pedro dictó para ellos). */
   const organismos = [...new Set(Object.values(IDX.fuentes_indicadores || {})
     .flatMap((x) => (x.enlaces || []).map((e) => e.organismo)).filter(Boolean))];
+  if (!organismos.includes('GRAFCAN')) organismos.push('GRAFCAN');
+  const listaOrganismos = organismos.length > 1
+    ? `${organismos.slice(0, -1).join(', ')} y ${organismos[organismos.length - 1]}` : organismos.join('');
   // Partida solo en las barras, nunca en los guiones: un guion al final de
   // línea se lee como silabeo y se teclearía mal desde el papel.
   const guia = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '')
@@ -201,20 +201,19 @@ function hojaGuia(fichas) {
     <div class="d-cols">
       <div>
         <h3>El orden</h3>
-        <p>Las 88 fichas van en el mismo orden que el visor en línea: las islas de oeste a
-           este y, dentro de cada isla, los municipios por orden alfabético. Cada municipio
-           ocupa una hoja, y antes de cada grupo hay un separador con el conjunto de la isla.</p>
+        <p>Las 88 fichas van en el mismo orden que la portada y los selectores de la web: las
+           islas de oeste a este y, dentro de cada isla, los municipios por orden alfabético.
+           Cada municipio ocupa una hoja, y antes de cada grupo hay un separador con el
+           conjunto de la isla.</p>
         <h3>Los datos</h3>
         <p>Población a 1 de enero de ${IDX.anio}. Las series de crecimiento
            vegetativo y saldo migratorio llegan hasta ${anioComp}, que es el último año cerrado.
            Las cifras de origen extranjero y de lugar de nacimiento cuentan dónde nació cada
            persona, con independencia de su nacionalidad.</p>
         <h3>Las fuentes</h3>
-        <p>${esc(organismos.length ? organismos.join(' e ') : 'ISTAC e INE')}. El enlace a cada recurso estadístico, con los años
+        <p>${esc(listaOrganismos)}. El enlace a cada recurso estadístico, con los años
            que cubre y la fecha del dato, está en la guía en línea de cada indicador:
            <b>${guia}</b></p>
-        <p>En los municipios de pocos habitantes, unas pocas personas mueven mucho un
-           índice.</p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>
@@ -303,8 +302,8 @@ async function iniciarDossier() {
   const fichas = await Promise.all(IDX.municipios.map((m) =>
     leerJSON(`datos/mun/${m.codmun}.json`)));
 
-  // Orden: islas de oeste a este, municipios por orden alfabético.
-  const grupos = ISLAS_OESTE_ESTE.map((isla) => {
+  // Orden: el de indice.json (islas de oeste a este), municipios por orden alfabético.
+  const grupos = Object.keys(IDX.islas).map((isla) => {
     const g = resumenIsla(isla, fichas);
     g.fichas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     return g;

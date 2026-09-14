@@ -3,8 +3,9 @@
   "private": true,
   "description": "Batería de pruebas de las fichas municipales: datos, interacciones e impresión",
   "scripts": {
-    "test": "python3 pruebas/invariantes.py && node --test pruebas/web.test.cjs",
-    "test:datos": "python3 pruebas/invariantes.py",
+    "test": "python3 pruebas/invariantes.py && python3 pruebas/conciliar_excel.py && node --test pruebas/web.test.cjs",
+    "test:datos": "python3 pruebas/invariantes.py && python3 pruebas/conciliar_excel.py",
+    "test:excel": "python3 pruebas/conciliar_excel.py",
     "test:web": "node --test pruebas/web.test.cjs"
   },
   "devDependencies": { "playwright": "1.62.1" }

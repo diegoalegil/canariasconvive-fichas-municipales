@@ -207,12 +207,45 @@ Pedro no pidió; el método y los enlaces siguen en la guía. En papel el camino
 a la guía va en la esquina de la cabecera.
 
 En la hoja A4 cada fila de la retícula crece la línea de fuente (2,3 mm); se
-compensa con menos relleno en el pie y el rótulo de las tarjetas. Medido: la
-ficha más alta pasa de 276,0 a 276,4 mm de los 281 disponibles, y las 88
-miden lo mismo porque en El Pinar y Frontera el gráfico de componentes cede a
-su nota de 2007 los 3 mm que las hacían más altas. En el dossier la pirámide
-cede milímetro y medio (de 13 a 11,5 mm más alta que en la ficha suelta) y la
-cabecera y el pie otros dos: la hoja más alta mide 293,7 mm de 297.
+compensa con menos relleno en el pie y el rótulo de las tarjetas. Medido en la
+versión publicada: las 88 fichas miden 269,4 mm de los 281 disponibles (miden
+lo mismo porque en El Pinar y Frontera el gráfico de componentes cede a su nota
+de 2007 los 3 mm que las hacían más altas), y la hoja más alta del dossier
+294,0 mm de 297.
+
+**Lo que corrigió la auditoría del 14 de septiembre.** Se revisó el chat
+completo con Pedro, las 85 peticiones que hizo y todo el código; lo que no
+necesitaba decisión se corrigió en la v=80. En la portada, las cuatro cifras
+van junto al título (el hueco de 48 px las mandaba siempre debajo y media caja
+azul quedaba vacía), bajo el título no queda nada, los siete desplegables de
+isla miden lo mismo (`height`, no `max-height`), los chips caben en una fila,
+Escape cierra el buscador y la portada se ve sin JavaScript. Las islas van en
+un solo orden, de oeste a este, que fija `exportar_datos.py` en `indice.json`
+y heredan la portada, los selectores y el dossier. En la ficha: el eje de
+origen extranjero va de 5 en 5, como lo pidió Pedro (con paso 1-2-5 salía de
+10 en 10 en 27 municipios y de 20 en 20 en cuatro; por encima del 40 % se
+rotulan los múltiplos de 10), la cifra del último año se coloca por encima de
+la línea de Canarias y se pinta después de ella (la línea la atravesaba en 16
+municipios), y la serie se exporta sin redondear (a dos decimales, Las Palmas
+llegaba como 16,55 y en pantalla salía «16,6 %» junto al 16,5 del lugar de
+nacimiento; San Bartolomé, Garafía y La Laguna, igual). El eje de componentes
+va cada dos años también en el papel, que lo llevaba cada cuatro y sin 2002;
+en pantallas estrechas, cada cuatro, y el rótulo de la variación acumulada
+de la evolución queda por encima de la rejilla (caía sobre la curva). En la
+pirámide, la franja fijada es un estado global —cada redibujado la olvidaba y
+el primer movimiento del ratón la cambiaba—, se fija con el clic o el toque
+terminado y no al empezar a desplazar la página, no se imprime, las cifras se
+colocan con el ancho real del texto y los grupos con personas que redondean a
+0,00 se leen «< 0,01 %»; con eje 14 en el móvil el rótulo del tope ya no se
+pega al 12. La lectura táctil de la evolución no se borra al levantar el
+dedo. El tercer mapa dice «en la comarca», como en la ficha de Pedro (salían
+pies como «3º de 3 en Oeste»), y en El Hierro, donde la comarca es la isla,
+hay dos mapas y unas migas sin repetir. En la guía, el exponente de la
+variación media anual va arriba, el periodo del crecimiento vegetativo es el
+que dibuja la ficha (2002–2024, la serie del ISTAC empieza en 1999) y los
+saltos del índice dejan el título por debajo de la barra. El dossier nombra a
+GRAFCAN entre las fuentes y no lleva la advertencia sobre los municipios
+pequeños. Los 88 envoltorios llevan `og:site_name`.
 
 **La última selección manda.** Cambiar dos veces de municipio con la primera
 respuesta llegando tarde dejaba el selector en uno y la ficha en otro. Cada
@@ -271,17 +304,22 @@ npm test
 
 - `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios, cada
   pirámide suma su población y las 88 suman Canarias, la TVMA es la de la
-  serie sin redondeo intermedio, los repartos suman cien, los índices están en
-  los tres ámbitos, cada indicador tiene fuente con enlace https, los 88
-  envoltorios y las canónicas y `og:` de las cinco páginas llevan la URL de
-  `sitio.json`, las cinco cargan la misma versión de recursos, ningún texto
+  serie sin redondeo intermedio, el último dato de origen extranjero se
+  muestra con un decimal igual que el del lugar de nacimiento, los repartos
+  suman cien, los índices están en los tres ámbitos, cada indicador tiene
+  fuente con enlace https, las islas van de oeste a este en el índice, los 88
+  envoltorios llevan la población y el año de `indice.json`, su tarjeta `og`
+  y la URL de `sitio.json` (igual que las canónicas y `og:` de las cinco
+  páginas), las cinco cargan la misma versión de recursos, ningún texto
   atribuye los datos al padrón, y una mudanza a una URL ficticia no deja
   rastro del dominio anterior.
-- `pruebas/conciliar_excel.py`: 3.608 comparaciones contra el libro, celda a
-  celda —población, series, componentes con sus anomalías, los siete índices
-  en los tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el
-  lugar de nacimiento—. Necesita el Excel en `~/Downloads`; si no está, se
-  omite avisando. No corre en GitHub porque el libro no está en el repositorio.
+- `pruebas/conciliar_excel.py`: 3.784 comparaciones contra el libro, celda a
+  celda —población, series, origen extranjero con el decimal que se muestra,
+  componentes con sus anomalías, los siete índices en los tres ámbitos,
+  puestos y pesos, las 42 barras de cada pirámide y el lugar de nacimiento—.
+  Corre dentro de `npm test`; necesita el Excel en `~/Downloads` y `openpyxl`
+  (si falta cualquiera de los dos, se omite avisando). No corre en GitHub
+  porque el libro no está en el repositorio.
 - `pruebas/web.test.cjs` (Playwright, Chromium): la última selección manda,
   la dirección visible es `m/<código>.html` y desde ella se sigue cargando
   todo; el error se ve y se reintenta; la TVMA se redondea una vez; rótulos por
@@ -298,7 +336,14 @@ npm test
   islas abiertas dentro de la pantalla a 320, 375 y 1280, e Inicio/Fin desde el
   disparador; el foco del buscador; la guía; las 88 fichas en una A4; el dossier de
   98 páginas con su barra visible, sin hojas desbordadas y con la guía que
-  calcula el último año de los componentes.
+  calcula el último año de los componentes y nombra a GRAFCAN; y lo corregido en la auditoría del 14 de septiembre: las
+  cifras de la portada junto al título, los desplegables del mismo alto, los
+  chips en una fila, Escape en el buscador, los rótulos de evolución,
+  componentes y origen extranjero sin pisarse a 320, 375 y 414 px en cuatro
+  municipios, el eje de origen extranjero de 5 en 5 y la cifra final sin la
+  línea de Canarias encima, la franja fijada que sobrevive al redibujado y no
+  se imprime, «< 0,01 %», el eje 14 en el móvil, El Hierro con dos mapas y el
+  tercer mapa «en la comarca», el exponente y las anclas de la guía.
 
 En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` corre
 los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo

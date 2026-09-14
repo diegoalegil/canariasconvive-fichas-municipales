@@ -7,15 +7,23 @@ municipios, que cada pirámide suma su población y las 88 suman Canarias, que
 la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
 por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 ámbitos, que cada indicador tiene su fuente con enlace https, que los 88
-envoltorios de web/m/ apuntan a la URL pública de sitio.json y que las cinco
-páginas cargan la misma versión de recursos.
+envoltorios de web/m/ apuntan a la URL pública de sitio.json y llevan la
+población y el año de los datos (con su tarjeta og), que la serie de origen
+extranjero se muestra con un solo redondeo, que las islas van en el mismo orden
+en el índice y que las cinco páginas cargan la misma versión de recursos.
 
 La conciliación contra el Excel, que sí necesita el libro, está en
 conciliar_excel.py."""
 import json
 import re
 import sys
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
+
+
+def mostrado(v, dec=1):
+    """Lo que escribe la web con `nf(v, dec)`: half-expand sobre el valor decimal."""
+    return str(Decimal(repr(float(v))).quantize(Decimal(1).scaleb(-dec), rounding=ROUND_HALF_UP))
 
 RAIZ = Path(__file__).resolve().parent.parent
 WEB = RAIZ / "web"
@@ -65,6 +73,12 @@ for m in municipios:
         ind = f["indices"].get(cod_ind)
         comprobar(ind is not None and all(isinstance(ind.get(k), (int, float)) for k in ("municipio", "isla", "canarias")),
                   f"{f['nombre']}: índice {cod_ind} incompleto")
+    # El último dato de origen extranjero se muestra con un decimal en la ficha y
+    # coincide con el del bloque de lugar de nacimiento, que ya viene con uno:
+    # con la serie exportada a dos decimales, Las Palmas salía 16,6 y 16,5.
+    ultimo = next(v for v in reversed(f["extranjero"]["municipio"]) if v is not None)
+    comprobar(mostrado(ultimo) == mostrado(f["origen"]["municipio"][2]),
+              f"{f['nombre']}: origen extranjero {mostrado(ultimo)} % en la serie y {f['origen']['municipio'][2]} % en el lugar de nacimiento; ¿redondeo intermedio?")
     envoltorio = WEB / f"m/{cod}.html"
     comprobar(envoltorio.exists(), f"falta el envoltorio m/{cod}.html")
     if envoltorio.exists():
@@ -72,7 +86,17 @@ for m in municipios:
         comprobar(f'content="{url_publica}m/{cod}.html"' in h, f"m/{cod}.html: og:url no apunta a la URL pública de sitio.json")
         comprobar(f'<link rel="canonical" href="{url_publica}m/{cod}.html">' in h, f"m/{cod}.html: la canónica no es él mismo")
         comprobar(f"ficha.html?municipio={cod}" in h, f"m/{cod}.html no redirige a la ficha")
+        # Los envoltorios y las tarjetas llevan la población y el año escritos: si se
+        # regeneran los datos sin regenerarlos, se publican vistas previas viejas.
+        hab = format(m["poblacion"], ",").replace(",", ".")
+        comprobar(f'content="{hab} habitantes.' in h and f"1 de enero de {indice['anio']}." in h,
+                  f"m/{cod}.html: la población o el año de og:description no son los de indice.json: ejecutar generar_tarjetas.py")
+        comprobar('<meta property="og:site_name" content="Canarias Convive">' in h, f"m/{cod}.html sin og:site_name")
+        comprobar((WEB / f"og/{cod}.png").exists(), f"falta la tarjeta og/{cod}.png")
 comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
+# Un solo orden de islas (de oeste a este) para la portada, los selectores y el dossier.
+comprobar(list(indice["islas"]) == ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"],
+          f"indice.json: las islas no van de oeste a este: {list(indice['islas'])}")
 
 fuentes = indice.get("fuentes_indicadores", {})
 for clave in ("poblacion", "tvma", "edad", "sexo", "evolucion", "extranjero", "piramide", "nacimiento",

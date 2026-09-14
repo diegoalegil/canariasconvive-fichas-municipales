@@ -143,6 +143,17 @@ function mapa(geo, codmun, ambito, w, h, conLimites) {
   return abrirSVG(w, h, 'Situación del municipio', false) + base + foco + '</svg>';
 }
 
+/** Los mapas de la ficha: [rótulo del pie, filtro de la geometría, puesto, con límites].
+ *  Lo comparten la ficha y el dossier. */
+function nivelesMapas(f) {
+  const niveles = [
+    ['en Canarias', () => true, f.rankings.canarias, false],
+    [`en ${f.isla}`, (g) => g.properties.isla === f.isla, f.rankings.isla, true],
+  ];
+  if (comarcaDe(f)) niveles.push(['en la comarca', (g) => g.properties.comarca === f.comarca, f.rankings.comarca, true]);
+  return niveles;
+}
+
 /* -------------------------------------------------------------- evolución -- */
 let EVOLUCION = null;   // geometría del último gráfico dibujado, para la lectura al pasar el ratón
 function graficoEvolucion(ev, w, h, sufijo = '') {
@@ -150,9 +161,22 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
      izquierdo que en pantalla se comen medio gráfico de 30 mm y las etiquetas
      del eje acaban una encima de otra. */
   const P = IMPRIMIENDO;
-  const m = P ? { t: 20, r: 8, b: 13, l: 36 } : { t: w < 430 ? 46 : 30, r: 14, b: 26, l: 52 };
+  const m = P ? { t: 20, r: 8, b: 13, l: 36 } : { t: 30, r: 14, b: 26, l: 52 };
   const fe = P ? 6.5 : 10;
   const X = ev.anios, Y = ev.valores;
+  /* Cápsula con la variación acumulada y su rótulo. Si el rótulo no cabe al
+     lado de la cápsula (pantallas de menos de ~430 px), baja a una segunda
+     línea y el margen superior crece para hacerle sitio: los dos quedan por
+     encima de la rejilla. Antes el margen crecía por «ancho < 430» y el
+     plegado por otra condición, y la segunda línea caía dentro del dibujo,
+     sobre la curva y el rótulo del eje. Se decide aquí, antes de la rejilla. */
+  const v = ev.variacion_acumulada;
+  const leyendaVar = `Variación acumulada entre ${ev.anio_base} y ${ev.anio_fin}`;
+  const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}${UNI}%`;
+  const alto = P ? 13 : 20, fc = P ? 8 : 11, fl = P ? 7 : 10.5;
+  const anchoCapsula = Math.max(P ? 40 : 58, textoVar.length * (P ? 4.7 : 6.4) + (P ? 10 : 16));
+  const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * (P ? 3.8 : 5.6);
+  if (!cabeAlLado) m.t += P ? 12 : 16;
   const paso = pasoRedondo(Math.max(...Y) * 1.12, 5);
   const tope = Math.ceil(Math.max(...Y) * 1.12 / paso) * paso;
   const px = (a) => m.l + (a - X[0]) / (X[X.length - 1] - X[0]) * (w - m.l - m.r);
@@ -173,19 +197,14 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
   const curva = suavizar(X, Y).map(([x, y]) => `${px(x).toFixed(1)},${py(y).toFixed(1)}`);
   const area = `M${px(X[0]).toFixed(1)},${(h - m.b).toFixed(1)} L${curva.join(' L')} L${px(X[X.length - 1]).toFixed(1)},${(h - m.b).toFixed(1)}Z`;
 
-  // Cápsula con la variación acumulada. En pantallas estrechas no cabe al lado
-  // del texto, así que el texto baja a una segunda línea en vez de salirse.
-  const v = ev.variacion_acumulada;
-  const leyendaVar = `Variación acumulada entre ${ev.anio_base} y ${ev.anio_fin}`;
-  const textoVar = `${v >= 0 ? '\u25B2' : '\u25BC'} ${nf(Math.abs(v), 1)}${UNI}%`;
-  const alto = P ? 13 : 20, fc = P ? 8 : 11, fl = P ? 7 : 10.5;
-  const anchoCapsula = Math.max(P ? 40 : 58, textoVar.length * (P ? 4.7 : 6.4) + (P ? 10 : 16));
-  const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * (P ? 3.8 : 5.6);
+  // La cápsula, centrada a (P ? 8 : 12) px sobre la rejilla; plegada, sube lo
+  // que ocupa la segunda línea y el rótulo va debajo de ella, sobre la rejilla.
+  const centroCapsula = m.t - (P ? 8 : 12) - (cabeAlLado ? 0 : (P ? 13 : 19));
   const rotulo = v == null ? '' : `
-    <g transform="translate(${m.l + 8}, ${m.t - (P ? 8 : 12)})">
+    <g transform="translate(${m.l + 8}, ${centroCapsula})">
       <rect x="0" y="${-alto / 2}" width="${anchoCapsula.toFixed(0)}" height="${alto}" rx="${alto / 2}" fill="${C.azul}"/>
       <text x="${(anchoCapsula / 2).toFixed(0)}" y="${(fc * .36).toFixed(1)}" text-anchor="middle" font-size="${fc}" font-weight="700" fill="#fff">${textoVar}</text>
-      <text x="${cabeAlLado ? (anchoCapsula + 9).toFixed(0) : (2 - m.l - 8).toFixed(0)}" y="${cabeAlLado ? (fl * .36).toFixed(1) : (alto + fl)}" font-size="${cabeAlLado ? fl : fl - .5}" fill="${C.negro}">${leyendaVar}</text>
+      <text x="${cabeAlLado ? (anchoCapsula + 9).toFixed(0) : (2 - m.l - 8).toFixed(0)}" y="${cabeAlLado ? (fl * .36).toFixed(1) : (alto / 2 + fl + 1).toFixed(1)}" font-size="${cabeAlLado ? fl : fl - .5}" fill="${C.negro}">${leyendaVar}</text>
     </g>`;
 
   return abrirSVG(w, h, `Evolución de la población entre ${X[0]} y ${X[X.length - 1]}`)
@@ -214,12 +233,15 @@ function graficoExtranjero(ext, w, h) {
   const fe = P ? 6.5 : 10;
   const A = ext.anios, M = ext.municipio, R = ext.canarias;
   const vivos = A.map((a, i) => [a, M[i]]).filter(([, v]) => v != null && isFinite(v));
-  // Primero el paso a partir del máximo, y el tope como el múltiplo justo por
-  // encima. Al revés, el eje quedaba holgado: un municipio con 23,5 % acababa
-  // con la escala en 40 y las barras a media altura.
+  /* El eje va «de 5 en 5», que es como lo pidió Pedro, con el tope en el
+     múltiplo de 5 justo por encima del máximo (municipio o Canarias). Con el
+     paso 1-2-5 de antes, 31 fichas salían de 10 en 10 o de 20 en 20. Por
+     encima del 40 % (Adeje, Arona…) la rejilla sigue cada 5 y se rotulan solo
+     los múltiplos de 10, para no amontonar el eje. */
   const maximo = Math.max(...M.concat(R).filter((v) => v != null));
-  const paso = pasoRedondo(maximo, 5);
+  const paso = 5;
   const tope = Math.ceil(maximo / paso) * paso;
+  const cadaRotulo = tope > 40 ? 10 : 5;
 
   const ancho = (w - m.l - m.r) / vivos.length;
   const bw = Math.min(ancho * 0.62, P ? 14 : 26);
@@ -229,24 +251,8 @@ function graficoExtranjero(ext, w, h) {
   let rejilla = '', ejeY = '';
   for (let v = 0; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}${UNI}%</text>`;
+    if (v % cadaRotulo === 0) ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}${UNI}%</text>`;
   }
-
-  let barras = '', ejeX = '';
-  vivos.forEach(([a, v], i) => {
-    const ultima = i === vivos.length - 1;
-    barras += `<rect x="${(px(i) - bw / 2).toFixed(1)}" y="${py(v).toFixed(1)}" width="${bw.toFixed(1)}" `
-            + `height="${(h - m.b - py(v)).toFixed(1)}" fill="${ultima ? C.azul : C.azulClaro}" rx="1.5"/>`;
-    if (ultima) {
-      barras += `<text x="${px(i).toFixed(1)}" y="${(py(v) - (P ? 4 : 8)).toFixed(1)}" text-anchor="middle" `
-              + `font-size="${P ? 9 : 13}" font-weight="700" fill="${C.negro}" `
-              + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
-              + `paint-order="stroke fill">${nf(v, 1)}${UNI}%</text>`;
-    }
-    if (a % 5 === 0 || ultima) {
-      ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
-    }
-  });
 
   /* La línea de Canarias se dibuja sobre las mismas posiciones que las barras,
      no sobre el índice del año en la serie completa: en los dos municipios con
@@ -260,10 +266,36 @@ function graficoExtranjero(ext, w, h) {
     : paresCan;
   const lineaCan = trazoCan.map(([i, v]) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`);
 
+  let barras = '', etiqueta = '', ejeX = '';
+  const feEtiqueta = P ? 9 : 13;
+  vivos.forEach(([a, v], i) => {
+    const ultima = i === vivos.length - 1;
+    barras += `<rect x="${(px(i) - bw / 2).toFixed(1)}" y="${py(v).toFixed(1)}" width="${bw.toFixed(1)}" `
+            + `height="${(h - m.b - py(v)).toFixed(1)}" fill="${ultima ? C.azul : C.azulClaro}" rx="1.5"/>`;
+    if (ultima) {
+      /* El porcentaje del último año va sobre la barra y, si la línea de
+         Canarias pasa por ahí, por encima de la línea: entre el 18 y el 23 %
+         la línea atravesaba la cifra en 16 municipios. Se mira la altura de la
+         línea en el tramo que ocupa la etiqueta, y la etiqueta se pinta después
+         de la línea. Nunca por encima del borde del dibujo. */
+      const medioAncho = (`${nf(v, 1)}${UNI}%`.length * feEtiqueta * 0.55) / 2 + 2;
+      const xq = px(i);
+      const yLinea = Math.min(Infinity, ...trazoCan.filter(([j]) => Math.abs(px(j) - xq) <= medioAncho).map(([, c]) => py(c)));
+      const y = Math.max(feEtiqueta, Math.min(py(v), yLinea) - (P ? 4 : 8));
+      etiqueta = `<text x="${xq.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" `
+              + `font-size="${feEtiqueta}" font-weight="700" fill="${C.negro}" `
+              + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
+              + `paint-order="stroke fill">${nf(v, 1)}${UNI}%</text>`;
+    }
+    if (a % 5 === 0 || ultima) {
+      ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
+    }
+  });
+
   return abrirSVG(w, h, 'Peso de la población de origen extranjero, municipio frente a Canarias')
     + rejilla + barras
     + `<polyline points="${lineaCan.join(' ')}" fill="none" stroke="${C.negro}" stroke-width="1.6" stroke-linejoin="round"/>`
-    + ejeY + ejeX + '</svg>';
+    + etiqueta + ejeY + ejeX + '</svg>';
 }
 
 /* --------------------------------------------------------------- pirámide -- */
@@ -411,18 +443,24 @@ function construirPiramide(p, w, h, vistaFija = null) {
      dos en dos, como en el cuaderno de Pedro (`arange(-lim, lim, 2)`), salvo
      donde dos por ciento no llegan a 30 px (el móvil con eje de 10 o más):
      ahí cada cuatro. El tope siempre rotulado, que con el 14 sin rótulo Pedro
-     leyó que el eje «estaba puesto al 12». El 0 a los dos lados, como pidió. */
+     leyó que el eje «estaba puesto al 12»; y cuando el tope no cae en la
+     cuenta (14 con rótulos cada cuatro) se omite el rótulo anterior, que
+     quedaba pegado: en Artenara se leía «14 %12 %». En el dibujo estrecho el
+     rótulo del tope se ancla hacia dentro, que centrado se salía del borde.
+     El 0 a los dos lados, como pidió. */
   const ejeSVG = (eje) => {
     const paso = eje <= 8 ? 1 : 2;
     const cada = escala(2, eje) >= 30 ? 2 : 4;
+    const estrecho = m.l < 12;
     let out = '';
     for (let v = 0; v <= eje; v += paso) {
       for (const [, signo] of LADOS) {
         const x = centro + signo * (hueco / 2 + escala(v, eje));
         out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-        if (v % cada === 0 || v === eje) {
-          out += `<text x="${x.toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
-               + `text-anchor="middle" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
+        if (v === eje || (v % cada === 0 && eje - v >= cada)) {
+          const ancla = v === eje && estrecho ? (signo < 0 ? 'start' : 'end') : 'middle';
+          out += `<text x="${(x - (ancla === 'middle' ? 0 : signo * 2)).toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
+               + `text-anchor="${ancla}" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;
         }
       }
     }
@@ -528,6 +566,10 @@ function graficoComponentes(c, w, h) {
   const py = (v) => m.t + (tope - v) / (2 * tope) * (h - m.t - m.b);
   const ancho = (w - m.l - m.r) / A.length;
   const bw = Math.min(ancho * 0.38, P ? 7 : 13);
+  /* Eje temporal cada dos años, como lo pidió Pedro y como va en su ficha
+     (2002, 2004 … 2024): también en el papel, que lo llevaba cada cuatro y sin
+     2002. Solo en pantallas estrechas, donde doce rótulos se montan, cada cuatro. */
+  const cadaAnio = !P && w < 430 ? 4 : 2;
 
   let rejilla = '', ejeY = '';
   for (let v = -tope; v <= tope + 1e-9; v += paso) {
@@ -543,7 +585,7 @@ function graficoComponentes(c, w, h) {
       barras += `<rect x="${(x + s * bw / 2 - bw / 2 + s * .6).toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" `
               + `width="${bw.toFixed(1)}" height="${Math.abs(y1 - y0).toFixed(1)}" fill="${col}" rx="1"/>`;
     });
-    if (a % (P ? 4 : 2) === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${P ? 6 : 9.5}" fill="${C.gris}">${a}</text>`;
+    if (a % cadaAnio === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${P ? 6 : 9.5}" fill="${C.gris}">${a}</text>`;
   });
 
   let marcas = '';
@@ -617,6 +659,12 @@ function cifrasClave(f) {
 /* ================================================================= montaje == */
 let GEO = null, INDICE = null, FICHA = null, PIRAMIDE = null, VISTA = 0;
 let FILA = null;   // grupo de edad señalado en la pirámide, o null
+/* Si la franja está fijada (clic, toque o teclado) o solo señalada al pasar.
+   Vive aquí y no dentro de conectarLecturaPiramide: cada redibujado —ancho
+   nuevo, impresión— vuelve a conectar la lectura, y una variable local
+   olvidaba que la franja estaba fijada y el primer movimiento del ratón la
+   cambiaba. */
+let FIJADA = false;
 
 /* CAMBIO DE MUNICIPIO. La cabecera, el cuerpo de cada tarjeta y la lectura de
    la pirámide cambian por cruce con desenfoque (`cruce`, en comun.js). La
@@ -788,7 +836,7 @@ function pintar(f) {
   const doc = document;
   doc.title = `${f.nombre} · Fichas municipales · Canarias Convive`;
 
-  doc.getElementById('migas').textContent = `${f.isla} · ${f.comarca.replace(/^.*? - /, '')}`;
+  doc.getElementById('migas').textContent = [f.isla, comarcaDe(f)].filter(Boolean).join(' · ');
   // El comparador se abre con este municipio ya puesto.
   doc.getElementById('btn-comparar').href = rutaWeb(`comparar.html?m=${f.codmun}`);
   doc.getElementById('nombre').textContent = f.nombre;
@@ -809,17 +857,18 @@ function pintar(f) {
     ? Math.floor((anchoHoja(12) - 2 * mm(4)) / 3)
     : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
   const hMapa = IMPRIMIENDO ? mm(16) : Math.round(wMapa * 0.74);
-  const niveles = [
-    ['Canarias', () => true, f.rankings.canarias, false],
-    [f.isla, (g) => g.properties.isla === f.isla, f.rankings.isla, true],
-    [f.comarca.replace(/^.*? - /, ''), (g) => g.properties.comarca === f.comarca, f.rankings.comarca, true],
-  ];
-  doc.getElementById('mapas').innerHTML = niveles.map(([tit, filtro, r, lim]) => `
+  /* El tercer mapa dice «en la comarca», como en la ficha de Pedro: con el
+     nombre real salían pies como «3º de 3 en Oeste» o «en Icod». El nombre de
+     la comarca va en las migas de la cabecera. En El Hierro no hay tercer mapa. */
+  const niveles = nivelesMapas(f);
+  const mapas = doc.getElementById('mapas');
+  mapas.classList.toggle('dos', niveles.length === 2);
+  mapas.innerHTML = niveles.map(([tit, filtro, r, lim]) => `
     <figure class="mapa">
       ${mapa(GEO, f.codmun, filtro, wMapa, hMapa, lim)}
       <figcaption class="mapa-pie">
         <b>${r.puesto}º de ${r.total}</b>
-        <span>en ${esc(tit)}</span>
+        <span>${esc(tit)}</span>
         <p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>
       </figcaption>
     </figure>`).join('');
@@ -925,6 +974,11 @@ function pintar(f) {
    porque en los grupos anchos la etiqueta cae sobre las barras vecinas; si no
    cabe fuera del dibujo se acerca al centro lo justo. Dos decimales: con 0,74
    % un solo decimal borra la diferencia entre dos grupos contiguos. */
+/** Dos decimales, y «< 0,01» cuando hay personas pero el redondeo daría 0,00:
+ *  un «0,00 %» dice que no hay nadie, y en 40 grupos de las fichas sí hay
+ *  (hombres de 100 o más en Santa Cruz de Tenerife: 9 personas). */
+const pctFila = (v) => v > 0 && v < 0.005 ? '< 0,01' : nf(v, 2);
+
 function etiquetasFila(P, actual, i, vista, fe) {
   /* En un dibujo estrecho (móvil) los dos valores van en dos líneas: la
      etiqueta ocupa la mitad y así siempre hay un sitio limpio para ella. */
@@ -934,17 +988,16 @@ function etiquetasFila(P, actual, i, vista, fe) {
     const x0 = P.centro + sg * P.hueco / 2;
     const yc = P.fy(i) + P.relleno / 2;
     const punta = Math.max(actual[lado].r[i], vista.negro ? actual[lado].n[i] : 0);
-    const azul = `${nf(vista.relleno[cl][i], 2)}${UNI}%`;
-    const negro = vista.negro ? `${nf(vista.negro[cl][i], 2)}${UNI}%` : '';
-    const letras = estrecho ? Math.max(azul.length, negro.length) : azul.length + (negro ? negro.length + 3 : 0);
-    const ancho = letras * fe * 0.62;
-    /* Junto a la punta, por fuera, si cabe dentro del dibujo; si no, en la base
-       de la barra, pegada al canal de las edades y sobre la propia barra: con
-       barras largas la punta está cerca del borde y ahí no hay sitio. */
-    const fuera = x0 + sg * (punta + 9);
-    const cabe = sg < 0 ? fuera - ancho >= 2 : fuera + ancho <= P.w - 2;
-    const x = (cabe ? fuera : x0 + sg * 6).toFixed(1);
-    const comun = `x="${x}" text-anchor="${sg < 0 ? 'end' : 'start'}" font-size="${fe}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"`;
+    const azul = `${pctFila(vista.relleno[cl][i])}${UNI}%`;
+    const negro = vista.negro ? `${pctFila(vista.negro[cl][i])}${UNI}%` : '';
+    /* Junto a la punta, por fuera; si no cabe dentro del dibujo, `colocarEtiquetas`
+       la lleva a la base de la barra, pegada al canal de las edades y sobre la
+       propia barra: con barras largas la punta está cerca del borde y ahí no
+       hay sitio. Se decide con el ancho real del texto una vez en el DOM: la
+       estimación por letras (0,62 em) se pasaba un tercio y mandaba la cifra
+       sobre la barra cuando cabía fuera. */
+    const x = (x0 + sg * (punta + 9)).toFixed(1);
+    const comun = `x="${x}" data-sg="${sg}" data-base="${(x0 + sg * 6).toFixed(1)}" text-anchor="${sg < 0 ? 'end' : 'start'}" font-size="${fe}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"`;
     out += estrecho
       ? `<text ${comun} y="${(yc - fe * 0.2).toFixed(1)}" font-weight="700" fill="${C.azul}">${azul}`
         + (negro ? `<tspan x="${x}" dy="${(fe * 1.1).toFixed(1)}" font-weight="400" fill="${C.negro}">${negro}</tspan>` : '') + '</text>'
@@ -954,10 +1007,23 @@ function etiquetasFila(P, actual, i, vista, fe) {
   return out;
 }
 
+/** Tras escribir las etiquetas en el SVG: la que no cabe entre la punta de la
+ *  barra y el borde del dibujo pasa a la base de la barra. */
+function colocarEtiquetas(grupo, w) {
+  for (const t of grupo.querySelectorAll('text[data-sg]')) {
+    const sg = +t.dataset.sg, x = +t.getAttribute('x');
+    const largo = t.getComputedTextLength();
+    const cabe = sg < 0 ? x - largo >= 2 : x + largo <= w - 2;
+    if (cabe) continue;
+    t.setAttribute('x', t.dataset.base);
+    for (const ts of t.querySelectorAll('tspan[x]')) ts.setAttribute('x', t.dataset.base);
+  }
+}
+
 /** La misma lectura en palabras, para el lector de pantalla (región viva). */
 function textoLectura(P, vista, i) {
   if (i == null) return '';
-  const v = (S, cl) => `${nf(S[cl][i], 2)}${UNI}%`;
+  const v = (S, cl) => `${pctFila(S[cl][i])}${UNI}%`;
   return `${P.edades[i]} años. ${vista.rotH}: ${v(vista.relleno, 'H')}; ${vista.rotM}: ${v(vista.relleno, 'M')}.`
        + (vista.negro ? ` ${vista.rotNegro}: hombres ${v(vista.negro, 'H')}, mujeres ${v(vista.negro, 'M')}.` : '');
 }
@@ -969,7 +1035,6 @@ function conectarLecturaPiramide() {
   const activa = svg.querySelector('#franja-activa');
   const marcas = svg.querySelector('#marcas-activas');
   if (!activa || !marcas) return;
-  let fijada = false;
 
   /* Los cuatro marcadores: círculo relleno en la punta de cada barra y cuadro
      negro hueco en la punta de cada marca negra. Es lo que Pedro pedía cuando
@@ -992,6 +1057,7 @@ function conectarLecturaPiramide() {
       }
     }
     marcas.innerHTML = out + etiquetasFila(P, P.actual, i, P.vistas[VISTA], P.fe + 1.5);
+    colocarEtiquetas(marcas, P.w);
   };
 
   const senalar = (i) => {
@@ -1014,15 +1080,20 @@ function conectarLecturaPiramide() {
     const i = +fr.dataset.i;
     // pointerenter cubre ratón y lápiz; con mouseenter a secas, en el móvil no
     // se podía leer ni una cifra.
-    fr.addEventListener('pointerenter', () => { if (!fijada) senalar(i); });
-    fr.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      fijada = !(fijada && FILA === i);
-      senalar(fijada ? i : null);
+    fr.addEventListener('pointerenter', () => { if (!FIJADA) senalar(i); });
+    /* Se fija con el toque o el clic terminado (`click`), no al apoyar el
+       puntero: en el teléfono, empezar a desplazar la página con el dedo sobre
+       la pirámide dejaba fijada la franja tocada, con sus cifras. */
+    fr.addEventListener('click', () => {
+      FIJADA = !(FIJADA && FILA === i);
+      senalar(FIJADA ? i : null);
     });
+    // Con ratón o lápiz, apoyar no arrastra ni selecciona texto; el toque se
+    // deja en paz, que es lo que desplaza la página.
+    fr.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') e.preventDefault(); });
   });
 
-  svg.addEventListener('pointerleave', () => { if (!fijada) senalar(null); });
+  svg.addEventListener('pointerleave', () => { if (!FIJADA) senalar(null); });
 
   fig.setAttribute('tabindex', '0');
   fig.setAttribute('aria-label', 'Estructura de la población. Flechas arriba y abajo para recorrer las edades.');
@@ -1035,11 +1106,11 @@ function conectarLecturaPiramide() {
       case 'ArrowDown': i = i == null ? n - 1 : Math.max(0, i - 1); break;
       case 'Home':      i = 0; break;
       case 'End':       i = n - 1; break;
-      case 'Escape':    i = null; fijada = false; break;
+      case 'Escape':    i = null; FIJADA = false; break;
       default: return;
     }
     e.preventDefault();
-    if (i != null) fijada = true;
+    if (i != null) FIJADA = true;
     senalar(i);
   };
 
@@ -1091,7 +1162,11 @@ function conectarLecturaEvolucion() {
   };
   cazador.addEventListener('pointermove', situar);
   cazador.addEventListener('pointerdown', situar);
-  cazador.addEventListener('pointerleave', () => {
+  /* Al levantar el dedo el navegador también dispara pointerleave (el puntero
+     deja de existir) y la lectura se borraba en el acto: un toque no dejaba ver
+     nada. Con el dedo, la lectura se queda hasta el siguiente toque. */
+  cazador.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'touch') return;
     guia.setAttribute('opacity', '0');
     salida.textContent = '';
   });
@@ -1261,6 +1336,7 @@ function presSenalar() {
          + `<rect x="${(xn - 3.1).toFixed(1)}" y="${(y - 3.1).toFixed(1)}" width="6.2" height="6.2" fill="#FFFFFF" stroke="${C.negro}" stroke-width="1.3"/>`;
   }
   g.innerHTML = out + etiquetasFila(P, PRES.actual, i, P.vistas[PRES.vista], P.fe + 4);
+  colocarEtiquetas(g, P.w);
 }
 
 /** La pirámide de la presentación pasa a la vista pedida; animada, se transforma. */
@@ -1343,7 +1419,7 @@ function abrirPresentacion() {
   const anillo = (tit, vals) => `<div class="pres-anillo"><h3>${tit}</h3>${anilloOrigen(vals, 74, 30).replace(/width="148" height="148"/, 'width="300" height="300"')}
     <div class="pres-reparto">${o.categorias.map((cat, k) => `<div><i style="background:${TONOS_ORIGEN[k]}"></i><span>${esc(cat)}</span><b>${nf(vals[k], 1)}${UNI}%</b></div>`).join('')}</div></div>`;
   const capas = [
-    `<div class="pres-fila"><div><p class="pres-kicker">${esc(f.isla)} · ${esc(f.comarca.replace(/^.*? - /, ''))}</p><h1>${esc(f.nombre)}</h1>
+    `<div class="pres-fila"><div><p class="pres-kicker">${esc([f.isla, comarcaDe(f)].filter(Boolean).join(' · '))}</p><h1>${esc(f.nombre)}</h1>
       <p class="pres-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
      <div class="pres-cifras">
       <div><b>${signo}${nf(Math.abs(c.tvma), 1)}<span>${UNI}%</span></b><i>Variación media anual</i><em>Serie ${ev.anio_base}–${ev.anio_fin}</em></div>
@@ -1460,10 +1536,15 @@ function montarIconos() {
 /* La hoja imprime siempre la primera pestaña, pero la que estuviera abierta en
    pantalla se devuelve al terminar: quien imprimía desde "Municipio y Canarias"
    se encontraba con la otra al volver. */
-let VISTA_ANTES = 0;
+/* Tampoco se imprime la franja señalada: si el usuario había fijado una, la
+   hoja salía con la banda gris, los marcadores y las cifras; se guarda y se
+   devuelve al terminar, igual que la pestaña. */
+let VISTA_ANTES = 0, FILA_ANTES = null;
 addEventListener('beforeprint', () => {
   if (!FICHA) return;
   VISTA_ANTES = VISTA;
+  FILA_ANTES = FILA;
+  FILA = null;
   IMPRIMIENDO = true;
   pintar(FICHA);
 });
@@ -1471,6 +1552,7 @@ addEventListener('afterprint', () => {
   if (!FICHA) return;
   IMPRIMIENDO = false;
   VISTA = VISTA_ANTES;
+  FILA = FILA_ANTES;
   pintar(FICHA);
 });
 

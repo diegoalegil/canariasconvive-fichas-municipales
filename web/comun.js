@@ -24,6 +24,11 @@ const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
  *  miente, así que nunca queda por debajo del máximo. La misma función manda
  *  en la ficha, el dossier y el comparador, y exportar_datos.py la repite. */
 const ejeAutomatico = (maximo) => Math.max(6, Math.ceil(maximo / 2) * 2);
+/** Comarca sin el prefijo de isla («Tenerife - Abona» → «Abona»), o null cuando
+ *  la comarca es la isla entera: en El Hierro la comarcalización del ISTAC es
+ *  «El Hierro - El Hierro» y salían dos mapas iguales con el mismo dato y unas
+ *  migas «El Hierro · El Hierro». Las migas y el tercer mapa la omiten. */
+const comarcaDe = (f) => { const c = f.comarca.replace(/^.*? - /, ''); return c === f.isla ? null : c; };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 /** Sin tildes y en minúsculas: quien busca "guia" tiene que encontrar Guía. */
 const plano = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

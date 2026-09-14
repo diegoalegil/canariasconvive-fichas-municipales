@@ -191,6 +191,7 @@ ENVOLTORIO = """<!DOCTYPE html>
 <title>{nombre} · Ficha demográfica · Canarias Convive</title>
 <link rel="canonical" href="{base}/m/{cod}.html">
 <meta property="og:type" content="article">
+<meta property="og:site_name" content="Canarias Convive">
 <meta property="og:title" content="{nombre} · Ficha demográfica">
 <meta property="og:description" content="{hab} habitantes. Estructura de la población, evolución e índices. Población a 1 de enero de {anio}.">
 <meta property="og:image" content="{base}/og/{cod}.png">

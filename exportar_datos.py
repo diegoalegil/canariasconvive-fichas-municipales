@@ -264,10 +264,11 @@ def edad_media(h, m):
 
 
 def r2(v, dec=2):
-    """Redondea para el JSON. None si no es finito."""
+    """Redondea para el JSON. None si no es finito; con dec=None, el valor
+    entero tal cual (para las series que la web redondea al mostrarlas)."""
     if v is None or not np.isfinite(v):
         return None
-    return round(float(v), dec)
+    return float(v) if dec is None else round(float(v), dec)
 
 
 def serie_json(anios, valores, dec=3):
@@ -360,10 +361,13 @@ for mun in MUNICIPIOS:
             "anio_fin": a1,
         },
 
+        # Sin redondeo intermedio: la web muestra un decimal y redondea una sola
+        # vez. Exportado a dos decimales, Las Palmas (16,5487) llegaba como 16,55
+        # y en pantalla salía «16,6 %» junto al 16,5 del lugar de nacimiento.
         "extranjero": combinar({
             "municipio": (ANIOS_C22, SERIE_C22[mun]),
             "canarias": (ANIOS_C22, SERIE_C22_R["Canarias"]),
-        }, 2),
+        }, None),
 
         "cifras": {
             "tvma": tvma(x1, y1),  # La precisión se conserva hasta el único redondeo de presentación.
@@ -454,11 +458,16 @@ for c in INDICES:
         rangos[c] = {"etiqueta": todas_las_fichas[0]["indices"][c]["etiqueta"],
                      "min": r2(min(vs), 3), "max": r2(max(vs), 3)}
 
+# Un solo orden de islas para toda la web —portada, selectores y dossier—: de
+# oeste a este. El orden del diccionario se conserva en el JSON y en JavaScript.
+ORDEN_ISLAS = ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"]
+assert set(ORDEN_ISLAS) == set(ISLAS), "ORDEN_ISLAS no coincide con las islas de territorios.py"
+
 indice = {
     "anio": ANIO_POB,
     "poblacion_canarias": int(POB_CANARIAS),
     "municipios": sorted(fichas, key=lambda f: _norm(f["nombre"])),
-    "islas": {i: sorted(ms, key=_norm) for i, ms in ISLAS.items()},
+    "islas": {i: sorted(ISLAS[i], key=_norm) for i in ORDEN_ISLAS},
     "comarcas": {c: sorted(ms, key=_norm) for c, ms in COMARCAS.items()},
     "fuentes_indicadores": fuentes_indicadores(RUTA, todas_las_fichas),
     "fuentes": ["ISTAC — Instituto Canario de Estadística", "INE", "Cartografía: GRAFCAN"],

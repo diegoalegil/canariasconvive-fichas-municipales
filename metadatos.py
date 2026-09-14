@@ -1,6 +1,8 @@
 """Fuentes institucionales leídas del índice del libro, sin créditos personales."""
 from openpyxl import load_workbook
 
+ANIO_INICIO_COMPONENTES = 2002   # el mismo corte que web/ficha.js
+
 
 def fuentes_indicadores(ruta, fichas):
     libro = load_workbook(ruta, data_only=False)
@@ -26,10 +28,13 @@ def fuentes_indicadores(ruta, fichas):
     anio = max(f['anio'] for f in fichas)
     serie = f"{min(f['evolucion']['anios'][0] for f in fichas)}–{anio}"
     base = f"{min(f['evolucion']['anio_base'] for f in fichas)}–{anio}"
-    comp = fichas[0]['componentes']
+    # El periodo de los componentes es el que la ficha dibuja: desde 2002, que es
+    # donde arranca el saldo migratorio (ANIO_INICIO_COMPONENTES en web/ficha.js)
+    # y el año que Pedro escribió en la fuente del gráfico. El crecimiento
+    # vegetativo existe desde 1999 en el libro, y así se dice en la nota.
     def periodo(clave):
         fechas = [a for f in fichas for a, v in zip(f['componentes']['anios'], f['componentes'][clave]) if v is not None]
-        return f'{min(fechas)}–{max(fechas)}'
+        return f'{max(min(fechas), ANIO_INICIO_COMPONENTES)}–{max(fechas)}'
     defs = {
         'poblacion': ('Habitantes', f'1 de enero de {anio}', poblacion, 'Recuento de residentes.'),
         'sexo': ('Mujeres y hombres', f'1 de enero de {anio}', reciente, 'Recuento y porcentaje sobre la población total del municipio.'),
@@ -39,7 +44,7 @@ def fuentes_indicadores(ruta, fichas):
         'extranjero': ('Origen extranjero', f'2000–{anio}', nacimiento, 'Personas nacidas fuera de España, con independencia de su nacionalidad. Porcentaje sobre el total de residentes.'),
         'piramide': ('Estructura de la población', f'1 de enero de {anio}', reciente + enlaces([6]), 'Municipio y Canarias: cada uno sobre su población total. Por lugar de nacimiento: cada grupo sobre su propio total, sumando hombres y mujeres.'),
         'nacimiento': ('Lugar de nacimiento', f'1 de enero de {anio}', enlaces([6]), 'Porcentaje nacido en Canarias, en el resto de España y en el extranjero.'),
-        'vegetativo': ('Crecimiento vegetativo', periodo('vegetativo'), enlaces([18]), 'Nacimientos menos defunciones en el mismo año.'),
+        'vegetativo': ('Crecimiento vegetativo', periodo('vegetativo'), enlaces([18]), 'Nacimientos menos defunciones en el mismo año. La serie del ISTAC empieza en 1999; la ficha la representa desde 2002, cuando arranca la del saldo migratorio.'),
         'migratorio': ('Saldo migratorio', periodo('migratorio'), enlaces([19, 20]), 'Entradas menos salidas por cambio de residencia en el mismo año.'),
         'rankings': ('El municipio en su entorno', f'1 de enero de {anio}', poblacion, 'Posición por habitantes y porcentaje que representan en cada ámbito territorial.'),
     }

@@ -9,13 +9,13 @@
    cómo leerlo. Cuando un control necesita instrucciones, sobra el control.
 
    Las siete listas miden lo mismo aunque El Hierro tenga tres municipios y
-   Tenerife treinta y uno: la caja no cambia de tamaño al pasar de una isla a
-   otra, y la que no cabe se desplaza por dentro.
+   Tenerife treinta y uno («un desplegable del mismo tamaño en cada isla»,
+   Pedro): la caja tiene alto fijo (`.desplegable` en estilos.css), y la lista
+   que no cabe se desplaza por dentro.
    ============================================================================= */
 
-/* De oeste a este, que es como se nombran las islas aquí. */
-const ISLAS = ['El Hierro', 'La Gomera', 'La Palma', 'Tenerife',
-               'Gran Canaria', 'Fuerteventura', 'Lanzarote'];
+/* El orden de las islas es el de indice.json (de oeste a este, lo fija
+   exportar_datos.py): el mismo en la portada, los selectores y el dossier. */
 
 
 let INDICE = null;
@@ -31,13 +31,18 @@ function opciones(muns, conIsla) {
     + `</a>`).join('');
 }
 
+let cerrandoConEscape = false;   // el foco vuelve al disparador sin reabrir la lista
 function cerrar(devolverFoco = false) {
   if (!abierto) return;
   const { disparador, lista } = abierto;
   lista.hidden = true;
   disparador.setAttribute('aria-expanded', 'false');
   abierto = null;
-  if (devolverFoco) disparador.focus();
+  if (devolverFoco) {
+    cerrandoConEscape = true;
+    disparador.focus();
+    cerrandoConEscape = false;
+  }
 }
 
 function abrir(disparador, lista) {
@@ -103,7 +108,7 @@ function teclas(e, disparador, lista, alAbrir) {
 function montarIslas() {
   const cont = document.getElementById('islas');
 
-  cont.insertAdjacentHTML('beforeend', ISLAS.map((isla, n) => {
+  cont.insertAdjacentHTML('beforeend', Object.keys(INDICE.islas).map((isla, n) => {
     const muns = INDICE.municipios
       .filter((m) => m.isla === isla)
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
@@ -149,7 +154,10 @@ function montarBuscador() {
   };
 
   campo.addEventListener('input', buscar);
-  campo.addEventListener('focus', () => { if (campo.value.trim()) buscar(); });
+  /* Al volver al campo con texto escrito se reabre la lista, salvo cuando es
+     Escape quien devuelve el foco: cerraba la lista y este `focus` la volvía a
+     abrir en el mismo instante, y Escape no cerraba nada. */
+  campo.addEventListener('focus', () => { if (campo.value.trim() && !cerrandoConEscape) buscar(); });
   campo.parentElement.addEventListener('keydown', (e) => teclas(e, campo, lista, buscar));
   // Enter sobre el campo abre el primero de la lista, sin tener que bajar.
   campo.addEventListener('keydown', (e) => {
@@ -226,9 +234,6 @@ async function iniciar() {
     ['7', 'Islas'],
     [nf(pctCan, 1) + '\u00a0%', 'Origen extranjero'],
   ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
-
-  document.getElementById('tapa-anio').textContent =
-    `Población a 1 de enero de ${INDICE.anio}.`;
 
   montarIslas();
   montarBuscador();

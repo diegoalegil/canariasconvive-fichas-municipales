@@ -75,6 +75,9 @@ svg { max-width: 100%; height: auto; display: block; }
 :focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
 
 /* ------------------------------------------------------------- barra ------- */
+/* La barra es pegajosa: un salto a un ancla (el índice de la guía, «#g-evolucion»)
+   o el foco por teclado dejaban el destino escondido debajo. */
+html { scroll-padding-top: 76px; }
 .barra {
   position: sticky; top: 0; z-index: 30;
   background: rgba(255,255,255,.94);
@@ -239,6 +242,9 @@ select {
 /* -------------------------------------------------------------- mapas ------ */
 /* Franja central: los tres mapas grandes, que es donde Pedro los quiere. */
 .mapas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+/* En El Hierro la comarca es la isla entera: dos mapas, centrados, del mismo
+   tamaño que los tres de las demás fichas. */
+.mapas.dos { grid-template-columns: repeat(2, auto); justify-content: center; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
 .mapa-pie { margin-top: 10px; }
@@ -365,7 +371,11 @@ select {
   text-transform: uppercase; color: var(--azul-sobre);
   padding-left: var(--e-4); border-left: 1px solid rgba(255, 255, 255, .3);
 }
-.tapa-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
+/* Título a la izquierda y las cuatro cifras a la derecha, en la misma fila. El
+   hueco era de 48 px y con el título de 520 px y las cifras de 497 px sumaban
+   1.065 en una caja de 1.058: las cifras caían siempre debajo y media caja
+   quedaba vacía (Pedro: «sobra espacio»). Se pliegan solo en pantallas estrechas. */
+.tapa-cuerpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
 .tapa-cuerpo h1 {
   font-size: clamp(28px, 3.8vw, 40px); font-weight: 600;
   letter-spacing: -.02em; line-height: 1.1; text-wrap: balance;
@@ -407,19 +417,24 @@ select {
   font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: var(--gris); margin-right: var(--e-1);
 }
+/* Los siete chips más «Por isla» caben en una fila en cualquier escritorio
+   (desde 1.140 px de ventana): con 15 px de relleno sumaban 1.099 px en una
+   franja de 1.058 y Lanzarote se quedaba solo en una segunda línea. */
 .chip {
   font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   color: var(--negro); background: var(--fondo);
   border: 1px solid var(--linea); border-radius: var(--r-full);
-  padding: 8px 13px 8px 15px; white-space: nowrap;
+  padding: 8px 10px 8px 12px; white-space: nowrap;
 }
 .chip em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
 .chip:hover { border-color: var(--azul); }
 
-/* Desplegable: lo comparten el buscador y las siete islas. Alto fijo para que
-   la caja no cambie de tamaño de una isla a otra, y la lista que no cabe se
-   desplaza por dentro. */
+/* Desplegable: lo comparten el buscador y las siete islas. Las de isla tienen
+   alto fijo («un desplegable del mismo tamaño en cada isla», Pedro): con
+   `max-height` cada caja se encogía a su lista, de 121 px en El Hierro a 292
+   en Tenerife. La que no cabe se desplaza por dentro; la del buscador crece
+   con los resultados. */
 .desplegable {
   position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
   width: 268px; max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
@@ -439,6 +454,7 @@ select {
 }
 .desplegable a:hover em, .desplegable a:focus em { color: var(--azul-sobre); }
 .desplegable .vacio { padding: var(--e-3); }
+.isla-menu .desplegable { height: 292px; }
 
 .isla-menu { position: relative; }
 .chip .galon { transition: transform .15s; margin-left: 1px; color: var(--gris); }
@@ -490,6 +506,9 @@ select {
 .frac .num { padding: 0 .8em .3em; }
 .frac .den { padding: .3em .8em 0; border-top: 2px solid var(--azul); }
 .frm .coda { font-weight: 600; white-space: nowrap; }
+/* El exponente de la variación media anual: dentro del flex se centraba en
+   vertical y quedaba suelto a media altura; va arriba y pegado al corchete. */
+.frm sup { align-self: flex-start; font-size: .7em; line-height: 1; margin-left: -.35em; }
 .frm .lin { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: .1em; }
 .frm .lin i { font-style: normal; font-weight: 700; color: var(--azul); padding: 0 .45em; }
 
@@ -659,7 +678,7 @@ select {
   .cifra { border-left: 1px solid var(--linea); border-top: 1px solid var(--linea); }
   .cifra:nth-child(odd) { border-left: 0; }
   .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
-  .mapas { grid-template-columns: 1fr; gap: 26px; }
+  .mapas, .mapas.dos { grid-template-columns: 1fr; gap: 26px; }
   .tapa-alto, .filtros, .atajos { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
 }
@@ -894,6 +913,7 @@ body.presentando { overflow: hidden; }
   .cifra em { display: block; font-size: 6pt; margin-top: .8mm; min-height: 0; }
 
   .mapas { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .mapas.dos { grid-template-columns: repeat(2, auto); justify-content: center; }
   .mapa-pie { margin-top: 1mm; }
   .mapa-pie b { font-size: 8.5pt; }
   .mapa-pie span { font-size: 6pt; }

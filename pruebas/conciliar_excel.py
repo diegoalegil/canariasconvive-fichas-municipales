@@ -4,13 +4,14 @@
 Necesita el Excel en ~/Downloads (o en la ruta que se pase como argumento) y
 openpyxl; si no está el libro, se omite avisando. Comprueba población, serie
 de evolución, variación acumulada, TVMA (sin redondeo intermedio), series de
-origen extranjero, componentes del cambio —incluidas las anomalías
-apartadas—, los siete índices en los tres ámbitos, puestos y pesos, las 42
-barras de cada pirámide y el reparto por lugar de nacimiento: 3.608
-comparaciones en los 88 municipios."""
+origen extranjero (el valor y el decimal que se muestra), componentes del
+cambio —incluidas las anomalías apartadas—, los siete índices en los tres
+ámbitos, puestos y pesos, las 42 barras de cada pirámide y el reparto por
+lugar de nacimiento: 3.784 comparaciones en los 88 municipios."""
 import json
 import sys
 from collections import Counter
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -18,7 +19,11 @@ RUTA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Downloads" / "
 if not RUTA.exists():
     print(f"omitida · no está el libro en {RUTA}")
     sys.exit(0)
-import openpyxl  # noqa: E402
+try:
+    import openpyxl  # noqa: E402
+except ImportError:
+    print("omitida · falta openpyxl (pip install -r requirements.txt, o ejecutar con el python3 que lo tenga)")
+    sys.exit(0)
 
 W = openpyxl.load_workbook(RUTA, read_only=True, data_only=True)
 F = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((RAIZ / "web/datos/mun").glob("*.json"))]
@@ -29,6 +34,11 @@ def check(a, b, donde):
     CUENTA[donde.split(":")[0]] += 1
     if a != b:
         ERR.append((donde, a, b))
+
+
+def mostrado(v):
+    """Un decimal con el redondeo de la web (Intl, half-expand sobre el valor decimal)."""
+    return str(Decimal(repr(float(v))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
 def series(hoja):
@@ -52,8 +62,14 @@ for f in F:
     check(abs(f["cifras"]["tvma"] - tvma) < 1e-9, True, f"tvma:{mun}")
     ex = f["extranjero"]
     for k, s, n in [("municipio", "C22M", mun), ("canarias", "C22R", "Canarias")]:
-        check({a: v for a, v in zip(ex["anios"], ex[k]) if v is not None},
-              {a: round(v, 2) for a, v in SS[s][n].items()}, f"serie_extranjero:{mun}:{k}")
+        # La serie va sin redondear: la web redondea a un decimal al mostrarla,
+        # una sola vez. Se comprueba el valor y también lo que se leerá en pantalla
+        # (a dos decimales el libro y el JSON coincidían mientras Las Palmas
+        # salía «16,6 %» en vez de 16,5).
+        exportado = {a: v for a, v in zip(ex["anios"], ex[k]) if v is not None}
+        check(exportado, SS[s][n], f"serie_extranjero:{mun}:{k}")
+        check({a: mostrado(v) for a, v in exportado.items()}, {a: mostrado(v) for a, v in SS[s][n].items()},
+              f"extranjero_mostrado:{mun}:{k}")
     co = f["componentes"]
     for k, s in [("vegetativo", "C6M"), ("migratorio", "C7M")]:
         exportado = {a: v for a, v in zip(co["anios"], co[k]) if v is not None}
