@@ -37,13 +37,18 @@ npm test                     # antes de publicar (ver Verificación)
 ```
 
 Los dos primeros leen de `~/Downloads/`; la ruta está en una constante al
-principio de cada script. **Los tres van juntos**: las tarjetas y los
-envoltorios llevan escritos la población y el año, y si se regeneran los datos
-sin regenerarlos se quedan viejos (`pruebas/invariantes.py` lo detecta).
-`exportar_datos.py` escribe además en `indice.json` la fuente de cada
-indicador —organismo, enlace y años cubiertos—, que `metadatos.py` lee de la
-hoja `INDEX-F` del libro, y el orden de las islas, de oeste a este, que heredan
-la portada, los selectores y el dossier.
+principio de cada script. **Los tres van juntos**: las tarjetas, los
+envoltorios y la descripción de la portada llevan escritos la población y el
+año, y si se regeneran los datos sin regenerarlos se quedan viejos
+(`pruebas/invariantes.py` lo detecta). `exportar_datos.py` escribe además en
+`indice.json` la fuente de cada indicador —organismo, enlace y años
+cubiertos—, que `metadatos.py` lee de la hoja `INDEX-F` del libro, el orden de
+las islas, de oeste a este, que heredan la portada, los selectores y el
+dossier, y el último dato regional de origen extranjero, que usa la portada.
+Se detiene, en vez de avisar y seguir, si un municipio del Excel no encaja
+con el GeoPackage (saldría sin código INE) o si un valor de los componentes
+del cambio supera el umbral de anomalía en un municipio o año que no esté en
+`ANOMALIAS_CONOCIDAS`: un dato así hay que mirarlo, no etiquetarlo a ciegas.
 
 La URL pública está en un solo sitio, `sitio.json`: de ahí salen las canónicas
 y las etiquetas `og:` de las cinco páginas, los envoltorios de `web/m/` y
@@ -83,7 +88,9 @@ web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
 web/iconos.js        los quince iconos, en un solo sitio
 web/estilos.css      sistema de tarjeta, identidad visual e impresión
 web/dossier.css      solo el armazón del dossier
-web/img/             los logotipos
+web/404.html         la página de error de GitHub Pages, con el camino a la portada
+web/fonts/           Montserrat (licencia SIL OFL), alojada en la web
+web/img/             los logotipos y el icono de la pestaña
 web/og/  web/m/      tarjetas de vista previa y sus envoltorios con etiquetas og:
 web/datos/           salida de los scripts
 ```
@@ -138,6 +145,13 @@ media en 0,03.
 
 **Nada de servidor.** Ficheros estáticos: se suben tal cual y se embeben con un
 `<iframe>` en una página de WordPress, igual que `/mapa-de-agentes/`.
+
+**Nada de terceros.** La tipografía (Montserrat, un solo fichero variable de
+35 KB) va en `web/fonts/`: ningún visitante conecta con Google ni con nadie
+más al abrir la web, que es lo que exige el RGPD a una administración
+pública, y de paso la hoja de estilos externa deja de bloquear el primer
+pintado. `pruebas/invariantes.py` y la batería fallan si alguna página
+vuelve a pedir un recurso fuera de la web.
 
 **Sin librerías de gráficos.** Los SVG se generan a mano en `ficha.js`. Da
 control total sobre el diseño, no pesa y permite etiquetar todo para lectores
@@ -197,15 +211,18 @@ cambio de pestaña, al redibujado por cambio de ancho y a la impresión (en la
 hoja no se imprime), y otro clic la suelta.
 
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
-derecha por valor, y el tono indica la posición. Señalar un ámbito lo resalta
-en los cuatro índices.
+derecha por valor, y el tono indica la posición; dos ámbitos con el mismo
+valor (pasa en doce municipios) llevan el mismo tono. Señalar un ámbito lo
+resalta en los cuatro índices.
 
 **Origen extranjero.** Barras del municipio, la última destacada con su cifra,
 y la línea de Canarias como referencia, con su último valor en la leyenda. El
 eje va de 5 en 5, como pidió Pedro, con el tope en el múltiplo justo por
-encima del máximo; por encima del 40 % (doce municipios) se rotulan solo los
-múltiplos de 10. La cifra del último año se coloca por encima de la línea de
-Canarias cuando esta pasa por ahí.
+encima del máximo; por encima del 40 % (doce municipios) se rotulan los
+múltiplos de 10 y el tope, sin el múltiplo anterior si queda pegado. La cifra
+del último año se coloca por encima de la línea de Canarias cuando esta pasa
+por ahí. Para el lector de pantalla, una tabla oculta lleva la serie entera;
+la de componentes del cambio, igual.
 
 **Componentes del cambio.** Crecimiento vegetativo y saldo migratorio desde
 2002, que es donde arranca la serie del saldo; el eje temporal va cada dos
@@ -268,12 +285,14 @@ de la cabecera, la dirección de la guía, para llegar desde el papel a cada
 recurso estadístico. Medido en la versión publicada: las 88 fichas miden
 269,4 mm de los 281 disponibles (miden lo mismo porque en El Pinar y Frontera
 el gráfico de componentes cede a su nota de 2007 los 3 mm que las harían más
-altas), y la hoja más alta del dossier, 294,0 de 297.
+altas), y la hoja más alta del dossier, 292,4 de 297.
 
 El dossier (`dossier.html`) compone las 98 hojas —portada, guía de uso,
 índice, un separador por isla y una hoja por municipio— con las reglas de
 impresión de `estilos.css`, que copia en caliente, y los mismos gráficos que
-la ficha.
+la ficha, con la dirección de la guía en la cabecera de cada hoja. Las 88
+fichas se piden a la vez y lo que falle se vuelve a pedir hasta dos veces
+antes de dar el error.
 
 ## Verificación
 
@@ -286,17 +305,20 @@ npm ci && npx playwright install chromium     # una vez
 npm test
 ```
 
-- `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios; cada
-  pirámide suma su población y las 88 suman Canarias; la TVMA es la de la
-  serie sin redondeo intermedio; el último dato de origen extranjero se
-  muestra igual que el del lugar de nacimiento; los repartos suman cien; los
-  cuatro índices están en los tres ámbitos; cada indicador tiene fuente con
-  enlace https y cada fuente de gráfico lleva el año de referencia; las islas
-  van de oeste a este; los 88 envoltorios llevan la población y el año de
-  `indice.json`, su tarjeta `og` y la URL de `sitio.json` (igual que las
-  canónicas y `og:` de las cinco páginas); las cinco cargan la misma versión
-  de recursos; ningún texto atribuye los datos al padrón; y una mudanza a una
-  URL ficticia no deja rastro del dominio anterior.
+- `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios con
+  código INE entero y su geometría; cada pirámide suma su población y las 88
+  suman Canarias; la edad media es la de la propia pirámide; la TVMA es la de
+  la serie sin redondeo intermedio; el último dato de origen extranjero se
+  muestra igual que el del lugar de nacimiento y el regional es el de
+  `indice.json`; los repartos suman cien; los cuatro índices están en los
+  tres ámbitos; cada indicador tiene fuente con enlace https y cada fuente de
+  gráfico lleva el año de referencia; las islas van de oeste a este; los 88
+  envoltorios llevan la población y el año de `indice.json`, su tarjeta `og` y
+  la URL de `sitio.json` (igual que las canónicas y `og:` de las cinco
+  páginas, y la descripción de la portada, que lleva el año y el arranque de
+  la serie); las cinco cargan la misma versión de recursos y ningún recurso de
+  terceros; ningún texto atribuye los datos al padrón; y una mudanza a una URL
+  ficticia no deja rastro del dominio anterior.
 - `pruebas/conciliar_excel.py`: 2.992 comparaciones contra el libro, celda a
   celda —población, series, origen extranjero con el decimal que se muestra,
   componentes con sus anomalías, los cuatro índices en los tres ámbitos,
@@ -304,22 +326,29 @@ npm test
   Necesita el Excel en `~/Downloads` (o en la ruta que se le pase) y
   `openpyxl`; si falta cualquiera de los dos, se omite avisando. No corre en
   GitHub porque el libro no está en el repositorio.
-- `pruebas/web.test.cjs` (Playwright, diez casos): la última selección manda,
+- `pruebas/web.test.cjs` (Playwright, doce casos): la última selección manda,
   la dirección visible es `m/<código>.html` y desde ella se sigue cargando
-  todo, el error se ve y se reintenta; los rótulos y la fuente de cada
-  gráfico, el eje de la pirámide por pestaña y municipio, la lectura con
-  teclado tras redibujar e imprimir, la franja fijada y «< 0,01 %», el eje de
-  origen extranjero y la cifra final libre de la línea de Canarias, El Hierro
-  con dos mapas; los rótulos de evolución, componentes y origen extranjero sin
-  pisarse a 320, 375 y 414 px; la presentación modal, que atrapa y devuelve el
-  foco; el cruce sin fantasmas; el comparador con tres plazas, sin duplicados,
-  colores fijos, tabla semántica y sin texto en azul claro, sin desbordes a
-  1280 y 375 px; el fallo de carga inicial visible; la portada (las siete
-  islas dentro de la pantalla a 320, 375 y 1280, cifras junto al título,
-  desplegables del mismo alto, chips en una fila, Escape, Inicio/Fin y el foco
-  del buscador); la guía (fuentes, exponente y anclas); y el papel: las 88
-  fichas en una A4 y el dossier de 98 páginas con su barra y sin hojas
-  desbordadas.
+  todo, el error se ve y se reintenta, la tipografía carga de la propia web y
+  ninguna página pide nada fuera; los rótulos y la fuente de cada gráfico, el
+  eje de la pirámide por pestaña y municipio, la lectura con teclado tras
+  redibujar e imprimir, la franja fijada y «< 0,01 %», el eje de origen
+  extranjero con el tope rotulado y la cifra final libre de la línea de
+  Canarias, las tablas ocultas, el mismo tono para el mismo valor, el ordinal
+  con punto, las anclas por debajo de la barra, El Hierro con dos mapas; los
+  rótulos de evolución, componentes y origen extranjero sin pisarse a 320, 375
+  y 414 px; la presentación modal, que atrapa y devuelve el foco y deja el
+  fondo oculto al lector de pantalla; el cruce sin fantasmas; el comparador
+  con tres plazas, sin duplicados, colores fijos, tabla semántica y sin texto
+  en azul claro, sin desbordes a 1280 y 375 px, con la tira de elegidos en el
+  orden elegido y el foco a salvo al quitar con teclado; el fallo de carga
+  inicial visible en el comparador y en la portada (buscador desactivado); la
+  portada (las siete islas dentro de la pantalla a 320, 375 y 1280, cifras
+  junto al título, desplegables del mismo alto, chips en una fila, el
+  buscador como combobox con `aria-activedescendant`, Escape, Inicio/Fin y el
+  foco); el dossier que reintenta una petición fallida y se desplaza con
+  teclado en pantallas estrechas; la guía (fuentes, exponente y anclas); y el
+  papel: las 88 fichas en una A4 y el dossier de 98 páginas con su barra, la
+  dirección de la guía en cada hoja y sin hojas desbordadas.
 
 En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` pasa
 los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo
@@ -342,12 +371,30 @@ marca de color debajo, porque el azul claro de su serie da 2,1:1. Objetivos
 táctiles de 44 px con puntero grueso. Pirámide y evolución se recorren con
 teclado (flechas, Inicio, Fin, Escape); las cifras del grupo señalado, que en
 pantalla van dentro del dibujo, las dice en palabras una región viva
-invisible; cada gráfico lleva su descripción y su fuente, y las cifras del
-comparador son una tabla con encabezados de fila y columna. La presentación es
-un diálogo modal: el resto queda inerte, el tabulador no sale y al cerrar el
-foco vuelve al botón. El buscador de la portada enseña el foco en su caja. Las
-transiciones se desactivan con `prefers-reduced-motion` y con la pestaña
-oculta, donde el navegador congela `requestAnimationFrame`.
+invisible, que en la evolución solo cambia al cambiar de año; los gráficos de
+origen extranjero y de componentes llevan una tabla oculta con su serie;
+cada gráfico lleva su descripción y su fuente, y las cifras del comparador
+son una tabla con encabezados de fila y columna. El buscador de la portada es
+un combobox: el foco no sale del campo y la opción activa se señala con
+`aria-activedescendant`. La presentación es un diálogo modal: el resto queda
+inerte y oculto al lector de pantalla, el tabulador no sale y al cerrar el
+foco vuelve al botón. Las anclas y el foco se colocan por debajo de la barra
+pegajosa, cuya altura real se mide. El contorno de foco de los gráficos no
+depende solo de `:focus-visible`. Los avisos de carga y de error son
+regiones de estado en las cinco páginas. axe-core (WCAG 2.2 AA) no señala
+ninguna violación en las cinco páginas a 320 y 1280 px, con desplegables,
+presentación y comparador abiertos. Las transiciones se desactivan con
+`prefers-reduced-motion` y con la pestaña oculta, donde el navegador congela
+`requestAnimationFrame`.
+
+Quedan abiertas, porque cambian el diseño o el alcance: las filas de la
+pirámide como objetivo de puntero miden 15–20 px (WCAG 2.5.8 pide 24; el
+teclado y el toque fijado ya la recorren); el resalte de los índices al
+pasar el ratón no tiene equivalente por teclado (el dato se ve siempre); en
+papel la fuente de cada gráfico va a 5,5 pt; en Safari anterior a 16, al
+llegar al final de un desplegable de isla el dedo arrastra también la página
+(`overscroll-behavior` no existe ahí); y la ficha espera a la geometría de
+los mapas (258 KB) antes de pintar nada, con aviso si tarda.
 
 ## Pendiente
 
@@ -361,3 +408,7 @@ oculta, donde el navegador congela `requestAnimationFrame`.
       en WhatsApp.
 - [ ] La web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
       hereda el iframe.
+- [ ] GitHub Pages no admite cabeceras HTTP propias (CSP, Referrer-Policy…);
+      una CSP por `<meta>` exigiría quitar los dos manejadores en línea.
+      Fijar las acciones del workflow por commit (o Dependabot) si se quiere
+      ese nivel de garantía.

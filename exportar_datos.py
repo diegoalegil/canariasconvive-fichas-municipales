@@ -22,7 +22,6 @@ SALIDA = Path(__file__).parent / "web" / "datos"
 
 EXCLUIR = ["Frontera (hasta 2007)"]  # columna previa a la segregación de El Pinar
 ANIO_BASE_VAR = 2000                 # ventana de variación acumulada y TVMA
-ANIO_C25 = 2025
 
 LIBRO = pd.ExcelFile(RUTA, engine="openpyxl")
 _CACHE = {}
@@ -216,7 +215,8 @@ con.close()
 
 _sin_cod = [m for m in MUNICIPIOS if m not in COD_DE]
 if _sin_cod:
-    print(f"  ⚠ Sin código INE: {_sin_cod}")
+    raise SystemExit(f"Sin código INE en el GeoPackage: {_sin_cod}. "
+                     "Revisar los nombres o EXC_GEO en territorios.py antes de exportar.")
 
 
 # --------------------------------------------------------------- cálculos ---
@@ -288,9 +288,13 @@ def combinar(series, dec=3):
 
 
 UMBRAL_ANOMALIA = 0.20   # de la población actual del municipio
+# Los únicos valores apartados hasta ahora, con su explicación. Si el umbral
+# salta en otro municipio o año, la exportación se detiene: hay que mirar el
+# dato y escribir su motivo antes de publicar, no etiquetarlo a ciegas.
+ANOMALIAS_CONOCIDAS = {("El Pinar de El Hierro", 2007), ("Frontera", 2007)}
 
 
-def depurar_componentes(comp, poblacion):
+def depurar_componentes(comp, poblacion, mun):
     """Aparta a `anomalias` los valores que no pueden ser un flujo anual real:
     en 2007 El Pinar se segregó de Frontera y el ISTAC anotó el traspaso de
     vecinos como saldo migratorio (+1.880 y −1.757), que multiplicaba por 40 la
@@ -299,6 +303,9 @@ def depurar_componentes(comp, poblacion):
     for clave in ("vegetativo", "migratorio"):
         for i, (anio, v) in enumerate(zip(comp["anios"], comp[clave])):
             if v is not None and abs(v) > poblacion * UMBRAL_ANOMALIA:
+                if (mun, anio) not in ANOMALIAS_CONOCIDAS:
+                    raise SystemExit(f"{mun} {anio}: {clave} = {v:g} supera el umbral de anomalía y no está "
+                                     "en ANOMALIAS_CONOCIDAS. Revisar el dato antes de exportar.")
                 anomalias.append({"anio": anio, "serie": clave, "valor": v,
                                   "motivo": "cambio administrativo de términos municipales"})
                 comp[clave][i] = None
@@ -402,11 +409,10 @@ for mun in MUNICIPIOS:
         "componentes": depurar_componentes(combinar({
             "vegetativo": (ANIOS_C6, SERIE_C6[mun]),
             "migratorio": (ANIOS_C7, SERIE_C7.get(mun, [np.nan] * len(ANIOS_C7))),
-        }, 0), int(POB_M[mun])),
+        }, 0), int(POB_M[mun]), mun),
 
         "origen": {
             "categorias": CAT_ORIGEN,
-            "anio": ANIO_C25,
             "municipio": [r2(v, 1) for v in ORIGEN_M.get(mun, [np.nan] * 3)],
             "canarias": [r2(v, 1) for v in ORIGEN_R["Canarias"]],
         },
@@ -427,9 +433,13 @@ for mun in MUNICIPIOS:
 ORDEN_ISLAS = ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"]
 assert set(ORDEN_ISLAS) == set(ISLAS), "ORDEN_ISLAS no coincide con las islas de territorios.py"
 
+# El último dato regional de origen extranjero, para la portada (sin redondear).
+_ext_canarias = [v for v in SERIE_C22_R["Canarias"] if isinstance(v, (int, float)) and np.isfinite(v)][-1]
+
 indice = {
     "anio": ANIO_POB,
     "poblacion_canarias": int(POB_CANARIAS),
+    "extranjero_canarias": float(_ext_canarias),
     "municipios": sorted(fichas, key=lambda f: _norm(f["nombre"])),
     "islas": {i: sorted(ISLAS[i], key=_norm) for i in ORDEN_ISLAS},
     "fuentes_indicadores": fuentes_indicadores(RUTA, todas_las_fichas),

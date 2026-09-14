@@ -36,6 +36,7 @@
 /* Relleno ajustado: la hoja recorta por lo bajo sin avisar (294,0 de 297 mm medidos). */
 .d-cab {
   background: var(--azul); color: #fff; padding: 2.4mm 6mm; margin-bottom: 1.6mm; flex: none;
+  position: relative;   /* la dirección de la guía va en su esquina, como en la ficha suelta */
 }
 .d-titular { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; }
 .d-migas { font-size: 6.5pt; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--azul-sobre); }

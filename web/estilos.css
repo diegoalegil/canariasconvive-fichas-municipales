@@ -39,6 +39,13 @@
   --s-2: 0 4px 12px rgba(24,95,165,.10), 0 1px 2px rgba(24,95,165,.06);
 }
 
+/* Montserrat (licencia SIL OFL) va en la propia web: ningún visitante conecta con
+   terceros. Un solo fichero variable cubre los cuatro pesos. */
+@font-face {
+  font-family: Montserrat; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(fonts/montserrat-latin.woff2) format('woff2');
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -62,7 +69,7 @@ html { scroll-padding-top: 76px; }   /* la barra es pegajosa: anclas y foco por 
 .barra {
   position: sticky; top: 0; z-index: 30;
   background: rgba(255,255,255,.94);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--linea);
   margin-bottom: 22px;
 }
@@ -88,7 +95,7 @@ select {
   font: inherit; font-size: 13.5px; font-weight: 600; color: var(--azul);
   padding: 8px 34px 8px 12px; border: 1px solid var(--linea); border-radius: var(--r-2);
   background: #fff url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23185FA5' stroke-width='1.8'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E") no-repeat right 11px center;
-  background-size: 12px; appearance: none; cursor: pointer; min-width: 200px;
+  background-size: 12px; -webkit-appearance: none; appearance: none; cursor: pointer; min-width: 200px;
 }
 .btn {
   font: inherit; font-size: 12.5px; font-weight: 600;
@@ -290,7 +297,6 @@ select {
 }
 .lectura b { color: var(--azul); font-weight: 700; }
 
-#g-piramide { outline: none; }
 #eje-piramide { transition: opacity .26s ease; }
 #g-piramide .franja { cursor: crosshair; }
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
@@ -352,6 +358,7 @@ select {
   color: var(--gris);
 }
 .buscador .desplegable { width: 100%; }
+.filtros .aviso-carga { flex-basis: 100%; margin: 0; }
 .buscador input {
   border: 0; outline: none; font: inherit; font-size: 14px;
   color: var(--negro); width: 100%; height: 100%; background: transparent;
@@ -388,10 +395,10 @@ select {
 .desplegable a em {
   font-style: normal; font-size: 11.5px; color: var(--gris-40); white-space: nowrap;
 }
-.desplegable a:hover, .desplegable a:focus {
+.desplegable a:hover, .desplegable a:focus, .desplegable a.activa {
   outline: none; background: var(--azul); color: #fff;
 }
-.desplegable a:hover em, .desplegable a:focus em { color: var(--azul-sobre); }
+.desplegable a:hover em, .desplegable a:focus em, .desplegable a.activa em { color: var(--azul-sobre); }
 .desplegable .vacio { padding: var(--e-3); }
 .isla-menu .desplegable { height: 292px; }
 
@@ -417,6 +424,8 @@ select {
 .tarjeta:nth-of-type(6) { animation-delay: .24s; }
 .tarjeta:nth-of-type(7) { animation-delay: .28s; }
 .tarjeta:nth-of-type(8) { animation-delay: .32s; }
+.tarjeta:nth-of-type(9) { animation-delay: .36s; }
+.tarjeta:nth-of-type(10) { animation-delay: .40s; }
 @media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
 
 /* -------------------------------------------------------------- guía ------- */
@@ -461,7 +470,7 @@ select {
 .cmp-ficha button {
   font: inherit; font-size: 16px; line-height: 1; cursor: pointer;
   border: 0; background: transparent; color: var(--gris);
-  padding: 2px 5px; border-radius: var(--r-1);
+  padding: 2px 5px; border-radius: var(--r-1); min-width: 24px; min-height: 24px;
 }
 .cmp-ficha button:hover { background: var(--caja); color: var(--negro); }
 .cmp-ninguno, .cmp-cuenta { font-size: 13px; color: var(--gris); }
@@ -629,7 +638,15 @@ select {
   color: var(--azul); font-size: 13px;
 }
 .buscador:focus-within { outline: 2px solid var(--azul); outline-offset: 3px; }   /* el input no lleva contorno */
-#g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+/* Los dos gráficos que se recorren con teclado: contorno solo con el foco de
+   teclado; donde :focus-visible no existe, con cualquier foco. */
+@supports selector(:focus-visible) {
+  #g-piramide, #g-evolucion { outline: none; }
+  #g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+}
+@supports not selector(:focus-visible) {
+  #g-piramide:focus, #g-evolucion:focus { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+}
 
 /* Fuente de cada gráfico (datos-ui.js); el desplegable solo lo usa la guía. */
 .fuente-grafico { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--gris); text-wrap: pretty; }

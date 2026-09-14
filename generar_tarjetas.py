@@ -198,9 +198,11 @@ def _meta(html, propiedad, valor):
     return re.sub(patron, lambda m: m.group(1) + valor + m.group(2), html)
 
 
-def reescribir_paginas(base, web=WEB):
-    """Canónica, og:url y og:image de las cinco páginas, y web/config.js, con
-    la URL pública dada (sin barra final). Devuelve los ficheros tocados."""
+def reescribir_paginas(base, web=WEB, anio=None):
+    """Canónica, og:url y og:image de las cinco páginas, la fecha del dato en
+    la descripción de la portada, el enlace de vuelta de 404.html y
+    web/config.js, con la URL pública dada (sin barra final). Devuelve los
+    ficheros tocados."""
     base = base.rstrip("/")
     tocados = []
     for nombre, ruta in PAGINAS.items():
@@ -211,6 +213,14 @@ def reescribir_paginas(base, web=WEB):
                       f'<link rel="canonical" href="{url}">', html)
         html = _meta(html, "og:url", url)
         html = _meta(html, "og:image", f"{base}/og/portada.png")
+        if nombre == "index" and anio is not None:
+            html = re.sub(r"1 de enero de \d{4}\.", f"1 de enero de {anio}.", html)
+        p.write_text(html, encoding="utf-8")
+        tocados.append(p)
+    p = web / "404.html"
+    if p.exists():
+        html = re.sub(r'(<a class="btn" href=")[^"]*(">)', lambda m: m.group(1) + base + "/" + m.group(2),
+                      p.read_text(encoding="utf-8"))
         p.write_text(html, encoding="utf-8")
         tocados.append(p)
     config = web / "config.js"
@@ -244,7 +254,7 @@ def main():
     if Image is None:
         raise SystemExit("Hace falta Pillow para las tarjetas: pip install -r requirements.txt")
     SALIDA_OG.mkdir(exist_ok=True)
-    reescribir_paginas(BASE)
+    reescribir_paginas(BASE, anio=idx["anio"])
     escribir_envoltorios(idx, BASE)
 
     guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")

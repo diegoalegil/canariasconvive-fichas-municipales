@@ -22,7 +22,7 @@ const MOTOR = process.env.MOTOR === 'webkit' ? webkit : chromium;
 const SOLO_CHROMIUM = MOTOR !== chromium ? { skip: 'page.pdf solo existe en Chromium' } : {};
 
 const RAIZ = path.resolve(__dirname, '..'), WEB = path.join(RAIZ, 'web');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 let navegador, servidor, base, indice;
 const json = async (f) => JSON.parse(await fs.readFile(f, 'utf8'));
 const paginasPDF = (pdf) => (pdf.toString('latin1').match(/\/Type\s*\/Page(?:\s|\/|>)/g) || []).length;
@@ -34,6 +34,8 @@ async function abrir(ruta, { ancho = 1280, alto = 900, movimiento = 'reduce' } =
   const errores = [];
   page.on('pageerror', (e) => errores.push('excepción: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errores.push('consola: ' + m.text()); });
+  // Ninguna página pide nada fuera de la web: ni tipografía ni recursos de terceros.
+  page.on('request', (r) => { const u = r.url(); if (!u.startsWith(base) && !u.startsWith('data:')) errores.push('petición externa: ' + u); });
   await page.goto(base + ruta);
   return { contexto, page, errores };
 }
@@ -97,6 +99,8 @@ test('ficha: la última selección manda, el error se ve y se reintenta, y la TV
   assert.ok(await page.locator('#estado-ficha').isHidden());
   // 3,148981… % se muestra 3,1 y no 3,2 (antes: 3,15 en el JSON y otro redondeo en pantalla).
   assert.match(await page.locator('#cifras').textContent(), /\+3,1 %/);
+  await page.evaluate(() => document.fonts.ready);
+  assert.ok(await page.evaluate(() => document.fonts.check('700 16px Montserrat') && [...document.fonts].some((f) => f.family === 'Montserrat' && f.status === 'loaded')), 'Montserrat carga desde web/fonts/');
   // La petición abortada a propósito deja su «Failed to load resource» en la consola; el resto tiene que estar limpio.
   assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource')), []);
   await contexto.close();
@@ -163,6 +167,8 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
     await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
     assert.match(await page.locator('#lectura-piramide').textContent(), /^5 a 9 años/, `ancho ${ancho}`);
     await sinDesborde(page, `ficha a ${ancho}`);
+    const [relleno, barra] = await page.evaluate(() => [parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop), document.querySelector('.barra').getBoundingClientRect().height]);
+    assert.ok(relleno >= barra, `a ${ancho} las anclas quedarían bajo la barra: scroll-padding ${relleno} < barra ${barra}`);
   }
   await page.setViewportSize({ width: 1280, height: 900 });
   await espera(350);
@@ -251,6 +257,27 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.deepEqual(await ejeExtranjero(), { eje: '0% 10% 20% 30% 40% 50% 60%', ultimo: '56,5%' }, 'por encima del 40 %, rótulos cada 10 con la rejilla cada 5');
   // En El Hierro la comarca es la isla: dos mapas y migas sin repetir; el tercer mapa dice «en la comarca».
   assert.deepEqual(await page.locator('.mapa-pie span').allTextContents().then((t) => t.filter((x) => x.startsWith('en '))), ['en Canarias', 'en Tenerife', 'en la comarca']);
+  assert.match(await page.locator('.mapa-pie b').first().textContent(), /^\d+\.º de \d+$/, 'ordinal con punto');
+  // La Oliva: el tope del eje no es múltiplo de 10 y se rotula igualmente, sin el 50 pegado; y las
+  // tablas ocultas llevan la serie entera para el lector de pantalla.
+  await page.selectOption('#sel-municipio', '35014');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'La Oliva');
+  await espera(400);
+  const oliva = await json(path.join(WEB, 'datos/mun/35014.json'));
+  const tope = Math.ceil(Math.max(...oliva.extranjero.municipio.concat(oliva.extranjero.canarias).filter((v) => v != null)) / 5) * 5;
+  assert.equal(tope % 10, 5, 'La Oliva sigue teniendo un tope que no es múltiplo de 10');
+  const esperado = [...Array(tope / 5 + 1).keys()].map((k) => k * 5).filter((v) => v === tope || (v % 10 === 0 && tope - v >= 10)).map((v) => `${v}%`).join(' ');
+  assert.equal((await ejeExtranjero()).eje, esperado, 'el tope siempre rotulado');
+  assert.equal(await page.locator('#g-extranjero .oculto tbody tr').count(), oliva.extranjero.anios.length);
+  assert.equal(await page.locator('#g-componentes .oculto tbody tr').count(), oliva.componentes.anios.filter((a) => a >= 2002).length);
+  // Tías: municipio y Canarias empatan a 41,6 en dependencia y llevan el mismo tono.
+  await page.selectOption('#sel-municipio', '35028');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Tías');
+  await espera(400);
+  const tonos = await page.locator('#g-indices .indice').nth(2).locator('.peldano').evaluateAll((ps) => ps.map((p) => [p.querySelector('b').textContent, p.querySelector('i').style.background]));
+  assert.deepEqual(tonos.map((t) => t[0]), ['37,2', '41,6', '41,6']);
+  assert.equal(tonos[1][1], tonos[2][1], 'el mismo valor, el mismo tono');
+  assert.notEqual(tonos[0][1], tonos[1][1]);
   await page.selectOption('#sel-municipio', '38013');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Frontera');
   await espera(400);
@@ -308,6 +335,7 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.locator('#btn-presentar').click();
   assert.equal(await page.locator('#presentacion').getAttribute('aria-modal'), 'true');
   assert.equal(await page.locator('main').evaluate((e) => e.inert), true);
+  assert.equal(await page.locator('main').getAttribute('aria-hidden'), 'true', 'el fondo queda fuera del lector de pantalla');
   await page.keyboard.press('Shift+Tab');
   assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Salir de la presentación', 'Mayús+Tab recién abierta va al último botón');
   await page.keyboard.press('Tab');
@@ -327,6 +355,7 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await espera(150);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar');
   assert.equal(await page.locator('main').evaluate((e) => e.inert), false);
+  assert.equal(await page.locator('main').getAttribute('aria-hidden'), null);
   // Abierta con el ratón y sin nada enfocado (lo que hace Safari), el foco vuelve igual al botón.
   await page.evaluate(() => document.activeElement.blur());
   const caja = await page.locator('#btn-presentar').boundingBox();
@@ -401,6 +430,17 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   const columnas = await page.locator('table.cmp-tabla th[scope="row"]').first().evaluate((e) => e.getBoundingClientRect().width);
   assert.ok(columnas < 220, `la columna de rótulos mide ${columnas} px con un municipio`);
   await sinDesborde(page, 'comparador con 1');
+  // El orden elegido también manda en la tira de elegidos.
+  await page.selectOption('#sel-anadir', '38038'); await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3'); await espera(400);
+  await page.selectOption('#sel-orden', 'nombre'); await espera(400);
+  const tira = await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents();
+  assert.deepEqual(tira, [...tira].sort((a, b) => a.localeCompare(b, 'es')), 'la tira de elegidos sigue el orden alfabético');
+  assert.deepEqual(await page.locator('#cmp-piramides .cmp-col h3').allTextContents(), tira);
+  // Quitar con el teclado deja el foco en el siguiente botón de quitar, y el último en el selector de añadir.
+  await page.locator('[data-quitar]').first().focus(); await page.keyboard.press('Enter'); await espera(400);
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.quitar !== undefined), true, 'el foco pasa al siguiente botón de quitar');
+  await page.keyboard.press('Enter'); await espera(400);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'sel-anadir', 'sin municipios, el foco va al selector');
   assert.deepEqual(errores, []);
   await contexto.close();
 });
@@ -440,13 +480,24 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
   assert.equal(await page.locator('.chip').evaluateAll((cs) => new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top))).size), 1, 'los siete chips en una fila');
   assert.deepEqual(await page.locator('.chip span').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
   assert.deepEqual([...new Set(await page.locator('.isla-menu .desplegable').evaluateAll((ds) => ds.map((d) => { d.hidden = false; const h = d.getBoundingClientRect().height; d.hidden = true; return h; })))], [292], 'desplegables del mismo alto');
-  // Escape desde una opción del buscador cierra la lista (el foco vuelve al campo sin reabrirla).
+  // El buscador es un combobox: el foco no sale del campo, la opción activa se señala con
+  // aria-activedescendant y Escape cierra la lista sin reabrirla.
   await page.fill('#buscar', 'san');
   await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'buscar', 'el foco se queda en el campo');
+  const activa = await page.locator('#buscar').getAttribute('aria-activedescendant');
+  assert.ok(activa, 'hay opción activa');
+  assert.equal(await page.locator(`#${activa}[role="option"][aria-selected="true"]`).count(), 1, 'la opción activa existe y está seleccionada');
+  await page.keyboard.press('ArrowDown');
+  assert.notEqual(await page.locator('#buscar').getAttribute('aria-activedescendant'), activa, 'la segunda flecha baja a otra opción');
+  assert.equal(await page.locator('#resultados [aria-selected="true"]').count(), 1);
   await page.keyboard.press('Escape');
   await espera(60);
   assert.equal(await page.locator('#resultados').isHidden(), true, 'Escape cierra el buscador');
   assert.equal(await page.locator('#buscar').getAttribute('aria-expanded'), 'false');
+  assert.equal(await page.locator('#buscar').getAttribute('aria-activedescendant'), null);
+  await page.fill('#buscar', 'zzzz');
+  assert.equal(await page.locator('#resultados [role="option"][aria-disabled="true"]').count(), 1, 'sin resultados, una opción inactiva lo dice');
   await page.fill('#buscar', '');
   // Inicio y Fin con la lista abierta y el foco aún en el disparador.
   const chip = page.locator('.isla-menu > .chip').first();
@@ -466,6 +517,36 @@ test('portada: las siete islas abren dentro de la pantalla a 320, 375 y 1280, el
   await page.waitForSelector('#fuente-g-origen');
   assert.match(await page.locator('#nombre').textContent(), /Guía/);
   assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
+test('portada: si fallan los datos, el buscador se desactiva y el aviso se anuncia', async () => {
+  const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const page = await contexto.newPage();
+  await page.route('**/datos/indice.json', (r) => r.abort());
+  await page.goto(base + 'index.html');
+  await page.waitForFunction(() => document.getElementById('estado-portada').textContent.includes('No se han podido'));
+  assert.ok(await page.locator('#estado-portada').isVisible());
+  assert.equal(await page.locator('#estado-portada').getAttribute('role'), 'status');
+  assert.equal(await page.locator('#buscar').isDisabled(), true, 'sin datos el buscador queda desactivado');
+  assert.equal(await page.locator('.tapa.espera').count(), 0, 'la portada se ve aunque fallen los datos');
+  await contexto.close();
+});
+
+test('dossier: una petición fallida se reintenta, el aviso es una región de estado y en pantallas estrechas se desplaza con teclado', { timeout: 240000 }, async () => {
+  const { page, contexto, errores } = await abrir('index.html');
+  let fallada = 0;
+  await page.route('**/datos/mun/38024.json', (r) => { if (!fallada++) r.abort(); else r.continue(); });
+  assert.match(await fs.readFile(path.join(WEB, 'dossier.html'), 'utf8'), /id="d-aviso" role="status" aria-live="polite"/);
+  await page.goto(base + 'dossier.html');
+  await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 180000 });
+  assert.equal(fallada, 2, 'la ficha que falló se volvió a pedir');
+  assert.equal(await page.locator('#dossier').getAttribute('tabindex'), null, 'a 1280 la hoja cabe y no hace falta enfocar el contenedor');
+  await page.setViewportSize({ width: 375, height: 812 });
+  await espera(300);
+  assert.equal(await page.locator('#dossier').getAttribute('tabindex'), '0', 'a 375 el contenedor se puede enfocar y desplazar');
+  // La petición abortada a propósito deja su rastro en la consola (Chromium y WebKit lo dicen distinto).
+  assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource') && !e.includes('Load failed')), []);
   await contexto.close();
 });
 
@@ -525,6 +606,7 @@ test('papel: las 88 fichas caben en una A4 y el dossier tiene 98 páginas con su
   assert.equal(await page.locator('.hoja-ficha .d-migas').first().textContent(), 'El Hierro', 'la primera hoja es de El Hierro, sin comarca repetida');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
   assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7, 'cada gráfico del dossier lleva su fuente');
+  assert.equal(await page.locator('.hoja-ficha .d-cab .pie-fuentes-papel:visible').count(), 88, 'cada hoja del dossier lleva la dirección de la guía en la cabecera');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });

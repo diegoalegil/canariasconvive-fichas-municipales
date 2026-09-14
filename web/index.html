@@ -16,11 +16,10 @@
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="img/logo-canariasconvive-menu.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilos.css?v=82">
+<link rel="icon" href="img/icono-32.png" sizes="32x32">
+<link rel="icon" href="img/icono-180.png" sizes="180x180">
+<link rel="apple-touch-icon" href="img/icono-180.png">
+<link rel="stylesheet" href="estilos.css?v=83">
 </head>
 <body>
 
@@ -41,6 +40,7 @@
     </div>
 
     <div class="filtros">
+      <div id="estado-portada" class="aviso-carga" role="status" aria-live="polite" hidden></div>
       <div class="buscador ent" data-ico="buscar">
         <label class="oculto" for="buscar">Buscar municipio por nombre</label>
         <input type="search" id="buscar" placeholder="Buscar municipio por nombre"
@@ -63,9 +63,9 @@
 
 <!-- Sin JavaScript la clase «espera» no se retiraría nunca: aquí se anula. -->
 <noscript><style>.tapa.espera .ent { opacity: 1; }</style></noscript>
-<script src="config.js?v=82"></script>
-<script src="comun.js?v=82"></script>
-<script src="iconos.js?v=82"></script>
-<script src="portada.js?v=82" onerror="document.querySelector('.tapa').classList.remove('espera')"></script>
+<script src="config.js?v=83"></script>
+<script src="comun.js?v=83"></script>
+<script src="iconos.js?v=83"></script>
+<script src="portada.js?v=83" onerror="document.querySelector('.tapa').classList.remove('espera')"></script>
 </body>
 </html>

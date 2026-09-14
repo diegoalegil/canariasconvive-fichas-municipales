@@ -202,7 +202,8 @@ function graficoExtranjero(ext, w, h) {
   const A = ext.anios, M = ext.municipio, R = ext.canarias;
   const vivos = A.map((a, i) => [a, M[i]]).filter(([, v]) => v != null && isFinite(v));
   // Eje de 5 en 5 (Pedro), tope en el múltiplo justo por encima del máximo;
-  // por encima del 40 % se rotulan solo los múltiplos de 10.
+  // por encima del 40 % se rotulan los múltiplos de 10 y el tope, sin el
+  // múltiplo anterior si queda pegado (como en la pirámide).
   const maximo = Math.max(...M.concat(R).filter((v) => v != null));
   const paso = 5;
   const tope = Math.ceil(maximo / paso) * paso;
@@ -216,7 +217,7 @@ function graficoExtranjero(ext, w, h) {
   let rejilla = '', ejeY = '';
   for (let v = 0; v <= tope + 1e-9; v += paso) {
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${C.rejilla}"/>`;
-    if (v % cadaRotulo === 0) ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}${UNI}%</text>`;
+    if (v === tope || (v % cadaRotulo === 0 && tope - v >= cadaRotulo)) ejeY += `<text x="${m.l - (P ? 4 : 8)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}${UNI}%</text>`;
   }
 
   // La línea de Canarias va sobre las posiciones de las barras (El Pinar y
@@ -423,13 +424,15 @@ function bloqueIndices(ind, codigos) {
       .filter(([, v]) => v != null)
       .sort((a, b) => a[1] - b[1]);
     const dec = cod === 'C10' ? 2 : 1;
+    // Dos ámbitos con el mismo valor llevan el mismo tono: el de la posición más alta que comparten.
+    const tono = (v) => TONOS[2 - filas.filter(([, w]) => w > v).length];
     return `<div class="indice">
       <div class="indice-tit"><b>${esc(d.etiqueta)}</b><em>${d.anio}${d.unidad ? ' · ' + esc(d.unidad) : ''}</em></div>
-      <div class="escala">${filas.map(([n, v], i) => `
+      <div class="escala">${filas.map(([n, v]) => `
         <div class="peldano" data-ambito="${esc(n)}">
           <span>${esc(n)}</span>
           <b>${nf(v, dec)}</b>
-          <i style="background:${TONOS[i]}"></i>
+          <i style="background:${tono(v)}"></i>
         </div>`).join('')}</div>
     </div>`;
   }).join('');
@@ -506,6 +509,14 @@ function anilloOrigen(valores, radio = 74, grosor = 30) {
   return abrirSVG(w, w, 'Reparto por lugar de nacimiento', false) + arcos + '</svg>';
 }
 
+/* ------------------------------------------------------------ tabla oculta -- */
+/** Los datos de un gráfico en una tabla solo para lectores de pantalla. */
+function tablaOculta(titulo, cabeceras, filas) {
+  return `<div class="oculto"><table><caption>${esc(titulo)}</caption>`
+    + `<thead><tr>${cabeceras.map((c) => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead>`
+    + `<tbody>${filas.map((f) => `<tr>${f.map((v, i) => i ? `<td>${v}</td>` : `<th scope="row">${v}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
 /* ------------------------------------------------------------ cifras clave -- */
 /** Las cuatro celdas: la cifra, lo que es y el pie que la sitúa. */
 function cifrasClave(f) {
@@ -576,6 +587,7 @@ async function cargar(codmun) {
 }
 
 let animacion = null;
+let temporizadorEje = null;   // el fundido del eje; se cancela si llega otra pestaña antes de que acabe
 
 /** Leyenda de la pestaña, con los rótulos de la vista. La misma en la ficha y
  *  en la presentación. */
@@ -601,12 +613,14 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
   // El eje cambia fundiéndose mientras las barras se mueven.
   const eje = document.querySelector('#g-piramide #eje-piramide');
   if (eje) {
+    clearTimeout(temporizadorEje);
     const cambia = eje.dataset.eje !== String(v.eje);
     if (cambia && animar && animable()) {
       eje.style.opacity = '0';
-      setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 260);
-    } else if (cambia || !eje.dataset.eje) {
-      eje.innerHTML = P.ejeSVG(v.eje);
+      temporizadorEje = setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 260);
+    } else {
+      if (cambia || !eje.dataset.eje) eje.innerHTML = P.ejeSVG(v.eje);
+      eje.style.opacity = '1';
     }
     eje.dataset.eje = String(v.eje);
   }
@@ -702,7 +716,7 @@ function pintar(f) {
     <figure class="mapa">
       ${mapa(GEO, f.codmun, filtro, wMapa, hMapa, lim)}
       <figcaption class="mapa-pie">
-        <b>${r.puesto}º de ${r.total}</b>
+        <b>${r.puesto}.º de ${r.total}</b>
         <span>${esc(tit)}</span>
         <p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>
       </figcaption>
@@ -716,8 +730,11 @@ function pintar(f) {
 
   el('g-evolucion').innerHTML =
     graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(27) : acotar(wEv * 0.42, 190, 260));
+  const ext = f.extranjero;
   el('g-extranjero').innerHTML =
-    graficoExtranjero(f.extranjero, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260));
+    graficoExtranjero(ext, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260))
+    + (IMPRIMIENDO ? '' : tablaOculta('Población de origen extranjero por año, en porcentaje', ['Año', f.nombre, 'Canarias'],
+      ext.anios.map((a, i) => [a, pct(ext.municipio[i]), pct(ext.canarias[i])])));
   // La leyenda lleva el valor de Canarias: es la referencia de la barra del municipio.
   el('leyenda-extranjero').innerHTML = leyendaExtranjero(f, 2);
 
@@ -741,10 +758,12 @@ function pintar(f) {
 
   // En papel, el gráfico de componentes cede 3 mm a la nota de El Pinar y
   // Frontera para que la fila mida lo mismo que en los otros municipios.
-  const anom = f.componentes.anomalias || [];
+  const comp = f.componentes, anom = comp.anomalias || [];
   el('g-componentes').innerHTML =
-    graficoComponentes(f.componentes, wCo, IMPRIMIENDO ? mm(anom.length ? 21 : 24) : acotar(wCo * 0.34, 190, 250))
-    + (anom.length ? `<figcaption class="nota">${notaAnomalias(anom)}</figcaption>` : '');
+    graficoComponentes(comp, wCo, IMPRIMIENDO ? mm(anom.length ? 21 : 24) : acotar(wCo * 0.34, 190, 250))
+    + (anom.length ? `<figcaption class="nota">${notaAnomalias(anom)}</figcaption>` : '')
+    + (IMPRIMIENDO ? '' : tablaOculta('Crecimiento vegetativo y saldo migratorio por año, en personas', ['Año', 'Crecimiento vegetativo', 'Saldo migratorio'],
+      comp.anios.map((a, i) => [a, nf(comp.vegetativo[i]), nf(comp.migratorio[i])]).filter(([a]) => a >= ANIO_INICIO_COMPONENTES)));
 
   const o = f.origen;
   el('g-origen').innerHTML = [
@@ -939,7 +958,7 @@ function conectarLecturaEvolucion() {
     const xSvg = (ev.clientX - caja.left) * escalaX;
     let mejor = 0, dist = Infinity;
     X.forEach((a, i) => { const d = Math.abs(px(a) - xSvg); if (d < dist) { dist = d; mejor = i; } });
-    mostrar(mejor);
+    if (mejor !== seleccion) mostrar(mejor);   // la región viva solo se reescribe al cambiar de año
   };
   const figura = document.getElementById('g-evolucion');
   figura.tabIndex = 0;
@@ -1133,14 +1152,15 @@ function presMostrar(vista, animar) {
   document.getElementById('pres-titulo-pir').textContent = 'Estructura de la población · ' + v.etiqueta;
   document.getElementById('pres-fuente-pir').textContent = textoFuente(v.clave === 'municipio' ? 'piramide_nacimiento' : 'piramide');
   cancelAnimationFrame(PRES.animacion);
-  if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); aplicar(1); presLeyenda(); presSenalar(); return; }
+  clearTimeout(PRES.temporizadorEje);
+  if (!animar || !animable()) { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; aplicar(1); presLeyenda(); presSenalar(); return; }
   const soltar = cruce('#pres-leyenda');
   presLeyenda();
   soltar();
   const dur = 720;
   pulsoDesenfoque(document.querySelector('#pres-piramide svg'), dur, 1.6);
   PRES.eje.style.opacity = '0';
-  setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 260);
+  PRES.temporizadorEje = setTimeout(() => { PRES.eje.innerHTML = P.ejeSVG(v.eje); PRES.eje.style.opacity = '1'; }, 260);
   const t0 = performance.now();
   const paso = (t) => {
     const p = Math.min(1, (t - t0) / dur);
@@ -1168,7 +1188,10 @@ function cerrarPresentacion() {
   const cont = document.getElementById('presentacion');
   if (cont) cont.remove();
   document.body.classList.remove('presentando');
-  PRES.fondo?.forEach(([e, inerte]) => { e.inert = inerte; });
+  PRES.fondo?.forEach(([e, inerte, oculto]) => {
+    e.inert = inerte;
+    if (oculto == null) e.removeAttribute('aria-hidden'); else e.setAttribute('aria-hidden', oculto);
+  });
   if (PRES.focoAnterior?.isConnected) PRES.focoAnterior.focus();
   if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
 }
@@ -1216,8 +1239,9 @@ function abrirPresentacion() {
     <button class="pres-zona izq" type="button" aria-label="Anterior"></button><button class="pres-zona der" type="button" aria-label="Siguiente"></button>
     <button class="pres-cerrar" type="button" aria-label="Salir de la presentación">${icono('cerrar', 20)}</button>
     <span class="pres-contador" id="pres-contador">1 / 6</span>`;
-  PRES.fondo = [...document.body.children].map((e) => [e, e.inert]);
-  PRES.fondo.forEach(([e]) => { e.inert = true; });
+  // inert deja el fondo fuera del teclado; aria-hidden lo deja fuera del lector de pantalla donde inert no existe.
+  PRES.fondo = [...document.body.children].map((e) => [e, e.inert, e.getAttribute('aria-hidden')]);
+  PRES.fondo.forEach(([e]) => { e.inert = true; e.setAttribute('aria-hidden', 'true'); });
   document.body.appendChild(cont);
   document.body.classList.add('presentando');
 
@@ -1334,10 +1358,17 @@ async function iniciar() {
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
-  [INDICE, GEO] = await Promise.all([
-    leerJSON('datos/indice.json'),
-    leerJSON('datos/geo/municipios.json'),
-  ]);
+  // El índice y la geometría pesan más que una ficha: si tardan, se avisa.
+  const tardio = setTimeout(() => avisoCarga('estado-ficha', 'Cargando los datos…'), 600);
+  try {
+    [INDICE, GEO] = await Promise.all([
+      leerJSON('datos/indice.json'),
+      leerJSON('datos/geo/municipios.json'),
+    ]);
+  } finally {
+    clearTimeout(tardio);
+  }
+  avisoCarga('estado-ficha');
 
   const sel = document.getElementById('sel-municipio');
   sel.innerHTML = Object.entries(INDICE.islas).map(([isla, muns]) =>
@@ -1360,7 +1391,7 @@ async function iniciar() {
 
 if (document.getElementById('sel-municipio')) {
   iniciar().catch((e) => {
-    document.getElementById('nombre').textContent = 'No se han podido cargar los datos';
+    document.getElementById('nombre').textContent = 'Ficha sin cargar';
     avisoCarga('estado-ficha', 'No se han podido cargar los datos.', () => location.reload());
     console.error(e);
   });

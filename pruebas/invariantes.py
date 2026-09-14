@@ -45,9 +45,15 @@ comprobar(url_publica in (WEB / "config.js").read_text(encoding="utf-8"), "web/c
 
 municipios = indice["municipios"]
 comprobar(len(municipios) == 88, f"indice.json: {len(municipios)} municipios, no 88")
+MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase de la edad media (exportar_datos.py)
 suma = 0
+primer_anio = None
 for m in municipios:
     cod = m["codmun"]
+    # Un municipio que no encaje con el GeoPackage saldría sin código: exportar_datos.py se detiene, y aquí también.
+    comprobar(isinstance(cod, int), f"{m['nombre']}: codmun no es un entero ({cod!r}); no encaja con el GeoPackage")
+    if not isinstance(cod, int):
+        continue
     ruta = WEB / f"datos/mun/{cod}.json"
     comprobar(ruta.exists(), f"falta {ruta.name}")
     if not ruta.exists():
@@ -61,15 +67,22 @@ for m in municipios:
     comprobar(len(p["edades"]) == 21 and p["edades"][0] == "0 a 4" and p["edades"][-1] == "100 o más",
               f"{f['nombre']}: grupos de edad {p['edades'][:1]}…{p['edades'][-1:]}")
     for clave in ("hombres", "mujeres", "extranjera_hombres", "extranjera_mujeres", "canarias_hombres", "canarias_mujeres"):
-        comprobar(len(p[clave]) == 21, f"{f['nombre']}: {clave} tiene {len(p[clave])} valores")
-    comprobar(all(p["extranjera_hombres"][i] <= p["hombres"][i] and p["extranjera_mujeres"][i] <= p["mujeres"][i] for i in range(21)),
-              f"{f['nombre']}: nacidos fuera por encima del total en algún grupo")
+        comprobar(isinstance(p.get(clave), list) and len(p[clave]) == 21, f"{f['nombre']}: {clave} no tiene 21 valores ({'nulo' if p.get(clave) is None else len(p[clave])})")
+    if isinstance(p.get("extranjera_hombres"), list) and isinstance(p.get("extranjera_mujeres"), list):
+        comprobar(all(p["extranjera_hombres"][i] <= p["hombres"][i] and p["extranjera_mujeres"][i] <= p["mujeres"][i] for i in range(21)),
+                  f"{f['nombre']}: nacidos fuera por encima del total en algún grupo")
+    # La edad media es la de la propia pirámide, con las marcas de clase del exportador.
+    totales = [h + mu for h, mu in zip(p["hombres"], p["mujeres"])]
+    edad = sum(t * marca for t, marca in zip(totales, MARCAS)) / sum(totales)
+    comprobar(abs(edad - f["cifras"]["edad_media"]) <= 0.05 + 1e-9, f"{f['nombre']}: edad media {f['cifras']['edad_media']} y la pirámide da {edad:.3f}")
     ev = f["evolucion"]
+    primer_anio = ev["anios"][0] if primer_anio is None else min(primer_anio, ev["anios"][0])
     serie = dict(zip(ev["anios"], ev["valores"]))
     n = ev["anio_fin"] - ev["anio_base"]
     tvma = 100 * ((serie[ev["anio_fin"]] / serie[ev["anio_base"]]) ** (1 / n) - 1)
     comprobar(abs(tvma - f["cifras"]["tvma"]) < 1e-9, f"{f['nombre']}: TVMA {f['cifras']['tvma']} no es la de la serie ({tvma:.6f}); ¿redondeo intermedio?")
-    comprobar(abs(sum(f["origen"]["municipio"]) - 100) <= 0.15, f"{f['nombre']}: el lugar de nacimiento suma {sum(f['origen']['municipio'])}")
+    origen = f["origen"]["municipio"]
+    comprobar(all(isinstance(v, (int, float)) for v in origen) and abs(sum(origen) - 100) <= 0.15, f"{f['nombre']}: el lugar de nacimiento es {origen}")
     comprobar(abs(f["cifras"]["pct_hombres"] + f["cifras"]["pct_mujeres"] - 100) <= 0.15, f"{f['nombre']}: hombres + mujeres no suman 100")
     for cod_ind in ("C10", "C11", "C17", "C14"):
         ind = f["indices"].get(cod_ind)
@@ -78,9 +91,11 @@ for m in municipios:
     # El último dato de origen extranjero se muestra con un decimal en la ficha y
     # coincide con el del bloque de lugar de nacimiento, que ya viene con uno:
     # con la serie exportada a dos decimales, Las Palmas salía 16,6 y 16,5.
-    ultimo = next(v for v in reversed(f["extranjero"]["municipio"]) if v is not None)
-    comprobar(mostrado(ultimo) == mostrado(f["origen"]["municipio"][2]),
-              f"{f['nombre']}: origen extranjero {mostrado(ultimo)} % en la serie y {f['origen']['municipio'][2]} % en el lugar de nacimiento; ¿redondeo intermedio?")
+    ultimo = next((v for v in reversed(f["extranjero"]["municipio"]) if v is not None), None)
+    comprobar(ultimo is not None and isinstance(origen[2], (int, float)) and mostrado(ultimo) == mostrado(origen[2]),
+              f"{f['nombre']}: origen extranjero {ultimo} en la serie y {origen[2]} en el lugar de nacimiento; ¿redondeo intermedio?")
+    ultimo_can = next((v for v in reversed(f["extranjero"]["canarias"]) if v is not None), None)
+    comprobar(ultimo_can == indice.get("extranjero_canarias"), f"{f['nombre']}: el último dato regional de origen extranjero ({ultimo_can}) no es el de indice.json ({indice.get('extranjero_canarias')})")
     envoltorio = WEB / f"m/{cod}.html"
     comprobar(envoltorio.exists(), f"falta el envoltorio m/{cod}.html")
     if envoltorio.exists():
@@ -96,6 +111,11 @@ for m in municipios:
         comprobar('<meta property="og:site_name" content="Canarias Convive">' in h, f"m/{cod}.html sin og:site_name")
         comprobar((WEB / f"og/{cod}.png").exists(), f"falta la tarjeta og/{cod}.png")
 comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
+# La geometría lleva los mismos 88 municipios, con el mismo código INE.
+geo = json.loads((WEB / "datos/geo/municipios.json").read_text(encoding="utf-8"))
+codigos_geo = [ft["properties"]["codmun"] for ft in geo["features"]]
+comprobar(len(codigos_geo) == 88 and set(codigos_geo) == {m["codmun"] for m in municipios},
+          f"geo/municipios.json: {len(codigos_geo)} geometrías; faltan {sorted({m['codmun'] for m in municipios} - set(codigos_geo))}")
 # Un solo orden de islas (de oeste a este) para la portada, los selectores y el dossier.
 comprobar(list(indice["islas"]) == ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"],
           f"indice.json: las islas no van de oeste a este: {list(indice['islas'])}")
@@ -135,6 +155,11 @@ for pagina, ruta in RUTAS.items():
         comprobar(f'<meta property="og:url" content="{url_publica}{ruta}">' in h, f"{pagina}.html: og:url no es la de sitio.json")
         comprobar(f'<meta property="og:image" content="{url_publica}og/portada.png">' in h, f"{pagina}.html: og:image no es la de sitio.json")
     comprobar("Padrón" not in h and "padrón" not in h, f"{pagina}.html atribuye los datos al padrón; la fuente reciente es censal: decir «Población a 1 de enero»")
+    comprobar("fonts.googleapis.com" not in h and "gstatic" not in h, f"{pagina}.html carga recursos de terceros: la tipografía va en web/fonts/")
+    if pagina == "index":
+        # La descripción de la portada lleva el año y el arranque de la serie escritos: generar_tarjetas.py pone el año.
+        comprobar(h.count(f"1 de enero de {indice['anio']}.") == 2, f"index.html: la descripción no dice «1 de enero de {indice['anio']}»: ejecutar generar_tarjetas.py")
+        comprobar(f"desde {primer_anio}" in h, f"index.html: la descripción no dice «desde {primer_anio}», que es donde arranca la serie")
 comprobar(len(versiones) == 1, f"las páginas mezclan versiones de recursos: {sorted(versiones)}")
 for js in ("portada", "dossier", "ficha", "comparar", "guia", "datos-ui"):
     comprobar("adrón" not in (WEB / f"{js}.js").read_text(encoding="utf-8"), f"{js}.js atribuye los datos al padrón")
@@ -147,7 +172,7 @@ try:
     with tempfile.TemporaryDirectory() as tmp:
         web_tmp = Path(tmp) / "web"
         web_tmp.mkdir()
-        for pagina in RUTAS:
+        for pagina in [*RUTAS, "404"]:
             shutil.copy(WEB / f"{pagina}.html", web_tmp / f"{pagina}.html")
         ficticia = "https://ejemplo.test/fichas/"
         reescribir_paginas(ficticia, web_tmp)

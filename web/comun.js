@@ -45,7 +45,8 @@ function cruce(selector) {
   const pares = [];
   for (const el of document.querySelectorAll(selector)) {
     const padre = el.parentElement;
-    if (!padre) continue;
+    // Un fantasma a medio fundir coincide con el mismo selector: no se vuelve a clonar.
+    if (!padre || el.classList.contains('fantasma') || el.closest('.fantasma')) continue;
     const a = el.getBoundingClientRect();
     let clon = null;
     if (a.width > 0 && a.height > 0) {
@@ -92,6 +93,18 @@ addEventListener('beforeprint', () => {
   document.querySelectorAll('.fantasma').forEach((f) => f.remove());
   document.getAnimations().forEach((a) => { try { a.finish(); } catch (e) { a.cancel(); } });
 });
+
+/* La barra pegajosa mide distinto según la página y la anchura: las anclas y el
+   foco se colocan por debajo de su altura real (estilos.css deja un valor fijo
+   de reserva). */
+const BARRA_PEGAJOSA = document.querySelector('.barra');
+if (BARRA_PEGAJOSA && 'ResizeObserver' in window) {
+  const ajustar = () => {
+    document.documentElement.style.scrollPaddingTop = `${Math.ceil(BARRA_PEGAJOSA.getBoundingClientRect().height) + 8}px`;
+  };
+  new ResizeObserver(ajustar).observe(BARRA_PEGAJOSA);
+  ajustar();
+}
 
 /* ------------------------------------------------------------- carga ------- */
 /* Raíz de la web: el directorio de este script. Datos y enlaces se resuelven

@@ -4,6 +4,8 @@
    municipios por orden alfabético. */
 
 let IDX = null, GEOD = null;
+// La dirección de la guía, en la cabecera de cada hoja y en la guía del dossier (sin protocolo, para teclearla).
+const DIRECCION_GUIA = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '');
 
 /* ------------------------------------------------------- datos por isla --- */
 /** Recuentos de la isla; el envejecimiento insular viene dentro de cada ficha.
@@ -26,13 +28,14 @@ function hojaFicha(f, pagina) {
   const ev = f.evolucion;
   const niveles = nivelesMapas(f);
   const anom = f.componentes.anomalias || [];
-  const piramide = construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4 + mm(1.5), 0);
+  const piramide = construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0);   // la misma que la ficha suelta impresa
 
   return `<article class="hoja hoja-ficha" data-pagina="${pagina}">
     <header class="d-cab">
       <p class="d-migas">${esc([f.isla, comarcaDe(f)].filter(Boolean).join(' · '))}</p>
       <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
       <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
+      <p class="pie-fuentes-papel">Método, fechas y enlace a cada recurso estadístico: ${esc(DIRECCION_GUIA)}</p>
     </header>
 
     <div class="cifras">${cifrasClave(f)}</div>
@@ -125,7 +128,7 @@ function mapaArchipielago() {
 }
 
 /** Las definiciones son las de la guía en línea (INDICADORES, guia.js). */
-function hojaGuia(fichas) {
+function hojaGuia(fichas, pagina) {
   const anios = ['vegetativo', 'migratorio'].flatMap((clave) => fichas.flatMap((f) =>
     f.componentes.anios.filter((a, i) => f.componentes[clave][i] != null)));
   const anioComp = anios.length ? Math.max(...anios) : IDX.anio - 1;
@@ -136,8 +139,7 @@ function hojaGuia(fichas) {
   const listaOrganismos = organismos.length > 1
     ? `${organismos.slice(0, -1).join(', ')} y ${organismos[organismos.length - 1]}` : organismos.join('');
   // Partida solo en las barras: un guion al final de línea se teclearía mal desde el papel.
-  const guia = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '')
-    .split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
+  const guia = DIRECCION_GUIA.split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
   const definicion = (x) => `<p><b>${esc(x.nombre)}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Cómo usar este dossier</h2>
@@ -163,11 +165,11 @@ function hojaGuia(fichas) {
         ${INDICADORES.map(definicion).join('')}
       </div>
     </div>
-    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>2</span></footer>
+    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
   </article>`;
 }
 
-function hojaIndice(grupos) {
+function hojaIndice(grupos, pagina) {
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Índice de municipios</h2>
     <p class="d-sub">88 municipios · 7 islas · orden alfabético dentro de cada isla</p>
@@ -178,7 +180,7 @@ function hojaIndice(grupos) {
           ${g.fichas.map((f, i) => `<div><span>${esc(f.nombre)}</span><b>${g.paginaPrimera + i}</b></div>`).join('')}
         </div>`).join('')}
     </div>
-    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>3</span></footer>
+    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
   </article>`;
 }
 
@@ -229,6 +231,23 @@ function traerReglasDeImpresion() {
 }
 
 /* --------------------------------------------------------------- montaje -- */
+/** Las 88 fichas en paralelo; lo que falle se vuelve a pedir hasta dos veces
+ *  antes de darse por vencido, sin tirar lo que ya llegó. */
+async function leerFichas(codigos) {
+  const fichas = new Map();
+  let pendientes = codigos;
+  for (let intento = 0; intento < 3 && pendientes.length; intento++) {
+    if (intento) await new Promise((r) => setTimeout(r, 800 * intento));
+    const resultados = await Promise.allSettled(pendientes.map((c) => leerJSON(`datos/mun/${c}.json`)));
+    pendientes = pendientes.filter((c, i) => {
+      if (resultados[i].status === 'fulfilled') fichas.set(c, resultados[i].value);
+      return resultados[i].status !== 'fulfilled';
+    });
+  }
+  if (pendientes.length) throw new Error(`no se han podido leer ${pendientes.length} fichas`);
+  return codigos.map((c) => fichas.get(c));
+}
+
 async function iniciarDossier() {
   modoHoja(true);
   const n = traerReglasDeImpresion();
@@ -241,8 +260,7 @@ async function iniciarDossier() {
   ]);
 
   aviso.textContent = `Cargando las ${IDX.municipios.length} fichas…`;
-  const fichas = await Promise.all(IDX.municipios.map((m) =>
-    leerJSON(`datos/mun/${m.codmun}.json`)));
+  const fichas = await leerFichas(IDX.municipios.map((m) => m.codmun));
 
   // Orden: el de indice.json (islas de oeste a este), municipios por orden alfabético.
   const grupos = Object.keys(IDX.islas).map((isla) => {
@@ -256,16 +274,23 @@ async function iniciarDossier() {
   for (const g of grupos) { g.paginaSeparador = p++; g.paginaPrimera = p; p += g.n; }
 
   aviso.textContent = 'Componiendo las hojas…';
-  const partes = [hojaPortada(), hojaGuia(fichas), hojaIndice(grupos)];
+  const partes = [hojaPortada(), hojaGuia(fichas, 2), hojaIndice(grupos, 3)];
   for (const g of grupos) {
     partes.push(hojaSeparador(g));
     g.fichas.forEach((f, i) => partes.push(hojaFicha(f, g.paginaPrimera + i)));
   }
 
-  document.getElementById('dossier').innerHTML = partes.join('');
+  const principal = document.getElementById('dossier');
+  principal.innerHTML = partes.join('');
   aviso.remove();
   document.getElementById('d-barra').hidden = false;
   document.getElementById('d-total').textContent = `${partes.length} hojas`;
+  // En pantallas estrechas la hoja desborda de lado: el contenedor se hace enfocable para desplazarlo con las flechas.
+  const enfocable = () => {
+    if (principal.scrollWidth > principal.clientWidth + 1) principal.tabIndex = 0; else principal.removeAttribute('tabindex');
+  };
+  enfocable();
+  addEventListener('resize', enfocable);
 }
 
 iniciarDossier().catch((e) => {

@@ -6,10 +6,13 @@ let INDICE = null;
 let abierto = null;          // { disparador, lista } del desplegable visible
 
 /* ---------------------------------------------------------- desplegables -- */
-function opciones(muns, conIsla) {
-  if (!muns.length) return '<p class="vacio">Ningún municipio se llama así.</p>';
+/** Las opciones de una lista; con `prefijo`, cada una lleva id (el buscador
+ *  las señala con aria-activedescendant). */
+function opciones(muns, conIsla, prefijo = '') {
+  if (!muns.length) return '<div role="option" aria-disabled="true" class="vacio">Ningún municipio se llama así.</div>';
   return muns.map((m) =>
-    `<a role="option" tabindex="-1" href="ficha.html?municipio=${m.codmun}">`
+    `<a role="option" tabindex="-1" href="ficha.html?municipio=${m.codmun}"`
+    + (prefijo ? ` id="${prefijo}-${m.codmun}" aria-selected="false"` : '') + '>'
     + `<span>${esc(m.nombre)}</span>`
     + (conIsla ? `<em>${esc(m.isla)}</em>` : '')
     + `</a>`).join('');
@@ -21,6 +24,7 @@ function cerrar(devolverFoco = false) {
   const { disparador, lista } = abierto;
   lista.hidden = true;
   disparador.setAttribute('aria-expanded', 'false');
+  desmarcar(disparador, lista);
   abierto = null;
   if (devolverFoco) {
     cerrandoConEscape = true;
@@ -46,32 +50,50 @@ function abrir(disparador, lista) {
 
 addEventListener('resize', () => { if (abierto) cerrar(abierto.lista.contains(document.activeElement)); });
 
-/** Mueve el foco por la lista: un paso arriba o abajo, o 'inicio' / 'fin'. */
-function mover(lista, paso) {
-  const ops = [...lista.querySelectorAll('a')];
-  if (!ops.length) return;
-  const i = ops.indexOf(document.activeElement);
-  const j = paso === 'inicio' ? 0 : paso === 'fin' ? ops.length - 1
-    : i < 0 ? (paso > 0 ? 0 : ops.length - 1)
-    : Math.min(ops.length - 1, Math.max(0, i + paso));
-  ops[j].focus();
+/** Posición de destino en una lista: un paso arriba o abajo desde `i`, o 'inicio' / 'fin'. */
+function destino(n, i, paso) {
+  return paso === 'inicio' ? 0 : paso === 'fin' ? n - 1
+    : i < 0 ? (paso > 0 ? 0 : n - 1)
+    : Math.min(n - 1, Math.max(0, i + paso));
 }
 
-/** Teclado común a los dos desplegables. */
-function teclas(e, disparador, lista, alAbrir) {
+/** Listas de isla: el foco real recorre las opciones. */
+function mover(lista, paso) {
+  const ops = [...lista.querySelectorAll('a')];
+  if (ops.length) ops[destino(ops.length, ops.indexOf(document.activeElement), paso)].focus();
+}
+
+/** Buscador (patrón combobox): el foco se queda en el campo y la opción activa
+ *  se señala con aria-activedescendant y aria-selected. */
+function moverActivo(campo, lista, paso) {
+  const ops = [...lista.querySelectorAll('a')];
+  if (!ops.length) return;
+  const j = destino(ops.length, ops.findIndex((o) => o.id === campo.getAttribute('aria-activedescendant')), paso);
+  ops.forEach((o, k) => { o.classList.toggle('activa', k === j); o.setAttribute('aria-selected', String(k === j)); });
+  campo.setAttribute('aria-activedescendant', ops[j].id);
+  ops[j].scrollIntoView({ block: 'nearest' });
+}
+
+function desmarcar(campo, lista) {
+  campo.removeAttribute('aria-activedescendant');
+  lista.querySelectorAll('a.activa').forEach((o) => { o.classList.remove('activa'); o.setAttribute('aria-selected', 'false'); });
+}
+
+/** Teclado común a los dos desplegables; `mueve(paso)` recorre la lista a su manera. */
+function teclas(e, disparador, lista, alAbrir, mueve) {
   const dentro = lista.contains(document.activeElement);
   switch (e.key) {
     case 'ArrowDown':
     case 'ArrowUp':
       e.preventDefault();
       if (lista.hidden) { if (alAbrir) alAbrir(); abrir(disparador, lista); }
-      mover(lista, e.key === 'ArrowDown' ? 1 : -1);
+      mueve(e.key === 'ArrowDown' ? 1 : -1);
       break;
     case 'Home':
     case 'End':
       if (lista.hidden) return;
       e.preventDefault();
-      mover(lista, e.key === 'Home' ? 'inicio' : 'fin');
+      mueve(e.key === 'Home' ? 'inicio' : 'fin');
       break;
     case 'Escape':
       if (lista.hidden) return;
@@ -108,7 +130,7 @@ function montarIslas() {
     chip.addEventListener('click', () => {
       if (abierto && abierto.lista === lista) cerrar(); else abrir(chip, lista);
     });
-    menu.addEventListener('keydown', (e) => teclas(e, chip, lista));
+    menu.addEventListener('keydown', (e) => teclas(e, chip, lista, null, (paso) => mover(lista, paso)));
   });
 }
 
@@ -119,6 +141,7 @@ function montarBuscador() {
 
   const buscar = () => {
     const q = plano(campo.value.trim());
+    desmarcar(campo, lista);
     if (!q) { cerrar(); lista.innerHTML = ''; return; }
     const hallados = INDICE.municipios
       .filter((m) => plano(m.nombre).includes(q))
@@ -128,19 +151,19 @@ function montarBuscador() {
         if (ea !== eb) return ea ? -1 : 1;
         return a.nombre.localeCompare(b.nombre, 'es');
       });
-    lista.innerHTML = opciones(hallados, true);
+    lista.innerHTML = opciones(hallados, true, 'res');
     abrir(campo, lista);
   };
 
   campo.addEventListener('input', buscar);
   // Al volver al campo con texto se reabre la lista, salvo cuando es Escape quien devuelve el foco.
   campo.addEventListener('focus', () => { if (campo.value.trim() && !cerrandoConEscape) buscar(); });
-  campo.parentElement.addEventListener('keydown', (e) => teclas(e, campo, lista, buscar));
-  // Enter sobre el campo abre el primero de la lista, sin tener que bajar.
+  campo.parentElement.addEventListener('keydown', (e) => teclas(e, campo, lista, buscar, (paso) => moverActivo(campo, lista, paso)));
+  // Enter abre la opción activa o, sin haber bajado, la primera de la lista.
   campo.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
-    const primero = lista.querySelector('a');
-    if (primero) { e.preventDefault(); primero.click(); }
+    const elegida = lista.querySelector('a.activa') || lista.querySelector('a');
+    if (elegida) { e.preventDefault(); elegida.click(); }
   });
 }
 
@@ -226,8 +249,8 @@ if (heredado) {
 } else {
   iniciar().catch((e) => {
     document.querySelector('.tapa').classList.remove('espera');
-    document.getElementById('islas').insertAdjacentHTML('beforeend',
-      '<p class="vacio">No se han podido cargar los datos.</p>');
+    document.getElementById('buscar').disabled = true;   // sin datos no hay nada que buscar
+    avisoCarga('estado-portada', 'No se han podido cargar los datos.', () => location.reload());
     console.error(e);
   });
 }

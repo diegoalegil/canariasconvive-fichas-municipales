@@ -257,7 +257,7 @@ function pintar(cruzar = false) {
 
 function pintarElegidos() {
   const cont = document.getElementById('cmp-elegidos');
-  cont.innerHTML = ELEGIDOS.map((f) => `
+  cont.innerHTML = ordenados().map((f) => `
     <span class="cmp-ficha" style="--c:${tono(f)}">
       <b>${esc(f.nombre)}</b>
       <button type="button" data-quitar="${f.codmun}" aria-label="Quitar ${esc(f.nombre)} de la comparación">×</button>
@@ -293,8 +293,11 @@ async function anadir(codmun) {
 }
 
 function quitar(codmun) {
+  // Si se quita con el teclado, el foco pasa al siguiente botón de quitar o al selector de añadir.
+  const teniaFoco = document.activeElement?.dataset?.quitar === String(codmun);
   ELEGIDOS = ELEGIDOS.filter((f) => String(f.codmun) !== String(codmun));
   pintar(true);
+  if (teniaFoco) (document.querySelector('#cmp-elegidos [data-quitar]') || document.getElementById('sel-anadir')).focus();
 }
 
 let temporizador = null, anchoPrevio = window.innerWidth;
