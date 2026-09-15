@@ -226,6 +226,8 @@ select {
 .mapas.isla path[data-codmun] { transition: fill .15s; cursor: default; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
+/* Hueco del mapa mientras llega la geometría: mismo tamaño, sin salto. */
+.mapa-hueco { margin: 0 auto; border-radius: var(--r-1); background: var(--caja); }
 .mapa-pie { margin-top: 10px; }
 .mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .mapa-pie span { font-size: 12px; color: var(--gris); }
@@ -718,11 +720,11 @@ select {
 /* Los dos gráficos que se recorren con teclado: contorno solo con el foco de
    teclado; donde :focus-visible no existe, con cualquier foco. */
 @supports selector(:focus-visible) {
-  #g-piramide, #g-evolucion { outline: none; }
-  #g-piramide:focus-visible, #g-evolucion:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+  #g-piramide, #g-evolucion, #g-indices { outline: none; }
+  #g-piramide:focus-visible, #g-evolucion:focus-visible, #g-indices:focus-visible { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
 }
 @supports not selector(:focus-visible) {
-  #g-piramide:focus, #g-evolucion:focus { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
+  #g-piramide:focus, #g-evolucion:focus, #g-indices:focus { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
 }
 
 /* Fuente de cada gráfico (datos-ui.js). */
@@ -873,8 +875,8 @@ body.presentando { overflow: hidden; }
   .tarjeta.entorno-isla { grid-column: span 3; }
   .tarjeta.municipios-isla { grid-column: span 9; }
   .indices-isla { columns: 2; column-gap: 3mm; }
-  .indice-isla { break-inside: avoid; margin-bottom: 1.4mm; }
-  .indice-isla .escalera { gap: .5mm; }
+  .indice-isla { break-inside: avoid; margin-bottom: 1mm; }
+  .indice-isla .escalera { gap: .3mm; }
   .tramo { grid-template-columns: 15mm 1fr 8mm; gap: 1.2mm; font-size: 5.5pt; }
   .tramo i { height: 1.4mm; }
   .lista-mun { column-gap: 2.5mm; }
@@ -883,13 +885,14 @@ body.presentando { overflow: hidden; }
   .lista-mun em { width: 3.4mm; font-size: 4.8pt; }
   .lista-mun span { display: none; }
   .lista-mun i { font-size: 4.8pt; min-width: 4mm; }
+  .mapa-hueco { display: none; }
   .mapa-pie { margin-top: 1mm; }
   .mapa-pie b { font-size: 8.5pt; }
-  .mapa-pie span { font-size: 6pt; }
+  .mapa-pie span { font-size: 6.5pt; }
   .mapa-pie > span { font-size: 6.5pt; color: var(--negro); }
   .mapa-pie p { margin-top: .6mm; }
   .mapa-pie p b { font-size: 7.5pt; }
-  .mapa-pie p span { font-size: 6pt; }
+  .mapa-pie p span { font-size: 6.5pt; }
 
   .leyenda { gap: 3mm; margin-top: 1mm; }
   .leyenda span { font-size: 6.5pt; }
@@ -899,7 +902,7 @@ body.presentando { overflow: hidden; }
   .indice-tit { margin-bottom: 1mm; }
   .indice-tit b { font-size: 7pt; }
   .indice-tit em { font-size: 6.5pt; }
-  .peldano span { font-size: 6pt; min-height: 0; line-height: 1.2; }
+  .peldano span { font-size: 6.5pt; min-height: 0; line-height: 1.2; }
   .peldano b { font-size: 8pt; margin: .3mm 0 .8mm; }
   .peldano i { height: 1.2mm; }
   .escala { gap: 1.4mm; }
@@ -907,6 +910,6 @@ body.presentando { overflow: hidden; }
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .anillo h3 { font-size: 7pt; }
   .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6.5pt; }
-  .nota { font-size: 6pt; margin-top: 1.4mm; }
+  .nota { font-size: 6.5pt; margin-top: 1.4mm; }
 }
 

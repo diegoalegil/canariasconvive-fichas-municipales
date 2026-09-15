@@ -187,6 +187,23 @@ en Firefox, el `referrer`) con la propia web y con `origenes_iframe` de
 `sitio.json`, y si no se puede saber quién enmarca no se bloquea. Un enlace
 directo a la web no se puede impedir ni conviene: es público.
 
+**Política de contenido.** Cada página lleva una `Content-Security-Policy`
+por `<meta>` (GitHub Pages no admite cabeceras): solo scripts, datos y
+tipografía de la propia web, ningún objeto ni formulario, y nada en línea,
+ni manejadores ni scripts (los envoltorios `m/` e `i/` permiten solo su
+script de redirección, por la huella sha256 que `generar_tarjetas.py`
+calcula). Los estilos en línea sí se permiten: los gráficos los llevan.
+`pruebas/invariantes.py` comprueba que las siete páginas y los envoltorios
+la llevan y que no queda ningún manejador en línea, y la batería fallaría
+con cualquier recurso que la política bloquease. Las acciones del workflow
+van fijadas por commit, con la versión en el comentario.
+
+**La ficha no espera a los mapas.** La geometría de los mapas pesa 258 KB y
+se pide a la vez que el índice; la ficha se pinta con sus 4 KB en cuanto
+llegan, con un hueco del tamaño de cada mapa y su pie, y los mapas se
+dibujan en cuanto llega la geometría, sin que nada salte. Si falla, la
+ficha se ve entera y un aviso ofrece reintentar solo los mapas.
+
 **Sin librerías de gráficos.** Los SVG se generan a mano en `ficha.js`. Da
 control total sobre el diseño, no pesa y permite etiquetar todo para lectores
 de pantalla.
@@ -219,7 +236,7 @@ cabecera azul se vuelven blancos sin duplicar el marcado.
 
 **Pirámide con dos pestañas.** «Municipio y Canarias»: el municipio en barras
 azules y Canarias en marcos negros huecos, cada uno sobre su población total.
-«Municipio: según origen»: nacidos en España en azul y nacidos en el
+«Municipio: Según origen» (con la mayúscula que dictó Pedro): nacidos en España en azul y nacidos en el
 extranjero (hoja `C24`) en negro hueco, cada población sobre su propio total,
 que es como lo calcula Pedro; la leyenda dice «Hombres españoles · Mujeres
 españolas · Extranjeros», con sus palabras, y la línea de fuente de la pestaña
@@ -244,12 +261,16 @@ por fuera de la barra; si no caben en una línea, en dos (pueden salir un poco
 del dibujo, sobre el relleno de la tarjeta); y si tampoco caben, dentro de la
 barra pegadas a la punta, nunca en la base. Un clic o un toque fija el grupo:
 la franja fijada sobrevive al cambio de pestaña, al redibujado por cambio de
-ancho y a la impresión (en la hoja no se imprime), y otro clic la suelta.
+ancho y a la impresión (en la hoja no se imprime), y otro clic la suelta. En
+pantalla cada fila mide al menos 24 px, el objetivo de puntero que pide
+WCAG 2.5.8: la pirámide crece a 550 px de alto cuando la tarjeta es ancha.
 
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
 derecha por valor, y el tono indica la posición; dos ámbitos con el mismo
 valor (pasa en doce municipios) llevan el mismo tono. Señalar un ámbito lo
-resalta en los cuatro índices.
+resalta en los cuatro índices: con el ratón al pasar, con el dedo con un
+toque que fija, y con el teclado enfocando el bloque y recorriendo los
+ámbitos con las flechas (Enter fija, Escape suelta), como la pirámide.
 
 **Origen extranjero.** Barras del municipio, la última destacada con su cifra,
 y la línea de Canarias como referencia, con su último valor en la leyenda. El
@@ -374,17 +395,20 @@ reparto de la retícula pasa de 8/4 a 7/5, porque los índices a cuatro columnas
 se partían en tres líneas y la ficha no cabía en una cara. La hoja es una A4 y
 nada más, con la fuente de cada gráfico al pie de su tarjeta y, en la esquina
 de la cabecera azul, una placa blanca con el logotipo de Canarias Convive
-(Pedro). Los límites municipales de los mapas van más gruesos en papel, y la
-letra más pequeña de la hoja mide 6 pt. Medido en la versión publicada: las
-88 fichas miden 271,7 mm de los 281 disponibles (272,1 en El Pinar y
-Frontera, por su nota de 2007), y la hoja más alta del dossier, 293,2 de 297.
+(Pedro). Los límites municipales de los mapas van más gruesos en papel; los
+pies de los mapas, los rótulos de los índices y las notas van a 6,5 pt, y la
+línea de fuente de cada gráfico, la letra más pequeña de la hoja, a 6 pt
+(a 6,5 la hoja de isla del dossier se salía). Medido en la versión
+publicada: las 88 fichas miden 271,7 mm de los 281 disponibles (272,6 en El
+Pinar y Frontera, por su nota de 2007), y la hoja más alta del dossier,
+293,2 de 297.
 
 La ficha de isla también es una A4, con tres concesiones al papel: la
 tarjeta del mapa cede sitio a la lista de municipios (3/9 de la retícula en
 vez de 4/8) y lleva solo el mapa de Canarias, la lista va en cuatro columnas
 para Tenerife y Gran Canaria (tres o dos para las demás) sin la columna del
 peso, que no cabe, y los índices van a dos columnas dentro de su tarjeta.
-Las siete miden 276,1 mm; la letra más pequeña, la de esa lista, 5,2 pt.
+Las siete miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt.
 
 El dossier (`dossier.html`) compone las 98 hojas —portada, guía de uso,
 índice y, por cada isla, su ficha seguida de una hoja por municipio— con las
@@ -433,7 +457,7 @@ npm test
   `~/Downloads` (o en la ruta que se le pase) y `openpyxl`; si falta
   cualquiera de los dos, se omite avisando. No corre en GitHub porque el
   libro no está en el repositorio.
-- `pruebas/web.test.cjs` (Playwright, quince casos): la última selección
+- `pruebas/web.test.cjs` (Playwright, dieciséis casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -444,7 +468,11 @@ npm test
   base, el eje de origen extranjero con el tope rotulado y la cifra final
   libre de la línea de Canarias, las tablas ocultas, el mismo tono para el
   mismo valor, el ordinal con punto, las anclas por debajo de la barra, El
-  Hierro con dos mapas; la ficha de isla (se entra por `i/tenerife.html`, la
+  Hierro con dos mapas; la ficha que pinta sin esperar a la geometría (hueco
+  por mapa con su pie, mapas al llegar, aviso con reintento si fallan), las
+  filas de la pirámide de 24 px, los índices con teclado (flechas, Enter fija,
+  Escape suelta) y el alto que la página enmarcada dice al marco; la ficha
+  de isla (se entra por `i/tenerife.html`, la
   dirección, la canónica y las etiquetas `og:` son las suyas, las pestañas
   dicen «Isla», los 31 municipios de mayor a menor con enlace a su ficha,
   señalar uno lo destaca en el mapa, la escalera de las siete islas y
@@ -524,14 +552,52 @@ su tramo, y los dos tonos claros no llegan al contraste AA sobre blanco. Las tra
 `prefers-reduced-motion` y con la pestaña oculta, donde el navegador congela
 `requestAnimationFrame`.
 
-Quedan abiertas, porque cambian el diseño o el alcance: las filas de la
-pirámide como objetivo de puntero miden 15–20 px (WCAG 2.5.8 pide 24; el
-teclado y el toque fijado ya la recorren); el resalte de los índices al
-pasar el ratón no tiene equivalente por teclado (el dato se ve siempre); en
-papel la fuente de cada gráfico va a 5,5 pt; en Safari anterior a 16, al
+Queda abierta una sola cosa, por decisión: en Safari anterior a 16, al
 llegar al final de un desplegable de isla el dedo arrastra también la página
-(`overscroll-behavior` no existe ahí); y la ficha espera a la geometría de
-los mapas (258 KB) antes de pintar nada, con aviso si tarda.
+(`overscroll-behavior` no existe ahí); no tiene arreglo limpio y Safari 16 es
+de 2022.
+
+## Incrustar en Canarias Convive
+
+La web se incrusta en una página de WordPress con un `<iframe>`, como
+`/mapa-de-agentes/`. Tres cosas que el WordPress tiene que hacer:
+
+1. **Los atributos del marco.** `allow="fullscreen; clipboard-write"` y
+   `allowfullscreen`, para el modo Presentar y el botón de copiar el
+   enlace; sin ellos el navegador los bloquea en silencio.
+2. **El alto.** La página, cuando la enmarca un origen de `origenes_iframe`,
+   envía al marco su alto cada vez que cambia (`postMessage` con
+   `{ fichas: 'alto', alto }`, en `comun.js`). El WordPress lo escucha y
+   ajusta el marco, y así no hay barra de desplazamiento dentro:
+
+   ```html
+   <iframe id="fichas" src="https://diegoalegil.github.io/canariasconvive-fichas-municipales/"
+           title="Fichas demográficas municipales" style="width:100%;border:0;min-height:600px"
+           allow="fullscreen; clipboard-write" allowfullscreen loading="lazy"></iframe>
+   <script>
+   addEventListener('message', (e) => {
+     if (e.origin !== 'https://diegoalegil.github.io' || !e.data || e.data.fichas !== 'alto') return;
+     document.getElementById('fichas').style.height = e.data.alto + 'px';
+   });
+   </script>
+   ```
+
+   Con el marco a su alto, la barra pegajosa de la ficha deja de pegarse
+   (es la página madre la que se desplaza); si se prefiere la barra pegada,
+   el marco lleva un alto fijo y la ficha se desplaza dentro. Es una
+   decisión de la integración.
+3. **La dirección.** Dentro del marco se navega de la portada a la ficha y
+   al comparador sin que cambie la dirección de la página madre. Si se
+   quiere que un enlace externo abra un municipio concreto, la página de
+   WordPress tiene que leer un parámetro propio y ponerlo en el `src` del
+   marco (`ficha.html?municipio=38038`), o enlazar directamente a la web
+   (`m/38038.html`), que es pública. La web madre lleva además
+   `user-scalable=0`, que bloquea el zoom en el móvil y lo hereda el
+   marco; se arregla en el tema de WordPress.
+
+Al mudar la web a su alojamiento definitivo, cambiar `sitio.json` (la URL y
+los orígenes que pueden enmarcarla), ejecutar `generar_tarjetas.py` y
+cambiar el origen en los dos sitios del fragmento de arriba.
 
 ## Pendiente
 
@@ -539,23 +605,20 @@ los mapas (258 KB) antes de pintar nada, con aviso si tarda.
       Lanzarote y Fuerteventura vienen cambiadas de 2021 a 2025 (y `C22I`
       lo hereda). El exportador lo corrige y avisa mientras tanto; cuando
       el libro esté bien, el aviso desaparece solo.
-- [ ] Decidir con Pedro los textos de la ficha de isla y de la portada
-      (título «Una ficha por cada isla y cada municipio de Canarias», los
-      rótulos «La isla en Canarias», «Sus municipios» y «Las siete islas y
-      Canarias, ordenadas de menor a mayor valor») y si en papel la lista de
-      municipios puede ir sin la columna del peso.
+- [ ] Enseñar a Pedro lo que no ha visto desde la v=79: la portada con las
+      tarjetas, la ficha de isla (títulos «La isla en Canarias», «Sus
+      municipios», «Las siete islas y Canarias, ordenadas de menor a mayor
+      valor», y en papel la lista sin la columna del peso) y el comparador
+      de islas. Y las preguntas que quedan de la auditoría: Frontera y El
+      Pinar en 2007, si juventud lleva «%», las cifras de color del lugar
+      de nacimiento (no llegan al contraste AA; la alternativa es un chip de
+      color con la cifra en negro), y si el dossier y el modo Presentar,
+      que no pidió, se quedan.
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
-- [ ] Decidir alojamiento: GitHub Pages o subdominio propio en su Plesk. Al
-      mudarlo, cambiar `sitio.json` (la URL y, si hace falta, los orígenes
-      que pueden enmarcar la web) y ejecutar `generar_tarjetas.py`. El
-      `<iframe>` de WordPress necesita `allow="fullscreen; clipboard-write"`
-      y `allowfullscreen` para el modo presentación y el botón de copiar.
+- [ ] Decidir alojamiento: GitHub Pages o carpeta en el Plesk de Canarias
+      Convive, y sacar el repositorio de una cuenta personal. Al mudarlo,
+      seguir «Incrustar en Canarias Convive».
 - [ ] Tras publicar, probar la vista previa de un enlace `m/<código>.html`
-      en WhatsApp.
-- [ ] La web madre lleva `user-scalable=0`, que bloquea el zoom en móvil y lo
-      hereda el iframe.
-- [ ] GitHub Pages no admite cabeceras HTTP propias (CSP, Referrer-Policy…);
-      una CSP por `<meta>` exigiría quitar los dos manejadores en línea.
-      Fijar las acciones del workflow por commit (o Dependabot) si se quiere
-      ese nivel de garantía.
+      en WhatsApp (las etiquetas están comprobadas tal como las lee un
+      rastreador; falta verlo en un chat).

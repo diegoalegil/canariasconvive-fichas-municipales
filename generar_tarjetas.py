@@ -11,6 +11,8 @@ cinco páginas y config.js.
 La tarjeta lleva un solo dato, los habitantes, y ningún texto por debajo de
 26 px. Compone en Avenir Next (Montserrat no está en el sistema; si se instala,
 va la primera en FAMILIAS). Necesita macOS y Pillow."""
+import base64
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -194,6 +196,7 @@ ENVOLTORIO_ISLA = """<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '{hash}'; base-uri 'none'">
 <title>{nombre} · Ficha demográfica de la isla · Canarias Convive</title>
 <link rel="canonical" href="{base}/i/{slug}.html">
 <meta property="og:type" content="article">
@@ -206,7 +209,7 @@ ENVOLTORIO_ISLA = """<!DOCTYPE html>
 <meta property="og:url" content="{base}/i/{slug}.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta http-equiv="refresh" content="0; url=../ficha.html?isla={slug}">
-<script>location.replace('../ficha.html?isla={slug}' + location.hash);</script>
+<script>{script}</script>
 </head>
 <body>
 <p>Abriendo la ficha de {nombre}… <a href="../ficha.html?isla={slug}">Ir a la ficha</a>.</p>
@@ -218,6 +221,7 @@ ENVOLTORIO = """<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '{hash}'; base-uri 'none'">
 <title>{nombre} · Ficha demográfica · Canarias Convive</title>
 <link rel="canonical" href="{base}/m/{cod}.html">
 <meta property="og:type" content="article">
@@ -230,13 +234,23 @@ ENVOLTORIO = """<!DOCTYPE html>
 <meta property="og:url" content="{base}/m/{cod}.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta http-equiv="refresh" content="0; url=../ficha.html?municipio={cod}">
-<script>location.replace('../ficha.html?municipio={cod}' + location.hash);</script>
+<script>{script}</script>
 </head>
 <body>
 <p>Abriendo la ficha de {nombre}… <a href="../ficha.html?municipio={cod}">Ir a la ficha</a>.</p>
 </body>
 </html>
 """
+
+def hash_script(codigo):
+    """Huella del script en línea de un envoltorio, para su política de
+    contenido: es lo único que puede ejecutar la página."""
+    return "sha256-" + base64.b64encode(hashlib.sha256(codigo.encode("utf-8")).digest()).decode()
+
+
+def script_envoltorio(destino):
+    return f"location.replace('{destino}' + location.hash);"
+
 
 # La URL pública vive en sitio.json; cambiar de alojamiento es cambiar ese
 # fichero y volver a ejecutar este script.
@@ -295,16 +309,18 @@ def escribir_envoltorios(idx, base, web=WEB):
     salida = web / "m"
     salida.mkdir(exist_ok=True)
     for m in idx["municipios"]:
+        script = script_envoltorio(f"../ficha.html?municipio={m['codmun']}")
         (salida / f"{m['codmun']}.html").write_text(
-            ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"],
+            ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"], script=script, hash=hash_script(script),
                               hab=nf(m["poblacion"]), anio=idx["anio"], base=base),
             encoding="utf-8")
     salida = web / "i"
     salida.mkdir(exist_ok=True)
     for i in idx.get("islas_resumen", []):
+        script = script_envoltorio(f"../ficha.html?isla={i['slug']}")
         (salida / f"{i['slug']}.html").write_text(
-            ENVOLTORIO_ISLA.format(nombre=i["nombre"], slug=i["slug"], n=i["municipios"],
-                                   hab=nf(i["poblacion"]), anio=idx["anio"], base=base),
+            ENVOLTORIO_ISLA.format(nombre=i["nombre"], slug=i["slug"], n=i["municipios"], script=script,
+                                   hash=hash_script(script), hab=nf(i["poblacion"]), anio=idx["anio"], base=base),
             encoding="utf-8")
 
 

@@ -9,7 +9,8 @@
    de cada isla (sus municipios, los índices de las siete y el mismo
    desplegable para pasar de la isla al municipio), el comparador de islas,
    la portada con una tarjeta por isla, las 88 fichas y las 7 de isla en una
-   A4 y el dossier de 98 hojas.
+   A4 y el dossier de 98 hojas, la ficha que pinta sin esperar a los mapas,
+   los índices con teclado y el alto que la página enmarcada dice al marco.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
    Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
@@ -135,7 +136,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.waitForSelector('#fuente-g-origen');
   await page.locator('.vista').nth(1).click();
   await espera(200);
-  assert.equal(await page.locator('.vista').nth(1).textContent(), 'Municipio: según origen', 'el nombre de la pestaña que dictó Pedro');
+  assert.equal(await page.locator('.vista').nth(1).textContent(), 'Municipio: Según origen', 'el nombre de la pestaña que dictó Pedro, con su mayúscula');
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres españoles\nMujeres españolas\nExtranjeros', 'la leyenda que dictó Pedro');
   // En reposo la pirámide no enseña ninguna cifra; al señalar un grupo, las cifras van
   // dentro del dibujo y la región viva las dice en palabras.
@@ -353,13 +354,14 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'i/tenerife.html');
   const envoltorio = await fs.readFile(path.join(WEB, 'i/tenerife.html'), 'utf8');
   assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), /<meta property="og:description" content="([^"]*)">/.exec(envoltorio)[1]);
-  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Isla y Canarias', 'Isla: según origen'], 'las pestañas dicen «Isla»');
+  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Isla y Canarias', 'Isla: Según origen'], 'las pestañas dicen «Isla»');
   // Sus municipios: los 31 de mayor a menor población, cada uno con enlace a su ficha.
   const filas = await page.locator('.lista-mun li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, parseInt(l.querySelector('b').textContent.replace(/\./g, ''), 10)]));
   assert.equal(filas.length, 31);
   assert.ok(filas.every((f, i) => !i || f[1] <= filas[i - 1][1]), 'de mayor a menor');
   assert.equal(filas[0][0], base + 'm/38038.html');
   // La isla en Canarias (puesto de 7 y peso) y la isla con sus municipios.
+  await page.waitForSelector('#mapas path');
   assert.equal(await page.locator('#mapas figure').count(), 2);
   assert.equal(await page.locator('.mapa-pie b').first().textContent(), '1.º de 7');
   await page.locator('.lista-mun li').first().hover();
@@ -399,7 +401,7 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.ok(page.url().endsWith('/fichas/m/38001.html'), page.url());
   assert.equal(await page.locator('#sec-municipios').isHidden(), true, 'la tarjeta de municipios solo va en la isla');
   assert.equal(await page.locator('#mapas figure').count(), 3);
-  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Municipio y Canarias', 'Municipio: según origen']);
+  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Municipio y Canarias', 'Municipio: Según origen']);
   assert.equal(await page.locator('.fuente-grafico').count(), 7);
   assert.equal(await page.locator('#sub-indices').textContent(), 'Los tres ámbitos, ordenados de menor a mayor valor');
   await page.selectOption('#sel-municipio', 'isla:el-hierro');
@@ -408,6 +410,61 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.ok(page.url().endsWith('/fichas/i/el-hierro.html'), page.url());
   assert.equal(await page.locator('.lista-mun li').count(), 3);
   assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
+test('ficha: pinta sin esperar a los mapas, los índices se recorren con teclado y las filas de la pirámide miden 24 px', async () => {
+  const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
+  // La geometría tarda: la ficha entera está pintada, con un hueco del tamaño de cada mapa y su pie.
+  await retrasar(page, '**/datos/geo/municipios.json', 1500);
+  await page.goto(base + 'ficha.html?municipio=38038');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#mapas path').count(), 0, 'los mapas aún no han llegado');
+  assert.equal(await page.locator('#mapas .mapa-hueco').count(), 3, 'un hueco por mapa');
+  assert.equal(await page.locator('.mapa-pie b').first().textContent(), '2.º de 88', 'el pie va desde el principio (Santa Cruz es el segundo de Canarias)');
+  assert.ok((await page.locator('#g-piramide rect[id^="ph"]').count()) === 21, 'la pirámide está pintada');
+  await page.waitForSelector('#mapas path', { timeout: 5000 });
+  assert.equal(await page.locator('#mapas .mapa-hueco').count(), 0, 'al llegar la geometría, los huecos son mapas');
+  await page.unroute('**/datos/geo/municipios.json');
+  // Si la geometría falla, la ficha se ve igual y se ofrece reintentar los mapas.
+  await page.route('**/datos/geo/municipios.json', (r) => r.abort());
+  await page.goto(base + 'ficha.html?municipio=38001');
+  await page.waitForSelector('#fuente-g-origen');
+  await page.waitForFunction(() => document.getElementById('estado-ficha').textContent.includes('mapas'));
+  assert.equal(await page.locator('#nombre').textContent(), 'Adeje');
+  await page.unroute('**/datos/geo/municipios.json');
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
+  await page.waitForSelector('#mapas path');
+  assert.ok(await page.locator('#estado-ficha').isHidden(), 'el aviso se va al llegar los mapas');
+  // Cada fila de la pirámide es un objetivo de puntero de al menos 24 px.
+  const filas = await page.locator('#g-piramide .franja').evaluateAll((fs) => fs.map((f) => f.getBoundingClientRect().height));
+  assert.ok(filas.length === 21 && Math.min(...filas) >= 24, `filas de ${Math.min(...filas).toFixed(2)} px`);
+  // Los índices: el bloque se enfoca, las flechas señalan un ámbito en los cuatro, Enter fija, Escape suelta.
+  await page.locator('#g-indices').focus();
+  await page.keyboard.press('ArrowDown');
+  let focos = await page.locator('#g-indices .peldano.foco').evaluateAll((ps) => ps.map((p) => p.dataset.ambito));
+  assert.equal(focos.length, 4, 'el ámbito señalado se resalta en los cuatro índices');
+  assert.equal(new Set(focos).size, 1);
+  const primero = focos[0];
+  await page.keyboard.press('ArrowDown');
+  focos = await page.locator('#g-indices .peldano.foco').evaluateAll((ps) => ps.map((p) => p.dataset.ambito));
+  assert.equal(focos.length, 4); assert.notEqual(focos[0], primero, 'la segunda flecha pasa al siguiente ámbito');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#g-indices').evaluate((e) => e.dataset.fijo), focos[0], 'Enter fija el ámbito');
+  await page.locator('#g-piramide').focus();
+  assert.equal(await page.locator('#g-indices .peldano.foco').count(), 4, 'fijado, sobrevive a perder el foco');
+  await page.locator('#g-indices').focus();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#g-indices .peldano.foco').count(), 0, 'Escape suelta');
+  assert.equal(await page.locator('#g-indices').evaluate((e) => e.dataset.fijo), '');
+  // Enmarcada en la propia web, la página dice su alto al marco.
+  const marco = `<!DOCTYPE html><html><body><iframe id="f" src="${base}ficha.html?municipio=38038" width="1000" height="300"></iframe>
+    <script>addEventListener('message', (e) => { if (e.data && e.data.fichas === 'alto') document.title = 'alto:' + e.data.alto; });</script></body></html>`;
+  await page.route(base + 'marco.html', (r) => r.fulfill({ contentType: 'text/html; charset=utf-8', body: marco }));
+  await page.goto(base + 'marco.html');
+  await page.waitForFunction(() => document.title.startsWith('alto:'), null, { timeout: 15000 });
+  assert.ok(parseInt(await page.title().then((t) => t.slice(5)), 10) > 1000, `el marco recibe el alto de la ficha (${await page.title()})`);
+  assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource')), []);
   await contexto.close();
 });
 

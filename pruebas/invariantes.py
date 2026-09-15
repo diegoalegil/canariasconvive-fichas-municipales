@@ -11,10 +11,14 @@ por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 envoltorios de web/m/ apuntan a la URL pública de sitio.json y llevan la
 población y el año de los datos (con su tarjeta og), que la serie de origen
 extranjero se muestra con un solo redondeo, que las islas van en el mismo orden
-en el índice y que las cinco páginas cargan la misma versión de recursos.
+en el índice, que las cinco páginas cargan la misma versión de recursos y que
+todas llevan su política de contenido sin manejadores ni scripts en línea (los
+envoltorios, con la huella de su único script).
 
 La conciliación contra el Excel, que sí necesita el libro, está en
 conciliar_excel.py."""
+import base64
+import hashlib
 import json
 import re
 import shutil
@@ -45,6 +49,17 @@ comprobar(url_publica.startswith("https://") and url_publica.endswith("/"), "sit
 config = (WEB / "config.js").read_text(encoding="utf-8")
 comprobar(url_publica in config, "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
 comprobar(all(o in config for o in sitio.get("origenes_iframe", [])), "web/config.js no lleva los orígenes de sitio.json: ejecutar generar_tarjetas.py")
+
+def envoltorio_seguro(h):
+    """Un envoltorio solo puede ejecutar su script de redirección: la política
+    de contenido lleva la huella sha256 de ese script y nada más."""
+    scripts = re.findall(r"<script>(.*?)</script>", h, re.S)
+    csp = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)">', h)
+    if len(scripts) != 1 or not csp:
+        return False
+    huella = "sha256-" + base64.b64encode(hashlib.sha256(scripts[0].encode("utf-8")).digest()).decode()
+    return f"script-src '{huella}'" in csp.group(1) and "default-src 'none'" in csp.group(1)
+
 
 municipios = indice["municipios"]
 comprobar(len(municipios) == 88, f"indice.json: {len(municipios)} municipios, no 88")
@@ -109,6 +124,7 @@ for m in municipios:
                   f"m/{cod}.html: la población o el año de og:description no son los de indice.json: ejecutar generar_tarjetas.py")
         comprobar('<meta property="og:site_name" content="Canarias Convive">' in h, f"m/{cod}.html sin og:site_name")
         comprobar((WEB / f"og/{cod}.png").exists(), f"falta la tarjeta og/{cod}.png")
+        comprobar(envoltorio_seguro(h), f"m/{cod}.html: la política de contenido no lleva la huella de su script")
 comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
 
 # Las siete islas: su ficha suma sus municipios, lleva los índices de las siete
@@ -149,6 +165,7 @@ for i in islas_resumen:
         comprobar(f'content="{hab} habitantes en {i["municipios"]} municipios.' in h and f"1 de enero de {indice['anio']}." in h,
                   f"i/{i['slug']}.html: la población o el año no son los de indice.json: ejecutar generar_tarjetas.py")
         comprobar((WEB / f"og/{i['slug']}.png").exists(), f"falta la tarjeta og/{i['slug']}.png")
+        comprobar(envoltorio_seguro(h), f"i/{i['slug']}.html: la política de contenido no lleva la huella de su script")
 # La geometría lleva los mismos 88 municipios, con el mismo código INE.
 geo = json.loads((WEB / "datos/geo/municipios.json").read_text(encoding="utf-8"))
 codigos_geo = [ft["properties"]["codmun"] for ft in geo["features"]]
@@ -186,11 +203,18 @@ for pagina, ruta in RUTAS.items():
         comprobar(f'<meta property="og:image" content="{url_publica}og/portada.png">' in h, f"{pagina}.html: og:image no es la de sitio.json")
     comprobar("Padrón" not in h and "padrón" not in h, f"{pagina}.html atribuye los datos al padrón; la fuente reciente es censal: decir «Población a 1 de enero»")
     comprobar("fonts.googleapis.com" not in h and "gstatic" not in h, f"{pagina}.html carga recursos de terceros: la tipografía va en web/fonts/")
+    # Política de contenido: solo scripts propios; ni manejadores ni scripts en línea (la política los bloquearía).
+    comprobar('<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\';' in h, f"{pagina}.html sin política de contenido")
+    comprobar(not re.search(r"\son[a-z]+=\"", h), f"{pagina}.html lleva un manejador en línea, que la política de contenido bloquea")
+    comprobar(not re.search(r"<script(?![^>]*\ssrc=)[^>]*>", h), f"{pagina}.html lleva un script en línea, que la política de contenido bloquea")
     if pagina == "index":
         # La descripción de la portada lleva el año y el arranque de la serie escritos: generar_tarjetas.py pone el año.
         comprobar(h.count(f"1 de enero de {indice['anio']}.") == 2, f"index.html: la descripción no dice «1 de enero de {indice['anio']}»: ejecutar generar_tarjetas.py")
         comprobar(f"desde {primer_anio}" in h, f"index.html: la descripción no dice «desde {primer_anio}», que es donde arranca la serie")
 comprobar(len(versiones) == 1, f"las páginas mezclan versiones de recursos: {sorted(versiones)}")
+for pagina in ("404", "enmarcada"):
+    h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
+    comprobar('http-equiv="Content-Security-Policy"' in h and "<script" not in h, f"{pagina}.html: sin política de contenido o con script")
 for js in ("portada", "dossier", "ficha", "comparar", "guia", "datos-ui"):
     comprobar("adrón" not in (WEB / f"{js}.js").read_text(encoding="utf-8"), f"{js}.js atribuye los datos al padrón")
 

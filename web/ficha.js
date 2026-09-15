@@ -396,7 +396,7 @@ function construirPiramide(p, w, h, vistaFija = null, rotulo = 'Municipio') {
       rotH: 'Hombres', rotM: 'Mujeres', rotNegro: 'Canarias',
     },
     {
-      clave: 'municipio', etiqueta: `${rotulo}: según origen`,
+      clave: 'municipio', etiqueta: `${rotulo}: Según origen`,
       relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
       negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
       rotH: 'Hombres españoles', rotM: 'Mujeres españolas', rotNegro: 'Extranjeros',
@@ -651,6 +651,13 @@ function cifrasClave(f) {
 
 /* ------------------------------------------------------------------ montaje -- */
 let GEO = null, INDICE = null, FICHA = null, ENT = null, PIRAMIDE = null, VISTA = 0;
+let GEO_REINTENTO = null;   // si la geometría falló, la función que vuelve a pedirla
+
+/** El aviso de la ficha en reposo: nada, salvo que falten los mapas. */
+function avisoReposo() {
+  if (GEO_REINTENTO) avisoCarga('estado-ficha', 'No se han podido cargar los mapas.', GEO_REINTENTO);
+  else avisoCarga('estado-ficha');
+}
 let FILA = null;      // grupo de edad señalado en la pirámide, o null
 let FIJADA = false;   // fijado con clic, toque o teclado; global porque cada redibujado reconecta la lectura
 
@@ -688,7 +695,7 @@ async function cargar(clave) {
     // misma que copia «Copiar enlace»); al recargarla, el envoltorio redirige aquí.
     history.replaceState(null, '', rutaWeb(ENT.ruta) + location.hash);
     metadatosFicha(f);
-    avisoCarga('estado-ficha');
+    avisoReposo();
   } catch (error) {
     if (peticion !== peticionFicha || error.name === 'AbortError') return;
     if (FICHA) document.getElementById('sel-municipio').value = ENT.seleccion;
@@ -806,6 +813,40 @@ addEventListener('visibilitychange', () => {
 // llega después de medir, se recolocan con la definitiva.
 document.fonts?.addEventListener('loadingdone', () => { if (PIRAMIDE?.senalar && FILA != null) PIRAMIDE.senalar(FILA); });
 
+/** Los mapas del entorno. La geometría (258 KB) llega después que la ficha:
+ *  mientras no está, cada mapa es un hueco del mismo tamaño con su pie, y se
+ *  dibuja en cuanto llega (`GEO_LISTA`), sin que la página salte. */
+function pintarMapas(f) {
+  const ent = entidad(f);
+  const el = (id) => document.getElementById(id);
+  const wMapa = IMPRIMIENDO
+    ? (ent.isla ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3))
+    : ent.isla ? Math.max(180, anchoDe('mapas', 340) - 8)
+    : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
+  // El archipiélago solo, sin la isla ni la comarca debajo, va en una caja más apaisada.
+  const hMapa = IMPRIMIENDO ? mm(ent.isla ? 11 : 16) : Math.round(wMapa * (ent.isla ? 0.5 : 0.74));
+  const niveles = nivelesMapas(f);
+  const mapas = el('mapas');
+  mapas.classList.toggle('dos', !ent.isla && niveles.length === 2);
+  mapas.classList.toggle('isla', ent.isla);
+  mapas.classList.toggle('sin-geo', !GEO);
+  mapas.innerHTML = niveles.map(([tit, filtro, r, lim, foco], k) => {
+    const h = ent.isla && k ? Math.round(wMapa * (IMPRIMIENDO ? 0.6 : 0.52)) : hMapa;
+    return `
+    <figure class="mapa">
+      ${GEO ? mapa(GEO, foco, filtro, wMapa, h, lim) : `<div class="mapa-hueco" style="width:${wMapa}px;height:${h}px" aria-hidden="true"></div>`}
+      <figcaption class="mapa-pie">${r ? `
+        <b>${r.puesto}.º de ${r.total}</b>
+        <span>${esc(tit)}</span>
+        <p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>` : `
+        <b>${f.municipios.length}</b>
+        <span>${esc(tit)}</span>`}
+      </figcaption>
+    </figure>`;
+  }).join('');
+  if (GEO && ent.isla && !IMPRIMIENDO) conectarListaMunicipios();
+}
+
 /** Rótulos de la ficha que cambian entre municipio e isla. */
 function rotulosFicha(f, ent) {
   return ent.isla ? {
@@ -854,28 +895,7 @@ function pintar(f) {
   el('sub-indices').textContent = R.indices;
 
   // --- mapas ---
-  const wMapa = IMPRIMIENDO
-    ? (ENT.isla ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3))
-    : ENT.isla ? Math.max(180, anchoDe('mapas', 340) - 8)
-    : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
-  // El archipiélago solo, sin la isla ni la comarca debajo, va en una caja más apaisada.
-  const hMapa = IMPRIMIENDO ? mm(ENT.isla ? 12 : 16) : Math.round(wMapa * (ENT.isla ? 0.5 : 0.74));
-  const niveles = nivelesMapas(f);
-  const mapas = el('mapas');
-  mapas.classList.toggle('dos', !ENT.isla && niveles.length === 2);
-  mapas.classList.toggle('isla', ENT.isla);
-  mapas.innerHTML = niveles.map(([tit, filtro, r, lim, foco], k) => `
-    <figure class="mapa">
-      ${mapa(GEO, foco, filtro, wMapa, ENT.isla && k ? Math.round(wMapa * (IMPRIMIENDO ? 0.6 : 0.52)) : hMapa, lim)}
-      <figcaption class="mapa-pie">${r ? `
-        <b>${r.puesto}.º de ${r.total}</b>
-        <span>${esc(tit)}</span>
-        <p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>` : `
-        <b>${f.municipios.length}</b>
-        <span>${esc(tit)}</span>`}
-      </figcaption>
-    </figure>`).join('');
-  if (ENT.isla && !IMPRIMIENDO) conectarListaMunicipios();
+  pintarMapas(f);
 
   // --- gráficos ---
   const wEv = IMPRIMIENDO ? anchoHoja(7) : anchoDe('g-evolucion');
@@ -897,8 +917,11 @@ function pintar(f) {
   // pantalla con la misma geometría no se borra: sus barras se mueven hasta la
   // forma del municipio nuevo (Canarias, que es la misma, no se mueve).
   if (IMPRIMIENDO) VISTA = 0;
-  // En la ficha de una isla la pirámide va algo más alta: su tarjeta acompaña a la escalera de los índices.
-  const nueva = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : acotar(wPi * 0.70, 360, ENT.isla ? 560 : 470), null, ENT.rotulo);
+  // En pantalla cada fila mide al menos 24 px, que es el objetivo de puntero que
+  // pide la accesibilidad; en la isla la pirámide va algo más alta, para
+  // acompañar a la escalera de los índices.
+  const altoPantalla = Math.max(acotar(wPi * 0.70, 360, ENT.isla ? 560 : 470), f.piramide.edades.length * 24 + 46);
+  const nueva = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : altoPantalla, null, ENT.rotulo);
   document.querySelectorAll('.vista').forEach((b, k) => { b.textContent = nueva.vistas[k].etiqueta; });
   const enPantalla = !!(PIRAMIDE && PIRAMIDE.nodos && !IMPRIMIENDO
     && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && document.querySelector('#g-piramide svg'));
@@ -1251,23 +1274,46 @@ function animarEntrada() {
 }
 
 /* ------------------------------------------------ índices que se responden -- */
-/** Señalar un ámbito lo resalta en los cuatro índices y atenúa los otros dos.
- *  Con ratón, al pasar; con el dedo, un toque fija y otro suelta. */
+/** Señalar un ámbito lo resalta en los cuatro índices y atenúa los otros.
+ *  Con ratón, al pasar; con el dedo, un toque fija y otro suelta; con el
+ *  teclado, el bloque se enfoca y las flechas recorren los ámbitos (Enter o
+ *  espacio fija, Escape suelta), como la pirámide. */
 function conectarIndices() {
   const cont = document.getElementById('g-indices');
   if (!cont) return;
   cont.dataset.fijo = '';
+  const ambitos = () => [...new Set([...cont.querySelectorAll('[data-ambito]')].map((c) => c.dataset.ambito))];
+  cont.dataset.teclado = '';
   if (cont.dataset.conectado) return;
   cont.dataset.conectado = '1';
   const marcar = (amb) => cont.querySelectorAll('[data-ambito]').forEach((c) => {
     c.classList.toggle('foco', !!amb && c.dataset.ambito === amb);
     c.classList.toggle('tenue', !!amb && c.dataset.ambito !== amb);
   });
+  cont.tabIndex = 0;
+  cont.setAttribute('aria-label', 'Información geodemográfica. Flechas para señalar un ámbito en los cuatro índices.');
+  cont.addEventListener('keydown', (e) => {
+    const lista = ambitos();
+    let i = lista.indexOf(cont.dataset.teclado);
+    switch (e.key) {
+      case 'ArrowDown': case 'ArrowRight': i = Math.min(lista.length - 1, i + 1); break;
+      case 'ArrowUp': case 'ArrowLeft': i = i < 0 ? lista.length - 1 : Math.max(0, i - 1); break;
+      case 'Home': i = 0; break;
+      case 'End': i = lista.length - 1; break;
+      case 'Enter': case ' ': if (i < 0) return; cont.dataset.fijo = cont.dataset.fijo === lista[i] ? '' : lista[i]; e.preventDefault(); return;
+      case 'Escape': i = -1; cont.dataset.fijo = ''; break;
+      default: return;
+    }
+    e.preventDefault();
+    cont.dataset.teclado = i < 0 ? '' : lista[i];
+    marcar(cont.dataset.fijo || cont.dataset.teclado || null);
+  });
+  cont.addEventListener('blur', () => { cont.dataset.teclado = ''; marcar(cont.dataset.fijo || null); });
   cont.addEventListener('pointerover', (e) => {
     const c = e.target.closest('[data-ambito]');
     if (c && e.pointerType !== 'touch' && !cont.dataset.fijo) marcar(c.dataset.ambito);
   });
-  cont.addEventListener('pointerleave', () => { if (!cont.dataset.fijo) marcar(null); });
+  cont.addEventListener('pointerleave', () => { if (!cont.dataset.fijo) marcar(cont.dataset.teclado || null); });
   cont.addEventListener('click', (e) => {
     const c = e.target.closest('[data-ambito]');
     if (!c) return;
@@ -1525,17 +1571,25 @@ async function iniciar() {
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
-  // El índice y la geometría pesan más que una ficha: si tardan, se avisa.
+  // La geometría de los mapas pesa 258 KB y no bloquea la ficha: se pide a la
+  // vez que el índice y los mapas se dibujan cuando llega. Si falla, se ofrece
+  // reintentar sin tocar el resto de la ficha.
+  const pedirGeo = () => leerJSON('datos/geo/municipios.json').then((geo) => {
+    GEO = geo;
+    GEO_REINTENTO = null;
+    if (FICHA) { pintarMapas(FICHA); avisoReposo(); }
+  }).catch(() => {
+    GEO_REINTENTO = pedirGeo;
+    if (FICHA) avisoReposo();
+  });
+  const geoEnCamino = pedirGeo();
   const tardio = setTimeout(() => avisoCarga('estado-ficha', 'Cargando los datos…'), 600);
   try {
-    [INDICE, GEO] = await Promise.all([
-      leerJSON('datos/indice.json'),
-      leerJSON('datos/geo/municipios.json'),
-    ]);
+    INDICE = await leerJSON('datos/indice.json');
   } finally {
     clearTimeout(tardio);
   }
-  avisoCarga('estado-ficha');
+  avisoCarga('estado-ficha');   // la ficha aún no está: el aviso de los mapas, si lo hay, sale al pintarla
 
   // Cada isla abre su grupo con la ficha de la isla entera y sigue con sus municipios.
   const sel = document.getElementById('sel-municipio');
@@ -1563,6 +1617,7 @@ async function iniciar() {
     b.addEventListener('click', () => cambiarVista(i)));
 
   await cargar(inicial);
+  await geoEnCamino;
 }
 
 if (document.getElementById('sel-municipio')) {

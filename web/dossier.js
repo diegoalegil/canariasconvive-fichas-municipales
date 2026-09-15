@@ -15,7 +15,7 @@ function tarjetasEntorno(f, ent, paginas) {
   const niveles = nivelesMapas(f);
   const wMapa = ent.isla ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
   const mapas = niveles.map(([tit, filtro, r, lim, foco]) => `
-    <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.isla ? 12 : 20), lim)}
+    <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.isla ? 11 : 20), lim)}
       <figcaption class="mapa-pie">${r ? `<b>${r.puesto}º de ${r.total}</b>
         <span>${esc(tit)}</span>
         <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p>` : `<b>${f.municipios.length}</b><span>${esc(tit)}</span>`}
@@ -269,6 +269,7 @@ async function iniciarDossier() {
   principal.innerHTML = partes.join('');
   aviso.remove();
   document.getElementById('d-barra').hidden = false;
+  document.getElementById('d-imprimir').addEventListener('click', () => window.print());
   document.getElementById('d-total').textContent = `${partes.length} hojas`;
   // En pantallas estrechas la hoja desborda de lado: el contenedor se hace enfocable para desplazarlo con las flechas.
   const enfocable = () => {

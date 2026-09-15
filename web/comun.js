@@ -2,7 +2,11 @@
 
 /* Enmarcada en un sitio que no sea la propia web ni los de sitio.json
    (ORIGENES_IFRAME, config.js), la página se sustituye por un aviso con el
-   camino a la web. Si no se puede saber quién la enmarca, no se bloquea. */
+   camino a la web. Si no se puede saber quién la enmarca, no se bloquea.
+   Enmarcada en un sitio permitido, la página le dice su alto cada vez que
+   cambia, para que el marco crezca con ella y no tenga barra de
+   desplazamiento propia (el WordPress escucha el mensaje; README,
+   «Incrustar en Canarias Convive»). */
 (() => {
   if (window.self === window.top) return;
   let padre = null;
@@ -12,8 +16,18 @@
   } catch { padre = null; }
   if (!padre) return;
   const permitidos = [location.origin, ...(typeof ORIGENES_IFRAME !== 'undefined' ? ORIGENES_IFRAME : [])];
-  if (!permitidos.includes(padre)) location.replace(new URL('enmarcada.html', document.currentScript.src).href);
+  if (!permitidos.includes(padre)) { location.replace(new URL('enmarcada.html', document.currentScript.src).href); return; }
+  const avisarAlto = () => parent.postMessage({ fichas: 'alto', alto: document.documentElement.scrollHeight }, padre);
+  addEventListener('load', avisarAlto);
+  if ('ResizeObserver' in window) addEventListener('DOMContentLoaded', () => new ResizeObserver(avisarAlto).observe(document.body));
 })();
+
+/* Si un script de la página no llega a cargar, la portada no puede quedarse en
+   blanco esperando su entrada: se destapa desde aquí (el evento de carga fallida
+   no burbujea, se captura en la ventana). */
+addEventListener('error', (e) => {
+  if (e.target && e.target.tagName === 'SCRIPT') document.querySelector('.tapa.espera')?.classList.remove('espera');
+}, true);
 
 /** Cifra en español: punto de millar siempre, coma decimal, `d` decimales. */
 const nf = (v, d = 0) => v == null || !isFinite(v)
