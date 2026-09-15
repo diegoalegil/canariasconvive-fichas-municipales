@@ -259,8 +259,10 @@ se calculan con los datos: se revisan a mano con cada actualización, y
 `pruebas/invariantes.py` avisa si el año de referencia deja de aparecer en
 ellas. Las cifras clave no llevan línea de fuente: no son un gráfico. Nada
 más al pie de la tarjeta. La guía dice qué mide cada indicador y con qué
-cuenta se obtiene, con los enunciados de Pedro, y nada más: ni fechas ni
-enlaces a los recursos.
+cuenta se obtiene, con los enunciados de Pedro y la fórmula de cada uno
+(las dos restas, incluidas), y nada más: ni fechas ni enlaces a los
+recursos. Las tarjetas de cada fila miden lo mismo, con la fórmula abajo, y
+la última, sola, va a todo el ancho.
 
 **Comparador.** Hasta tres municipios en columnas, siempre de mayor a menor
 por el criterio elegido en la barra: una cifra clave (habitantes, variación

@@ -3,13 +3,16 @@
    los enunciados son los de Pedro. */
 
 /* ------------------------------------------------------------- fórmulas --- */
-/** División con barra horizontal; `coda` es lo que va detrás (× 100). Los dos
- *  indicadores que son una resta no llevan fórmula. */
+/** División con barra horizontal; `coda` es lo que va detrás (× 100). */
 function fraccion(arriba, abajo, coda = '') {
   return `<span class="frm">
     <span class="frac"><span class="num">${esc(arriba)}</span><span class="den">${esc(abajo)}</span></span>
     ${coda ? `<span class="coda">${esc(coda)}</span>` : ''}
   </span>`;
+}
+/** Resta, para los dos componentes del cambio. */
+function resta(a, b) {
+  return `<span class="frm"><span>${esc(a)}</span><span class="coda">\u2212</span><span>${esc(b)}</span></span>`;
 }
 
 /* ----------------------------------------------------------- indicadores --- */
@@ -48,11 +51,13 @@ const INDICADORES = [
     id: 'vegetativo', ico: 'variacion', nombre: 'Crecimiento vegetativo',
     unidad: 'Se expresa en personas',
     mide: 'Los nacimientos de un año menos las defunciones de ese mismo año.',
+    formula: resta('Nacimientos', 'Defunciones'),
   },
   {
     id: 'migratorio', ico: 'variacion', nombre: 'Saldo migratorio',
     unidad: 'Se expresa en personas',
     mide: 'Las entradas menos las salidas por cambio de residencia en el mismo año.',
+    formula: resta('Entradas', 'Salidas'),
   },
   {
     id: 'nacimiento', ico: 'nacimiento', nombre: 'Lugar de nacimiento',

@@ -616,7 +616,17 @@ test('enmarcada en otro sitio, la ficha se sustituye por el aviso; en la propia 
 test('guía: los enunciados de Pedro, sin edad media ni desplegables de fuente', async () => {
   const { page, contexto, errores } = await abrir('guia.html', { ancho: 375, alto: 812 });
   await page.waitForSelector('#guia-fichas .tarjeta');
-  assert.ok((await page.locator('.guia-formula').count()) >= 7);
+  assert.equal(await page.locator('#guia-fichas .tarjeta').count(), await page.locator('.guia-formula').count(), 'todas las tarjetas de la guía llevan fórmula');
+  // A dos columnas, las tarjetas de cada fila miden lo mismo y la última, sola, va a todo el ancho.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await espera(300);
+  const cajas = await page.locator('#guia-fichas .tarjeta').evaluateAll((ts) => ts.map((t) => { const r = t.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height), Math.round(r.width)]; }));
+  const filas = new Map();
+  for (const [top, alto] of cajas) filas.set(top, [...(filas.get(top) || []), alto]);
+  for (const [top, altos] of filas) assert.equal(new Set(altos).size, 1, `fila a ${top}: alturas ${altos}`);
+  assert.ok(cajas.at(-1)[2] > cajas[0][2] * 1.8, 'la última tarjeta, sola, ocupa todo el ancho');
+  await page.setViewportSize({ width: 375, height: 812 });
+  await espera(300);
   assert.equal(await page.locator('#edad').count(), 0, 'sin edad media');
   assert.equal(await page.locator('details').count(), 0, 'sin desplegables de fuente y fecha');
   assert.match(await page.locator('#tvma').textContent(), /Ritmo constante al que habría crecido la población cada año/);

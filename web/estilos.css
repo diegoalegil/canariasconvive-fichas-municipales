@@ -431,6 +431,14 @@ select {
 @media (prefers-reduced-motion: reduce) { .cabecera, .tarjeta { animation: none; } }
 
 /* -------------------------------------------------------------- guía ------- */
+/* Las tarjetas de cada fila miden lo mismo y la fórmula queda abajo, alineada
+   con la de al lado; la última, si va sola, ocupa todo el ancho. */
+#guia-fichas { align-items: stretch; }
+#guia-fichas .tarjeta { display: flex; flex-direction: column; }
+#guia-fichas .cuerpo { flex: 1; display: flex; flex-direction: column; }
+#guia-fichas .guia-formula { margin-top: auto; padding-top: var(--e-5); }
+#guia-fichas .guia-mide { margin-bottom: var(--e-4); }
+#guia-fichas .tarjeta:last-child:nth-child(odd) { grid-column: span 12; }
 .guia-indice { display: flex; gap: var(--e-2); flex-wrap: wrap; margin-top: var(--e-4); }
 .guia-indice a {
   font-size: 12.5px; font-weight: 600; color: var(--gris);
@@ -442,7 +450,7 @@ select {
 .guia-mide { font-size: 14px; line-height: 1.55; text-wrap: pretty; }
 .guia-formula {
   display: flex; justify-content: center;
-  padding: var(--e-5) var(--e-2) var(--e-3); margin-top: var(--e-4);
+  padding: var(--e-5) var(--e-2) var(--e-3);
   border-top: 1px solid var(--linea);
 }
 .frm {
