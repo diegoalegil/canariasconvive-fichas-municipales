@@ -381,6 +381,7 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.equal(await page.locator('.fuente-grafico').count(), 8, 'ocho fuentes: la lista de municipios lleva la suya');
   assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de las islas, 2000–${indice.anio}.`);
   assert.equal(await page.locator('.anillo h3').first().textContent(), 'Isla');
+  assert.match(await page.locator('.cifra').nth(1).textContent().then((t) => t.replace(/\s+/g, ' ').trim()), /^\d+,\d años Edad media$/, 'la isla lleva su edad media');
   for (const ancho of [375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);
@@ -517,7 +518,8 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   await espera(900);
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
-  assert.equal(await page.locator('.pres-cifras > div').count(), 3, 'la presentación tampoco lleva edad media');
+  assert.equal(await page.locator('.pres-cifras > div').count(), 4, 'la presentación lleva las cuatro cifras, con la edad media');
+  assert.match(await page.locator('.pres-cifras > div').nth(1).textContent(), /^\d+,\d\u00a0añosEdad media$/);
   assert.match(await page.locator('#pres-leyenda').textContent(), /Hombres españolesMujeres españolasExtranjeros/);
   assert.equal(await page.locator('#pres-lectura').count(), 0, 'la presentación tampoco lleva el bloque de lectura');
   await page.keyboard.press('Home');
@@ -581,7 +583,7 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   await espera(600);
   assert.equal(new Set(Object.values(await colores())).size, 3);
   // Cifras: una tabla de verdad, y ningún nombre en el azul claro (2,1:1).
-  assert.equal(await page.locator('table.cmp-tabla th[scope="row"]').count(), 4, 'habitantes, variación, mujeres y hombres; sin edad media');
+  assert.equal(await page.locator('table.cmp-tabla th[scope="row"]').count(), 5, 'habitantes, edad media, variación, mujeres y hombres');
   assert.equal(await page.locator('table.cmp-tabla th[scope="col"]').count(), 4);
   const claros = await page.locator('#cmp-resultado *').evaluateAll((els) => els.filter((e) => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).color === 'rgb(133, 183, 235)').length);
   assert.equal(claros, 0, 'texto en #85B7EB sobre blanco');
@@ -635,6 +637,10 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   assert.equal(await page.locator('#sub-nacimiento').textContent(), 'Cada barra suma el 100\u00a0% de su isla');
   assert.equal(await page.locator('#cmp-piramides .cmp-col').count(), 2);
   assert.equal(await page.locator('#cmp-indices .peldano').count(), 4 * 3, 'dos islas y Canarias en cada índice');
+  await page.selectOption('#sel-orden-cifras', 'edad_media'); await espera(400);
+  const edades = await page.locator('.cmp-tabla tbody tr').nth(1).locator('.cmp-val').allTextContents();
+  assert.ok(edades.length === 2 && parseFloat(edades[0].replace(',', '.')) >= parseFloat(edades[1].replace(',', '.')), `por edad media, de mayor a menor: ${edades}`);
+  await page.selectOption('#sel-orden-cifras', 'poblacion'); await espera(300);
   await sinDesborde(page, 'comparador de islas');
   // A municipios: la comparación se vacía y el desplegable cambia; nunca se mezclan.
   await page.locator('.cmp-modo [data-modo="municipios"]').click();
@@ -870,7 +876,7 @@ test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98
   assert.equal(await page.locator('.fuente-grafico:visible').count(), 7, 'siete fuentes en la hoja');
   assert.ok(await page.locator('.cabecera .placa-papel img').isVisible(), 'la marca del programa va en la cabecera de la hoja');
   assert.ok(await page.locator('.cabecera .placa-papel img').evaluate((i) => i.complete && i.naturalWidth > 0), 'el logotipo carga');
-  assert.equal(await page.locator('.cifra').count(), 3, 'tres cifras clave, sin edad media');
+  assert.equal(await page.locator('.cifra').count(), 4, 'cuatro cifras clave, con la edad media');
   await page.emulateMedia({ media: null });
   const a4 = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   assert.equal(paginasPDF(a4), 1);

@@ -125,6 +125,14 @@ grupos de edad de las hojas `C8M` (0-14, 15-64, 65 y más) y `C13M` (15-19,
 de 15 a 64, que da 15,0. La ficha lo rotula con un `%` que puede inducir a esa
 lectura; la guía lo advierte de forma expresa.
 
+**Cifras clave: cuatro.** Variación media anual, edad media, mujeres y
+hombres, en municipios y en islas. La edad media no está en el libro: se
+aproxima con los grupos quinquenales de la propia pirámide (marcas de clase
+2,5; 7,5; …; 97,5 años y 102 para el grupo de 100 o más), en el exportador,
+y `invariantes.py` la recalcula desde la pirámide de cada JSON. Pedro pidió
+quitarla de la guía de indicadores, no de las cifras clave (se entendió mal
+en la tercera llamada y estuvo fuera de la web entre la v=84 y la v=89).
+
 **Redondeo una sola vez.** La TVMA no viene del libro: se calcula con la serie
 de población y se guarda sin redondear, igual que la serie de origen
 extranjero; las dos se redondean solo al mostrarse. Con un redondeo
@@ -350,8 +358,8 @@ recursos. Las tarjetas de cada fila miden lo mismo, con la fórmula abajo, y
 la última, sola, va a todo el ancho.
 
 **Comparador.** Hasta tres municipios en columnas, siempre de mayor a menor
-por el criterio elegido en la barra: una cifra clave (habitantes, variación
-media anual, mujeres, hombres) o un índice (envejecimiento, juventud,
+por el criterio elegido en la barra: una cifra clave (habitantes, edad media,
+variación media anual, mujeres, hombres) o un índice (envejecimiento, juventud,
 dependencia, reemplazo laboral); elegir en un desplegable deja el otro sin
 elección. Las pirámides comparten eje y no llevan aviso alguno. En el lugar
 de nacimiento cada cifra va del tono de su tramo de la barra, que es lo que
@@ -432,7 +440,8 @@ npm test
 
 - `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios con
   código INE entero y su geometría; cada pirámide suma su población y las 88
-  suman Canarias; las siete islas con su ficha, su pirámide igual a su
+  suman Canarias; la edad media de cada ficha, municipal o insular, es la
+  que da su pirámide; las siete islas con su ficha, su pirámide igual a su
   población e igual a la suma de sus municipios, su lista de municipios de
   mayor a menor, los índices de las siete, el origen extranjero conciliado
   con el lugar de nacimiento y su envoltorio `i/` con tarjeta; la TVMA es la
@@ -482,13 +491,14 @@ npm test
   evolución, componentes y origen extranjero sin pisarse a 320, 375 y 414
   px; la presentación modal, que atrapa y devuelve el foco y deja el fondo
   oculto al lector de pantalla; el cruce sin fantasmas; el comparador con
-  tres plazas, sin duplicados, colores fijos, tabla semántica sin edad media
-  y sin texto en azul claro, sin desbordes a 1280 y 375 px, de mayor a menor
+  tres plazas, sin duplicados, colores fijos, tabla semántica con las cinco
+  cifras y sin texto en azul claro, sin desbordes a 1280 y 375 px, de mayor a menor
   por el criterio elegido en todas las secciones y en la tira de elegidos,
   sin avisos bajo las pirámides, cifras del lugar de nacimiento en su tono,
   anillos de un solo azul y ordenados, y el foco a salvo al quitar con
-  teclado; el comparador de islas (islas con islas, y cambiar de modo vacía
-  la comparación y cambia el desplegable y los rótulos); el fallo de carga
+  teclado; el comparador de islas (islas con islas, ordenadas también por
+  edad media, y cambiar de modo vacía la comparación y cambia el desplegable
+  y los rótulos); el fallo de carga
   inicial visible en el comparador y en la portada (buscador desactivado);
   la portada (siete tarjetas del mismo tamaño, en una fila a 1280, que
   abren dentro de la pantalla a 320, 375 y 1280 y sin desbordes, siete
@@ -501,7 +511,7 @@ npm test
   ficha enmarcada en otro origen, que pasa al aviso, y enmarcada en la propia
   web, que se muestra; la guía (los enunciados de Pedro, sin edad media ni
   desplegables, exponente y anclas); y el papel: las 88 fichas y las 7 de
-  isla en una A4 con tres cifras clave y la placa del programa en la
+  isla en una A4 con cuatro cifras clave y la placa del programa en la
   cabecera, y el dossier de 98 páginas con su barra, la ficha de cada isla
   abriendo su grupo con la hoja de cada municipio, la placa en cada hoja y
   sin hojas desbordadas.

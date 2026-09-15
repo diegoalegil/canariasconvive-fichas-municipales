@@ -287,6 +287,16 @@ if _sin_cod:
 
 
 # --------------------------------------------------------------- cálculos ---
+# Edad media aproximada con los grupos quinquenales de la pirámide: marcas de
+# clase 2,5; 7,5; …; 97,5 años, y 102 para el grupo de 100 o más.
+MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]
+
+
+def edad_media(h, m):
+    total = h + m
+    return float((total * np.array(MARCAS)).sum() / total.sum())
+
+
 def variacion(x, y, anio_base=ANIO_BASE_VAR):
     """(% acumulado, año inicial real, año final)."""
     d = dict(zip(x, y))
@@ -418,6 +428,7 @@ for mun in MUNICIPIOS:
 
         "cifras": {
             "tvma": tvma(x1, y1),  # sin redondear: la web redondea una sola vez
+            "edad_media": r2(edad_media(h, m), 1),
             "hombres": int(h.sum()),
             "mujeres": int(m.sum()),
             "pct_hombres": r2(h.sum() / pob_pir * 100, 1),
@@ -545,6 +556,7 @@ for isla in ORDEN_ISLAS:
 
         "cifras": {
             "tvma": tvma(x1, y1),
+            "edad_media": r2(edad_media(h, m), 1),
             "hombres": int(h.sum()),
             "mujeres": int(m.sum()),
             "pct_hombres": r2(h.sum() / pob_pir * 100, 1),

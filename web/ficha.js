@@ -629,7 +629,8 @@ function tablaOculta(titulo, cabeceras, filas) {
 }
 
 /* ------------------------------------------------------------ cifras clave -- */
-/** Las tres celdas: la cifra, lo que es y el pie que la sitúa. */
+/** Las cuatro celdas: la cifra, lo que es y el pie que la sitúa (la edad
+ *  media no lleva pie). */
 function cifrasClave(f) {
   const c = f.cifras, ev = f.evolucion;
   const signo = c.tvma >= 0 ? '+' : '\u2212';   // menos tipográfico, no guion
@@ -644,6 +645,7 @@ function cifrasClave(f) {
   return [
     celda(`${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
       `Serie ${ev.anio_base}\u2013${ev.anio_fin}`),
+    celda(nf(c.edad_media, 1), 'años', 'Edad media'),
     celda(nf(c.pct_mujeres, 1), '%', 'Mujeres', `${nf(c.mujeres)} personas`),
     celda(nf(c.pct_hombres, 1), '%', 'Hombres', `${nf(c.hombres)} personas`),
   ].join('');
@@ -1429,6 +1431,7 @@ function abrirPresentacion() {
       <p class="pres-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
      <div class="pres-cifras">
       <div><b>${signo}${nf(Math.abs(c.tvma), 1)}<span>${UNI}%</span></b><i>Variación media anual</i><em>Serie ${ev.anio_base}–${ev.anio_fin}</em></div>
+      <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
       <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
      <img class="pres-logo" src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive">`,

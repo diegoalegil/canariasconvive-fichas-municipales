@@ -50,6 +50,15 @@ config = (WEB / "config.js").read_text(encoding="utf-8")
 comprobar(url_publica in config, "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
 comprobar(all(o in config for o in sitio.get("origenes_iframe", [])), "web/config.js no lleva los orígenes de sitio.json: ejecutar generar_tarjetas.py")
 
+MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase de la edad media (exportar_datos.py)
+
+
+def edad_de(p):
+    """La edad media que sale de la pirámide del JSON, con las marcas del exportador."""
+    totales = [a + b for a, b in zip(p["hombres"], p["mujeres"])]
+    return sum(t * marca for t, marca in zip(totales, MARCAS)) / sum(totales)
+
+
 def envoltorio_seguro(h):
     """Un envoltorio solo puede ejecutar su script de redirección: la política
     de contenido lleva la huella sha256 de ese script y nada más."""
@@ -98,6 +107,8 @@ for m in municipios:
     origen = f["origen"]["municipio"]
     comprobar(all(isinstance(v, (int, float)) for v in origen) and abs(sum(origen) - 100) <= 0.15, f"{f['nombre']}: el lugar de nacimiento es {origen}")
     comprobar(abs(f["cifras"]["pct_hombres"] + f["cifras"]["pct_mujeres"] - 100) <= 0.15, f"{f['nombre']}: hombres + mujeres no suman 100")
+    comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
+              f"{f['nombre']}: edad media {f['cifras'].get('edad_media')} y la pirámide da {edad_de(p):.3f}")
     for cod_ind in ("C10", "C11", "C17", "C14"):
         ind = f["indices"].get(cod_ind)
         comprobar(ind is not None and all(isinstance(ind.get(k), (int, float)) for k in ("municipio", "isla", "canarias")),
@@ -155,6 +166,8 @@ for i in islas_resumen:
     comprobar(ultimo is not None and mostrado(ultimo) == mostrado(f["origen"]["isla"][2]),
               f"{i['nombre']}: origen extranjero {ultimo} en la serie y {f['origen']['isla'][2]} en el lugar de nacimiento (C22I sin conciliar con C25I)")
     comprobar(abs(sum(f["origen"]["isla"]) - 100) <= 0.15, f"{i['nombre']}: el lugar de nacimiento es {f['origen']['isla']}")
+    comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
+              f"{i['nombre']}: edad media {f['cifras'].get('edad_media')} y la pirámide de la isla da {edad_de(p):.3f}")
     comprobar(f["rankings"]["canarias"]["total"] == len(islas_resumen), f"{i['nombre']}: el puesto no es entre las {len(islas_resumen)} islas")
     envoltorio = WEB / f"i/{i['slug']}.html"
     comprobar(envoltorio.exists(), f"falta el envoltorio i/{i['slug']}.html")

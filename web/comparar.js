@@ -41,7 +41,7 @@ const TEXTOS = {
 
 // Las columnas van siempre de mayor a menor por el criterio elegido (Pedro).
 const CRITERIOS = {
-  poblacion: (f) => f.poblacion, tvma: (f) => f.cifras.tvma,
+  poblacion: (f) => f.poblacion, edad_media: (f) => f.cifras.edad_media, tvma: (f) => f.cifras.tvma,
   pct_mujeres: (f) => f.cifras.pct_mujeres, pct_hombres: (f) => f.cifras.pct_hombres,
   C10: (f) => propia(f.indices.C10), C11: (f) => propia(f.indices.C11),
   C17: (f) => propia(f.indices.C17), C14: (f) => propia(f.indices.C14),
@@ -147,6 +147,7 @@ function anillo(porcentaje, color, radio = 62, grosor = 22) {
 function seccionCifras() {
   const filas = [
     ['Habitantes', 'personas', (f) => nf(f.poblacion)],
+    ['Edad media', 'años', (f) => nf(f.cifras.edad_media, 1)],
     ['Variación media anual', '% medio por año',
       (f) => `${f.cifras.tvma >= 0 ? '+' : '−'}${nf(Math.abs(f.cifras.tvma), 1)}${UNI}%`
            + `<em>${f.evolucion.anio_base}–${f.evolucion.anio_fin}</em>`],

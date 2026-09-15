@@ -188,9 +188,9 @@ select {
 .tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
-/* Tres celdas: la cifra (en azul, el dato principal), lo que es y el pie. */
+/* Cuatro celdas: la cifra (en azul, el dato principal), lo que es y el pie. */
 .cifras {
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--linea); border-radius: var(--r-3); overflow: hidden;
 }
 .cifra {
@@ -656,6 +656,11 @@ select {
 /* --------------------------------------------------------- responsive ------ */
 @media (max-width: 940px) {
   .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
+  /* Las cuatro cifras, dos por fila. */
+  .cifras { grid-template-columns: repeat(2, 1fr); }
+  .cifra { border-left: 1px solid var(--linea); border-top: 1px solid var(--linea); }
+  .cifra:nth-child(odd) { border-left: 0; }
+  .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
   .mapas, .mapas.dos { grid-template-columns: 1fr; gap: 26px; }
   .tapa-alto, .filtros, .atajos, .archipielago { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
@@ -671,7 +676,7 @@ select {
 }
 @media (max-width: 460px) {
   .cifras { grid-template-columns: 1fr; }
-  .cifra { border-left: 0; border-top: 1px solid var(--linea); padding: var(--e-4) var(--e-2); }
+  .cifra, .cifra:nth-child(odd), .cifra:nth-child(2) { border-left: 0; border-top: 1px solid var(--linea); padding: var(--e-4) var(--e-2); }
   .cifra:first-child { border-top: 0; }
 }
 @media (max-width: 620px) {
@@ -757,7 +762,7 @@ body.presentando { overflow: hidden; }
 .pres-hab { margin-top: 40px; }
 .pres-hab b { font-size: 64px; font-weight: 400; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .pres-hab span { font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-left: 16px; }
-.pres-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
+.pres-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
 .pres-cifras b { display: block; font-size: 72px; font-weight: 600; color: var(--azul); letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
 .pres-cifras b span { font-size: .42em; }
 .pres-cifras i { display: block; font-style: normal; font-size: 20px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); margin-top: 16px; }
@@ -857,7 +862,7 @@ body.presentando { overflow: hidden; }
   .tarjeta.destacada .rotulo p { color: var(--gris); }
 
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. */
-  .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(3, 1fr); }
+  .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
   .cifra { padding: 1.8mm 3mm 1.6mm; border-left: 0; border-top: 0; text-align: center; }
   .cifra + .cifra { border-left: .2mm solid var(--linea); }
   .cifra b { font-size: 17pt; color: var(--azul); }
