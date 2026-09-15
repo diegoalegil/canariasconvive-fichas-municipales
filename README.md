@@ -505,10 +505,13 @@ cada gráfico lleva su descripción y su fuente, y las cifras del comparador
 son una tabla con encabezados de fila y columna. El buscador de la portada es
 un combobox: el foco no sale del campo y la opción activa se señala con
 `aria-activedescendant`. Las islas de la portada son pestañas (`tablist`,
-flechas, Inicio y Fin, una sola en el orden del tabulador) y el mapa, que
-elige lo mismo con el ratón o el dedo, queda oculto a las tecnologías de
-apoyo. En la ficha de isla, la lista de municipios es una lista ordenada de
-enlaces y la escalera de índices, una lista ordenada por índice. La
+flechas, Inicio y Fin, una sola en el orden del tabulador; hasta que se
+elige una, ninguna va marcada como seleccionada y el panel, con nombre
+propio, dice que hay que elegir) y el mapa, que elige lo mismo con el ratón
+o el dedo, queda oculto a las tecnologías de apoyo. En la ficha de isla, la
+lista de municipios es una lista ordenada de enlaces, señalar uno lo destaca
+solo en el mapa de la isla (el de Canarias no responde) y el resaltado se
+suelta al salir; la escalera de índices es una lista ordenada por índice. La
 presentación es un diálogo modal: el resto queda
 inerte y oculto al lector de pantalla, el tabulador no sale y al cerrar el
 foco vuelve al botón. Las anclas y el foco se colocan por debajo de la barra

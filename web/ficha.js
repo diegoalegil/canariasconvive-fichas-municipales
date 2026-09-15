@@ -135,8 +135,10 @@ function mapa(geo, foco, ambito, w, h, conLimites) {
     } else {
       // Sin límites, el trazo va del color del relleno y las piezas se funden.
       // En papel el límite municipal va más grueso: a 16 mm de alto, 0,7 px no se ve.
+      // Solo el mapa con límites lleva el código de cada municipio (en la ficha
+      // de isla, la lista de municipios señala el suyo ahí); el de Canarias, no.
       const trazo = conLimites ? '#FFFFFF' : C.azulClaro;
-      base += `<path d="${d}" data-codmun="${f.properties.codmun}" fill="${C.azulClaro}" stroke="${trazo}" stroke-width="${conLimites ? (IMPRIMIENDO ? 1.2 : 0.7) : 0.5}"/>`;
+      base += `<path d="${d}"${conLimites ? ` data-codmun="${f.properties.codmun}"` : ''} fill="${C.azulClaro}" stroke="${trazo}" stroke-width="${conLimites ? (IMPRIMIENDO ? 1.2 : 0.7) : 0.5}"/>`;
     }
   }
   return abrirSVG(w, h, typeof foco === 'function' ? 'Situación de la isla' : 'Situación del municipio', false)
@@ -165,10 +167,13 @@ function nivelesMapas(f) {
 }
 
 /* ------------------------------------------------- municipios de la isla ---- */
-/** Señalar un municipio en la lista lo destaca en el mapa de la isla, y al revés. */
+/** Señalar un municipio en la lista lo destaca en el mapa de la isla (el que
+ *  lleva límites y códigos), y al revés; al salir de la lista o de los mapas
+ *  se suelta. */
 function conectarListaMunicipios() {
   const lista = document.getElementById('g-municipios');
-  const trazos = [...document.querySelectorAll('#mapas path[data-codmun]')];
+  const mapas = document.getElementById('mapas');
+  const trazos = [...mapas.querySelectorAll('path[data-codmun]')];
   if (!lista || !trazos.length) return;
   const filas = [...lista.querySelectorAll('li[data-codmun]')];
   const marcar = (cod) => {
@@ -182,7 +187,7 @@ function conectarListaMunicipios() {
   trazos.forEach((t) => t.addEventListener('pointerenter', () => marcar(t.dataset.codmun)));
   lista.addEventListener('pointerleave', () => marcar(null));
   lista.addEventListener('focusout', () => marcar(null));
-  trazos[0].ownerSVGElement.addEventListener('pointerleave', () => marcar(null));
+  mapas.addEventListener('pointerleave', () => marcar(null));
 }
 
 /** Los municipios de la isla de mayor a menor población, cada uno con su barra

@@ -364,6 +364,13 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.equal(await page.locator('.mapa-pie b').first().textContent(), '1.º de 7');
   await page.locator('.lista-mun li').first().hover();
   assert.equal(await page.locator('#mapas path[data-codmun="38038"]').getAttribute('fill'), '#185FA5', 'señalar un municipio lo destaca en el mapa');
+  assert.equal(await page.locator('#mapas figure').first().locator('path[data-codmun]').count(), 0, 'el mapa de Canarias no lleva códigos: no responde al ratón');
+  await page.locator('#mapas path[data-codmun="38001"]').hover();
+  assert.equal(await page.locator('.lista-mun li.foco').getAttribute('data-codmun'), '38001', 'señalar en el mapa marca la fila');
+  await page.mouse.move(5, 5);
+  await espera(100);
+  assert.equal(await page.locator('#mapas path[data-codmun="38001"]').getAttribute('fill'), '#85B7EB', 'al salir de los mapas se suelta el resaltado');
+  assert.equal(await page.locator('.lista-mun li.foco').count(), 0);
   // Índices: las siete islas y Canarias de menor a mayor, la isla en azul.
   const escalera = await page.locator('.indice-isla').first().locator('.tramo').evaluateAll((ts) => ts.map((t) => [t.querySelector('span').textContent, parseFloat(t.querySelector('b').textContent.replace(',', '.')), t.classList.contains('propia')]));
   assert.equal(escalera.length, 8);
