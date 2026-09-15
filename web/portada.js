@@ -217,7 +217,7 @@ function montarPestanas() {
   cont.innerHTML = INDICE.islas_resumen.map((isla, n) => `
     <button class="pestana" type="button" role="tab" id="tab-${isla.slug}" data-isla="${isla.slug}"
             aria-selected="false" aria-controls="panel-isla" tabindex="${n ? -1 : 0}" style="--n:${n}">
-      <span>${esc(isla.nombre)}</span><em>${isla.municipios}</em>
+      <span>${esc(isla.nombre)}</span> <em>${isla.municipios}<span class="oculto"> municipios</span></em>
     </button>`).join('');
   const tabs = [...cont.querySelectorAll('[role="tab"]')];
   tabs.forEach((t, i) => {

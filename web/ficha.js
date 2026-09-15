@@ -199,7 +199,7 @@ function listaMunicipios(f, paginas = null) {
   const cols = IMPRIMIENDO ? (n > 20 ? 4 : n > 5 ? 3 : 2) : (n > 12 ? 2 : 1);
   return `<ol class="lista-mun" style="--cols:${cols}">` + f.municipios.map((m, i) => `
     <li data-codmun="${m.codmun}" style="--w:${(m.poblacion / max * 100).toFixed(1)}%">
-      <a href="${rutaWeb(`m/${m.codmun}.html`)}"><em>${i + 1}</em>${esc(m.nombre)}</a>
+      <a href="${rutaWeb(`m/${m.codmun}.html`)}"><em>${i + 1}</em> ${esc(m.nombre)}</a>
       <b>${nf(m.poblacion)}</b><span>${pct(m.peso, 1)}</span>${paginas ? `<i>${paginas.get(m.codmun)}</i>` : ''}
     </li>`).join('') + '</ol>';
 }

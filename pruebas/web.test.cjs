@@ -616,7 +616,7 @@ test('portada: el mapa y las pestañas eligen la isla, el panel ofrece primero l
   const { page, contexto, errores } = await abrir('index.html', { ancho: 375, alto: 812 });
   await page.waitForSelector('.pestana');
   assert.equal(await page.locator('.isla-mapa').count(), 7, 'las siete islas en el mapa');
-  assert.deepEqual(await page.locator('.pestana span').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
+  assert.deepEqual(await page.locator('.pestana > span').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
   assert.equal(await page.locator('.panel-vacio').count(), 1, 'sin isla elegida, el panel lo dice');
   for (const ancho of [320, 375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 812 });
@@ -630,7 +630,7 @@ test('portada: el mapa y las pestañas eligen la isla, el panel ofrece primero l
   // Elegir en el mapa: la pestaña se marca y el panel ofrece la isla entera y luego sus municipios.
   await page.locator('.isla-mapa[data-isla="tenerife"]').click();
   await espera(300);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] span').textContent(), 'Tenerife');
+  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'Tenerife');
   assert.ok(await page.locator('.isla-mapa[data-isla="tenerife"]').evaluate((g) => g.classList.contains('activa')));
   assert.equal(await page.locator('.isla-entera').evaluate((a) => a.href), base + 'ficha.html?isla=tenerife');
   assert.match(await page.locator('.isla-entera').textContent(), /Toda la isla · 966\.469 habitantes · 31 municipios/);
@@ -642,12 +642,12 @@ test('portada: el mapa y las pestañas eligen la isla, el panel ofrece primero l
   await page.locator('[role="tab"][aria-selected="true"]').focus();
   await page.keyboard.press('ArrowRight');
   await espera(250);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] span').textContent(), 'Gran Canaria');
+  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'Gran Canaria');
   assert.equal(await page.evaluate(() => document.activeElement.dataset.isla), 'gran-canaria', 'el foco va con la pestaña');
   assert.equal(await page.locator('.panel-muns a').count(), 21);
   await page.keyboard.press('Home');
   await espera(250);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] span').textContent(), 'El Hierro');
+  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'El Hierro');
   assert.equal(await page.locator('[role="tab"][tabindex="0"]').count(), 1, 'una sola pestaña en el orden del tabulador');
   // Un enlace con #lanzarote abre la portada con esa isla elegida.
   await page.goto(base + 'index.html#lanzarote');

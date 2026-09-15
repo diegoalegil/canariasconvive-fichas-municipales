@@ -519,7 +519,9 @@ pegajosa, cuya altura real se mide. El contorno de foco de los gráficos no
 depende solo de `:focus-visible`. Los avisos de carga y de error son
 regiones de estado en las cinco páginas. axe-core (WCAG 2.2 AA) no señala
 ninguna violación en las cinco páginas a 320 y 1280 px, con desplegables,
-presentación y comparador abiertos. Las transiciones se desactivan con
+presentación y comparador abiertos, con una excepción que es decisión de
+Pedro: las cifras del lugar de nacimiento en el comparador van del tono de
+su tramo, y los dos tonos claros no llegan al contraste AA sobre blanco. Las transiciones se desactivan con
 `prefers-reduced-motion` y con la pestaña oculta, donde el navegador congela
 `requestAnimationFrame`.
 

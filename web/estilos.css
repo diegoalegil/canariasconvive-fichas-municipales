@@ -301,13 +301,14 @@ select {
 .lista-mun li:has(i) { grid-template-columns: minmax(0, 1fr) auto auto auto; }
 .lista-mun a { color: var(--negro); text-decoration: none; min-width: 0; }
 .lista-mun a:hover, .lista-mun li.foco a { text-decoration: underline; text-decoration-color: var(--azul); }
+/* El número de orden y el peso van en negro: el gris no llega al contraste AA sobre la barra. */
 .lista-mun em {
-  font-style: normal; display: inline-block; width: 22px; color: var(--gris);
+  font-style: normal; display: inline-block; width: 22px; color: var(--negro);
   font-size: 11px; font-variant-numeric: tabular-nums;
 }
 .lista-mun b { font-weight: 600; font-variant-numeric: tabular-nums; }
 .lista-mun span, .lista-mun i {
-  font-style: normal; font-size: 11px; color: var(--gris); font-variant-numeric: tabular-nums; min-width: 42px; text-align: right;
+  font-style: normal; font-size: 11px; color: var(--negro); font-variant-numeric: tabular-nums; min-width: 42px; text-align: right;
 }
 
 /* Fantasma del contenido anterior (comun.js, `cruce`), colocado encima sin fondo ni borde. */
