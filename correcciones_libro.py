@@ -2,20 +2,20 @@
 Pedro no los arregle en el libro. Cada corrección se aplica solo si el libro
 sigue con el error: si ya está bien, no se toca nada, y el aviso desaparece.
 
-Los dos que hay (15/9/2026, confirmados por Pedro):
+Ahora mismo no hay ninguna pendiente. Los dos errores que hubo (15/9/2026,
+confirmados y corregidos por Pedro en el libro del 16/9) quedan de ejemplo:
 - C2I (nacidos fuera de España por isla): Lanzarote y Fuerteventura con las
-  columnas cambiadas de 2021 a 2025. Lo detecta y corrige exportar_datos.py
-  contra la suma de sus municipios (conciliar_extranjero_islas).
+  columnas cambiadas de 2021 a 2025. Ese tipo de cruce entre islas lo detecta
+  y corrige exportar_datos.py por sí mismo (conciliar_extranjero_islas).
 - C7M (saldo migratorio municipal): los dos San Bartolomé, el de Lanzarote y
   el de Tirajana, con las celdas cruzadas en 2022 y 2023. La suma de los
   municipios de cada isla no daba la de C7I (244 y 235 personas, en sentidos
-  opuestos) y cruzarlas lo cuadra exactamente.
+  opuestos) y cruzarlas lo cuadraba exactamente. Se apuntó aquí así:
+      ("C7M", "San Bartolomé", "San Bartolomé de Tirajana", (2022, 2023))
 """
 
 # (hoja municipal, municipio A, municipio B, años): las celdas de A y B van cruzadas.
-CELDAS_CRUZADAS = [
-    ("C7M", "San Bartolomé", "San Bartolomé de Tirajana", (2022, 2023)),
-]
+CELDAS_CRUZADAS = []
 
 TOLERANCIA = 0.5   # personas: las hojas traen enteros
 

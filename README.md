@@ -165,14 +165,16 @@ cambio (`C6M` y `C7M` contra `C6I` y `C7I`, isla por isla y año por año)
 destapó el segundo error del libro: en `C7M` los dos San Bartolomé, el de
 Lanzarote y el de Tirajana, tienen las celdas cruzadas en 2022 y 2023 (la
 suma de cada isla se iba 244 y 235 personas, en sentidos opuestos, y cruzar
-esas dos celdas lo cuadra exactamente). Las correcciones conocidas están en
-`correcciones_libro.py` y se aplican solo mientras el libro siga con el
-error: si ya cuadra, no se toca nada y el aviso desaparece; si no cuadra ni
-con ellas, la exportación se detiene. `conciliar_excel.py` aplica las mismas
-al leer el libro y cuenta las celdas corregidas, e `invariantes.py`
-comprueba en los JSON que cada isla suma sus municipios. Pedro confirmó los
-dos errores el 15/9 y dice tenerlos corregidos en su copia; la carpeta
-compartida de Drive (`DATOS_CANCON`) sigue con el libro del 7 de agosto.
+esas dos celdas lo cuadraba exactamente). Pedro confirmó los dos errores el
+15/9 y el 16/9 pasó el libro corregido (con un tercer arreglo, el total de
+Canarias de `C7R` en 2023, que la web no usa): exportado desde él, no hay
+ningún aviso y los datos son los mismos que ya se habían publicado con las
+correcciones. Las correcciones conocidas del libro viven en
+`correcciones_libro.py` (ahora vacío) y se aplican solo mientras el libro
+siga con el error: si ya cuadra, no se toca nada; si no cuadra ni con ellas,
+la exportación se detiene. `conciliar_excel.py` aplica las mismas al leer el
+libro y cuenta las celdas corregidas, e `invariantes.py` comprueba en los
+JSON que cada isla suma sus municipios.
 
 **Particularidades que resuelve el exportador:**
 
@@ -621,11 +623,10 @@ cambiar el origen en los dos sitios del fragmento de arriba.
 
 ## Pendiente
 
-- [ ] Que Pedro suba a la carpeta compartida `DATOS_CANCON` el libro con
-      las dos correcciones (`C2I`, Lanzarote y Fuerteventura de 2021 a 2025;
-      `C7M`, los dos San Bartolomé en 2022 y 2023), volver a exportar y
-      borrar las entradas de `correcciones_libro.py` que ya no hagan falta
-      (la exportación avisa mientras sigan haciendo falta).
+- [ ] Subir a la carpeta compartida `DATOS_CANCON` el libro corregido del
+      16/9 (allí sigue el del 7 de agosto). El libro nuevo trae nueve hojas
+      más (`C26`–`C32`, pirámides por año y hojas «P»): preguntar a Pedro si
+      son las proyecciones a 2036.
 - [ ] Enseñar a Pedro lo que no ha visto desde la v=79: la portada con las
       tarjetas, la ficha de isla (títulos «La isla en Canarias», «Sus
       municipios», «Las siete islas y Canarias, ordenadas de menor a mayor
