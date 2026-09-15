@@ -74,6 +74,7 @@ exportar_datos.py    Excel -> 88 JSON municipales y 7 insulares (unos 4 KB cada 
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
 generar_tarjetas.py  las 96 tarjetas de vista previa, los envoltorios de web/m/ y web/i/, y web/config.js
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook
+correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública y los orígenes que pueden enmarcar la web, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
 pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
@@ -159,10 +160,19 @@ origen extranjero en la barra y 34,4 % en el lugar de nacimiento. El
 exportador detecta el intercambio (el recuento de una isla es el de la otra y
 viceversa), lo corrige, lo avisa al exportar y `conciliar_excel.py` cuenta los
 años corregidos; queda pendiente arreglarlo en el Excel. Cualquier otro
-descuadre detiene la exportación. En el saldo migratorio, la hoja insular
-de Lanzarote y la de Gran Canaria difieren de la suma de sus municipios en
-2022 y 2023 (244 y 235 personas, en sentidos opuestos); la ficha muestra el
-dato insular tal como lo publica el ISTAC.
+descuadre detiene la exportación. El mismo contraste en los componentes del
+cambio (`C6M` y `C7M` contra `C6I` y `C7I`, isla por isla y año por año)
+destapó el segundo error del libro: en `C7M` los dos San Bartolomé, el de
+Lanzarote y el de Tirajana, tienen las celdas cruzadas en 2022 y 2023 (la
+suma de cada isla se iba 244 y 235 personas, en sentidos opuestos, y cruzar
+esas dos celdas lo cuadra exactamente). Las correcciones conocidas están en
+`correcciones_libro.py` y se aplican solo mientras el libro siga con el
+error: si ya cuadra, no se toca nada y el aviso desaparece; si no cuadra ni
+con ellas, la exportación se detiene. `conciliar_excel.py` aplica las mismas
+al leer el libro y cuenta las celdas corregidas, e `invariantes.py`
+comprueba en los JSON que cada isla suma sus municipios. Pedro confirmó los
+dos errores el 15/9 y dice tenerlos corregidos en su copia; la carpeta
+compartida de Drive (`DATOS_CANCON`) sigue con el libro del 7 de agosto.
 
 **Particularidades que resuelve el exportador:**
 
@@ -611,10 +621,11 @@ cambiar el origen en los dos sitios del fragmento de arriba.
 
 ## Pendiente
 
-- [ ] Arreglar en `BASE_DATOS_CANCON.xlsx` la hoja `C2I`: las columnas de
-      Lanzarote y Fuerteventura vienen cambiadas de 2021 a 2025 (y `C22I`
-      lo hereda). El exportador lo corrige y avisa mientras tanto; cuando
-      el libro esté bien, el aviso desaparece solo.
+- [ ] Que Pedro suba a la carpeta compartida `DATOS_CANCON` el libro con
+      las dos correcciones (`C2I`, Lanzarote y Fuerteventura de 2021 a 2025;
+      `C7M`, los dos San Bartolomé en 2022 y 2023), volver a exportar y
+      borrar las entradas de `correcciones_libro.py` que ya no hagan falta
+      (la exportación avisa mientras sigan haciendo falta).
 - [ ] Enseñar a Pedro lo que no ha visto desde la v=79: la portada con las
       tarjetas, la ficha de isla (títulos «La isla en Canarias», «Sus
       municipios», «Las siete islas y Canarias, ordenadas de menor a mayor

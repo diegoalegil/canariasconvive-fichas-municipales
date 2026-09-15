@@ -169,6 +169,16 @@ for i in islas_resumen:
     comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
               f"{i['nombre']}: edad media {f['cifras'].get('edad_media')} y la pirámide de la isla da {edad_de(p):.3f}")
     comprobar(f["rankings"]["canarias"]["total"] == len(islas_resumen), f"{i['nombre']}: el puesto no es entre las {len(islas_resumen)} islas")
+    # Los componentes de la isla son la suma de los de sus municipios en cada año con todos los datos
+    # (las celdas cruzadas del libro se detectan aquí: los dos San Bartolomé descuadraban Lanzarote y Gran Canaria).
+    suyas = [json.loads((WEB / f"datos/mun/{m['codmun']}.json").read_text(encoding="utf-8"))["componentes"] for m in suyos]
+    for clave in ("vegetativo", "migratorio"):
+        for j, anio in enumerate(f["componentes"]["anios"]):
+            v = f["componentes"][clave][j]
+            partes = [c[clave][c["anios"].index(anio)] if anio in c["anios"] else None for c in suyas]
+            if v is None or any(x is None for x in partes):
+                continue
+            comprobar(abs(sum(partes) - v) <= 0.5, f"{i['nombre']} {anio}: {clave} de la isla {v:.0f} y sus municipios suman {sum(partes):.0f}")
     envoltorio = WEB / f"i/{i['slug']}.html"
     comprobar(envoltorio.exists(), f"falta el envoltorio i/{i['slug']}.html")
     if envoltorio.exists():

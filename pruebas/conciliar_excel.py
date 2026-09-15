@@ -18,6 +18,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RAIZ))
+from correcciones_libro import cruzar_si_procede  # noqa: E402
+from territorios import ISLAS  # noqa: E402
 RUTA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
 if not RUTA.exists():
     print(f"omitida · no está el libro en {RUTA}")
@@ -52,8 +55,14 @@ def series(hoja):
             for i, n in enumerate(nombres) if n}
 
 
-SS = {s: series(s) for s in ["C1M", "C1I", "C1R", "C6M", "C7M", "C22M", "C22R"]
+SS = {s: series(s) for s in ["C1M", "C1I", "C1R", "C6M", "C6I", "C7M", "C7I", "C22M", "C22R"]
       + [c + a for c in ["C10", "C11", "C17", "C14"] for a in "MIR"]}
+# Las celdas cruzadas que el libro aún traiga (correcciones_libro.py) se cruzan aquí
+# igual que en el exportador, y se cuentan: la ficha lleva el dato corregido.
+ISLA_DE = {m: i for i, ms in ISLAS.items() for m in ms}
+for hoja, hoja_i in (("C6M", "C6I"), ("C7M", "C7I")):
+    for a, b, anio in cruzar_si_procede(hoja, SS[hoja], SS[hoja_i], ISLA_DE):
+        CUENTA[f"componentes_corregidos_en_el_libro"] += 1
 for f in F:
     mun = f["nombre"]
     check(f["poblacion"], SS["C1M"][mun][f["anio"]], f"poblacion:{mun}")

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from correcciones_libro import cruzar_si_procede, descuadres
 from territorios import ISLAS, COMARCAS, EXC_GEO
 
 RUTA = Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
@@ -383,8 +384,35 @@ def depurar_componentes(comp, poblacion, mun):
     return comp
 
 
+def conciliar_componentes():
+    """C6M y C7M contra C6I y C7I: cada isla tiene que sumar sus municipios en
+    cada año con datos. Las celdas cruzadas conocidas (correcciones_libro.py)
+    se cruzan de vuelta, avisando, solo si el libro sigue con el error; cualquier
+    otro descuadre detiene la exportación."""
+    for hoja, anios, series, anios_i, series_i in (("C6M", ANIOS_C6, SERIE_C6, ANIOS_C6I, SERIE_C6I),
+                                                    ("C7M", ANIOS_C7, SERIE_C7, ANIOS_C7I, SERIE_C7I)):
+        por_mun = {m: _por_anio(anios, v) for m, v in series.items()}
+        por_isla = {i: _por_anio(anios_i, v) for i, v in series_i.items()}
+        try:
+            aplicadas = cruzar_si_procede(hoja, por_mun, por_isla, ISLA_DE)
+        except ValueError as e:
+            raise SystemExit(str(e))
+        for a, b, anio in aplicadas:
+            # De vuelta a las listas alineadas con los años, que es lo que exporta la ficha.
+            for m in (a, b):
+                series[m] = [por_mun[m].get(x, np.nan) for x in anios]
+            print(f"  ⚠ {hoja} {anio}: {a} y {b} vienen cruzados; se corrige en la exportación. "
+                  "Hay que arreglarlo en el libro.")
+        malos = descuadres(hoja, por_mun, por_isla, ISLA_DE)
+        if malos:
+            raise SystemExit(f"{hoja}: la suma de los municipios no da la hoja insular en "
+                             + "; ".join(f"{i} {a} ({s:.0f} frente a {t:.0f})" for i, a, s, t in malos)
+                             + ". Revisar el libro antes de exportar.")
+
+
 # ----------------------------------------------------------------- export ---
 CORRECCIONES_C22I = conciliar_extranjero_islas()   # necesita _por_anio, definida arriba
+conciliar_componentes()
 
 (SALIDA / "mun").mkdir(parents=True, exist_ok=True)
 
