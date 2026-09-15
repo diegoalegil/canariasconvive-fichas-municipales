@@ -1,38 +1,55 @@
-/* Dossier: las 88 fichas en un solo documento A4 (portada, guía de uso, índice,
-   un separador por isla y una hoja por municipio), con los gráficos de ficha.js
-   a medida de hoja. El orden es el de indice.json: islas de oeste a este y
-   municipios por orden alfabético. */
+/* Dossier: las 95 fichas en un solo documento A4 (portada, guía de uso, índice
+   y, por cada isla, su ficha seguida de una hoja por municipio), con los
+   gráficos de ficha.js a medida de hoja. El orden es el de indice.json: islas
+   de oeste a este y municipios por orden alfabético. */
 
 let IDX = null, GEOD = null;
 // La dirección de la web, en la guía del dossier (sin protocolo, para teclearla).
 const DIRECCION_WEB = URL_PUBLICA_SITIO.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-/* ------------------------------------------------------- datos por isla --- */
-/** Recuentos de la isla; el envejecimiento insular viene dentro de cada ficha.
- *  Sin edad media: no hay serie insular y promediar las municipales no es un dato. */
-function resumenIsla(nombre, fichas) {
-  const suyas = fichas.filter((f) => f.isla === nombre);
-  const hab = suyas.reduce((a, f) => a + f.poblacion, 0);
-  return {
-    nombre, n: suyas.length, habitantes: hab,
-    peso: hab / IDX.poblacion_canarias * 100,
-    envejecimiento: suyas[0].indices.C10.isla,
-    fichas: suyas,
-  };
+/* ----------------------------------------------------------- una ficha ---- */
+/** La tarjeta del entorno: los mapas del municipio o, en la isla, la isla en
+ *  Canarias (con sus municipios al lado) y la lista de sus municipios con la
+ *  hoja de cada uno. */
+function tarjetasEntorno(f, ent, paginas) {
+  const niveles = nivelesMapas(f);
+  const wMapa = ent.isla ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
+  const mapas = niveles.map(([tit, filtro, r, lim, foco]) => `
+    <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.isla ? 12 : 20), lim)}
+      <figcaption class="mapa-pie">${r ? `<b>${r.puesto}º de ${r.total}</b>
+        <span>${esc(tit)}</span>
+        <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p>` : `<b>${f.municipios.length}</b><span>${esc(tit)}</span>`}
+      </figcaption></figure>`).join('');
+  if (!ent.isla) {
+    return `<section class="tarjeta">
+      <header class="rotulo">${icono('territorio', 13)}<div><h2>El municipio en su entorno</h2>
+        <p>Su puesto por población y el peso que tiene en cada ámbito</p></div></header>
+      <div class="cuerpo"><div class="mapas${niveles.length === 2 ? ' dos' : ''}">${mapas}</div>${fuenteGrafico('mapas')}</div>
+    </section>`;
+  }
+  return `<section class="tarjeta tercio entorno-isla">
+      <header class="rotulo">${icono('territorio', 13)}<div><h2>La isla en Canarias</h2>
+        <p>Su puesto y su peso por población</p></div></header>
+      <div class="cuerpo"><div class="mapas isla">${mapas}</div>${fuenteGrafico('mapas')}</div>
+    </section>
+    <section class="tarjeta dos-tercios municipios-isla">
+      <header class="rotulo">${icono('poblacion', 13)}<div><h2>Sus municipios</h2>
+        <p>Los ${f.municipios.length} municipios de la isla, de mayor a menor población, su peso en ella y su hoja</p></div></header>
+      <div class="cuerpo">${listaMunicipios(f, paginas)}${fuenteGrafico('municipios')}</div>
+    </section>`;
 }
 
-/* ----------------------------------------------------------- una ficha ---- */
-function hojaFicha(f, pagina) {
+function hojaFicha(f, pagina, paginas = null) {
+  const ent = entidad(f);
   const wEv = anchoHoja(7), wEx = anchoHoja(5), wPi = anchoHoja(7), wCo = anchoHoja(6);
-  const wMapa = Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
   const ev = f.evolucion;
-  const niveles = nivelesMapas(f);
   const anom = f.componentes.anomalias || [];
-  const piramide = construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0);   // la misma que la ficha suelta impresa
+  const piramide = construirPiramide(f.piramide, wPi, ALTO_PIRAMIDE_A4, 0, ent.rotulo);   // la misma que la ficha suelta impresa
+  const migas = ent.isla ? `Canarias · ${f.municipios.length} municipios` : [f.isla, comarcaDe(f)].filter(Boolean).join(' · ');
 
-  return `<article class="hoja hoja-ficha" data-pagina="${pagina}">
+  return `<article class="hoja hoja-ficha${ent.isla ? ' hoja-isla' : ''}" data-pagina="${pagina}">
     <header class="d-cab">
-      <p class="d-migas">${esc([f.isla, comarcaDe(f)].filter(Boolean).join(' · '))}</p>
+      <p class="d-migas">${esc(migas)}</p>
       <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
       <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
       <span class="placa placa-papel"><img src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive"></span>
@@ -44,7 +61,7 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('variacion', 13)}<div><h2>Evolución de la población</h2>
           <p>Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</p></div></header>
-        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + f.codmun)}</figure>${fuenteGrafico('evolucion')}</div>
+        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + ent.id)}</figure>${fuenteGrafico(ent.isla ? 'evolucion_isla' : 'evolucion')}</div>
       </section>
 
       <section class="tarjeta tercio">
@@ -54,17 +71,7 @@ function hojaFicha(f, pagina) {
           <div class="leyenda">${leyendaExtranjero(f, 2)}</div>${fuenteGrafico('extranjero')}</div>
       </section>
 
-      <section class="tarjeta">
-        <header class="rotulo">${icono('territorio', 13)}<div><h2>El municipio en su entorno</h2>
-          <p>Su puesto por población y el peso que tiene en cada ámbito</p></div></header>
-        <div class="cuerpo"><div class="mapas${niveles.length === 2 ? ' dos' : ''}">
-          ${niveles.map(([tit, filtro, r, lim]) => `
-            <figure class="mapa">${mapa(GEOD, f.codmun, filtro, wMapa, mm(20), lim)}
-              <figcaption class="mapa-pie"><b>${r.puesto}º de ${r.total}</b>
-                <span>${esc(tit)}</span>
-                <p><b>${nf(r.peso, 2)} %</b> <span>de su población</span></p></figcaption></figure>`).join('')}
-        </div>${fuenteGrafico('mapas')}</div>
-      </section>
+      ${tarjetasEntorno(f, ent, paginas)}
 
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
@@ -74,8 +81,8 @@ function hojaFicha(f, pagina) {
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
-          <p>Los tres ámbitos, de menor a mayor valor</p></div></header>
-        <div class="cuerpo">${bloqueIndices(f.indices, INDICES_FICHA)}${fuenteGrafico('indices')}</div>
+          <p>${ent.isla ? 'Las siete islas y Canarias, de menor a mayor valor' : 'Los tres ámbitos, de menor a mayor valor'}</p></div></header>
+        <div class="cuerpo">${ent.isla ? `<div class="indices-isla">${bloqueIndicesIsla(f.indices, INDICES_FICHA, f.nombre)}</div>` : bloqueIndices(f.indices, INDICES_FICHA)}${fuenteGrafico('indices')}</div>
       </section>
 
       <section class="tarjeta mitad">
@@ -94,7 +101,7 @@ function hojaFicha(f, pagina) {
         <header class="rotulo">${icono('nacimiento', 13)}<div><h2>Lugar de nacimiento</h2>
           <p>De cada cien habitantes, dónde nacieron</p></div></header>
         <div class="cuerpo"><div class="anillos">
-          ${[['Municipio', f.origen.municipio], ['Canarias', f.origen.canarias]].map(([t, v]) => `
+          ${[[ent.rotulo, propia(f.origen)], ['Canarias', f.origen.canarias]].map(([t, v]) => `
             <div class="anillo"><h3>${t}</h3>${anilloOrigen(v, 30, 13)}
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
                 `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(v[i], 1)}\u00a0%</b></div>`).join('')}
@@ -112,7 +119,7 @@ function hojaPortada() {
   return `<article class="hoja hoja-portada">
     <div class="d-marca">Gobierno de Canarias · Universidad de La Laguna</div>
     <h1>Fichas demográficas<br>municipales de Canarias</h1>
-    <p class="d-lede">Una ficha por cada uno de los 88 municipios del archipiélago:
+    <p class="d-lede">Una ficha por cada isla y por cada uno de los 88 municipios del archipiélago:
       estructura de la población, evolución, índices geodemográficos y lugar de nacimiento.</p>
     <div class="d-portada-mapa">${mapaArchipielago()}</div>
     <div class="d-portada-pie">
@@ -140,10 +147,10 @@ function hojaGuia(fichas, pagina) {
     <div class="d-cols">
       <div>
         <h3>El orden</h3>
-        <p>Las 88 fichas van en el mismo orden que la portada y los selectores de la web: las
+        <p>Las fichas van en el mismo orden que la portada y los selectores de la web: las
            islas de oeste a este y, dentro de cada isla, los municipios por orden alfabético.
-           Cada municipio ocupa una hoja, y antes de cada grupo hay un separador con el
-           conjunto de la isla.</p>
+           Cada isla abre su grupo con su propia ficha, que sitúa la isla en Canarias y lista
+           sus municipios con la hoja de cada uno; después, un municipio por hoja.</p>
         <h3>Los datos</h3>
         <p>Población a 1 de enero de ${IDX.anio}. Las series de crecimiento
            vegetativo y saldo migratorio llegan hasta ${anioComp}, que es el último año cerrado.
@@ -165,34 +172,16 @@ function hojaGuia(fichas, pagina) {
 
 function hojaIndice(grupos, pagina) {
   return `<article class="hoja hoja-texto">
-    <h2 class="d-titulo">Índice de municipios</h2>
-    <p class="d-sub">88 municipios · 7 islas · orden alfabético dentro de cada isla</p>
+    <h2 class="d-titulo">Índice</h2>
+    <p class="d-sub">7 islas · 88 municipios · la ficha de cada isla abre su grupo; los municipios, por orden alfabético</p>
     <div class="d-indice">
       ${grupos.map((g) => `
         <div class="d-indice-grupo">
-          <h3>${esc(g.nombre)} <em>separador ${g.paginaSeparador}</em></h3>
+          <h3>${esc(g.nombre)} <em>la isla · ${g.paginaIsla}</em></h3>
           ${g.fichas.map((f, i) => `<div><span>${esc(f.nombre)}</span><b>${g.paginaPrimera + i}</b></div>`).join('')}
         </div>`).join('')}
     </div>
     <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
-  </article>`;
-}
-
-function hojaSeparador(g) {
-  return `<article class="hoja hoja-separador">
-    <p class="d-migas">Isla</p>
-    <h2>${esc(g.nombre)}</h2>
-    <p class="d-sub">${g.n} municipios · fichas ${g.paginaPrimera} a ${g.paginaPrimera + g.n - 1}</p>
-    <div class="d-isla-datos">
-      <div><b>${nf(g.habitantes)}</b><span>Habitantes en ${IDX.anio}</span></div>
-      <div><b>${g.n}</b><span>Municipios</span></div>
-      <div><b>${nf(g.peso, 1)} %</b><span>De la población de Canarias</span></div>
-      <div><b>${nf(g.envejecimiento, 2)}</b><span>Envejecimiento de la isla</span></div>
-    </div>
-    <div class="d-isla-mapa">${mapa(GEOD, null, (x) => x.properties.isla === g.nombre, mm(120), mm(62), true)}</div>
-    <div class="d-isla-lista">${g.fichas.map((f, i) =>
-      `<span>${esc(f.nombre)} <em>${g.paginaPrimera + i}</em></span>`).join('')}</div>
-    <footer class="d-pie"><span>Canarias Convive · ${esc(g.nombre)}</span><span>${g.paginaSeparador}</span></footer>
   </article>`;
 }
 
@@ -225,21 +214,21 @@ function traerReglasDeImpresion() {
 }
 
 /* --------------------------------------------------------------- montaje -- */
-/** Las 88 fichas en paralelo; lo que falle se vuelve a pedir hasta dos veces
- *  antes de darse por vencido, sin tirar lo que ya llegó. */
-async function leerFichas(codigos) {
+/** Las 95 fichas en paralelo (rutas bajo datos/); lo que falle se vuelve a
+ *  pedir hasta dos veces antes de darse por vencido, sin tirar lo que ya llegó. */
+async function leerFichas(rutas) {
   const fichas = new Map();
-  let pendientes = codigos;
+  let pendientes = rutas;
   for (let intento = 0; intento < 3 && pendientes.length; intento++) {
     if (intento) await new Promise((r) => setTimeout(r, 800 * intento));
-    const resultados = await Promise.allSettled(pendientes.map((c) => leerJSON(`datos/mun/${c}.json`)));
-    pendientes = pendientes.filter((c, i) => {
-      if (resultados[i].status === 'fulfilled') fichas.set(c, resultados[i].value);
+    const resultados = await Promise.allSettled(pendientes.map((r) => leerJSON(`datos/${r}.json`)));
+    pendientes = pendientes.filter((r, i) => {
+      if (resultados[i].status === 'fulfilled') fichas.set(r, resultados[i].value);
       return resultados[i].status !== 'fulfilled';
     });
   }
   if (pendientes.length) throw new Error(`no se han podido leer ${pendientes.length} fichas`);
-  return codigos.map((c) => fichas.get(c));
+  return rutas.map((r) => fichas.get(r));
 }
 
 async function iniciarDossier() {
@@ -253,24 +242,26 @@ async function iniciarDossier() {
     leerJSON('datos/geo/municipios.json'),
   ]);
 
-  aviso.textContent = `Cargando las ${IDX.municipios.length} fichas…`;
-  const fichas = await leerFichas(IDX.municipios.map((m) => m.codmun));
+  const islas = IDX.islas_resumen;
+  aviso.textContent = `Cargando las ${IDX.municipios.length + islas.length} fichas…`;
+  const todas = await leerFichas([...islas.map((i) => `isla/${i.slug}`), ...IDX.municipios.map((m) => `mun/${m.codmun}`)]);
+  const fichas = todas.filter((f) => f.tipo !== 'isla');
 
   // Orden: el de indice.json (islas de oeste a este), municipios por orden alfabético.
-  const grupos = Object.keys(IDX.islas).map((isla) => {
-    const g = resumenIsla(isla, fichas);
-    g.fichas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-    return g;
-  });
+  const grupos = islas.map((i) => ({
+    nombre: i.nombre,
+    isla: todas.find((f) => f.tipo === 'isla' && f.slug === i.slug),
+    fichas: fichas.filter((f) => f.isla === i.nombre).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+  }));
 
-  // Numeración: 1 portada, 2 guía, 3 índice, y luego separador + fichas.
+  // Numeración: 1 portada, 2 guía, 3 índice, y luego la ficha de la isla + sus municipios.
   let p = 4;
-  for (const g of grupos) { g.paginaSeparador = p++; g.paginaPrimera = p; p += g.n; }
+  for (const g of grupos) { g.paginaIsla = p++; g.paginaPrimera = p; p += g.fichas.length; }
 
   aviso.textContent = 'Componiendo las hojas…';
   const partes = [hojaPortada(), hojaGuia(fichas, 2), hojaIndice(grupos, 3)];
   for (const g of grupos) {
-    partes.push(hojaSeparador(g));
+    partes.push(hojaFicha(g.isla, g.paginaIsla, new Map(g.fichas.map((f, i) => [f.codmun, g.paginaPrimera + i]))));
     g.fichas.forEach((f, i) => partes.push(hojaFicha(f, g.paginaPrimera + i)));
   }
 

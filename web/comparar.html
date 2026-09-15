@@ -5,12 +5,12 @@
 <link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/comparar.html">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comparar municipios · Canarias Convive</title>
-<meta name="description" content="Hasta tres municipios de Canarias en paralelo, con las mismas secciones de la ficha demográfica.">
+<meta name="description" content="Hasta tres municipios de Canarias en paralelo, o tres islas, con las mismas secciones de la ficha demográfica.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Canarias Convive">
 <meta property="og:locale" content="es_ES">
 <meta property="og:title" content="Comparar municipios · Canarias Convive">
-<meta property="og:description" content="Hasta tres municipios de Canarias en paralelo, con las mismas secciones de la ficha demográfica.">
+<meta property="og:description" content="Hasta tres municipios de Canarias en paralelo, o tres islas, con las mismas secciones de la ficha demográfica.">
 <meta property="og:image" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/og/portada.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -19,7 +19,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=86">
+<link rel="stylesheet" href="estilos.css?v=87">
 </head>
 <body>
 
@@ -27,10 +27,10 @@
   <div class="barra-int">
     <a class="marca" href="index.html">
       <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
-      <span>Comparar municipios</span>
+      <span>Comparar</span>
     </a>
     <div class="campo">
-      <label class="oculto" for="sel-anadir">Añadir municipio</label>
+      <label class="oculto" for="sel-anadir" id="rot-anadir">Añadir municipio</label>
       <select id="sel-anadir"><option>Cargando…</option></select>
     </div>
     <!-- Un solo criterio de orden, de mayor a menor: una cifra clave o un índice. -->
@@ -63,17 +63,22 @@
 
   <section class="cabecera">
     <p class="migas">Fichas demográficas municipales</p>
-    <div class="titular"><h1>Comparar municipios</h1></div>
-    <p class="cmp-intro">Hasta tres municipios a la vez.</p>
+    <!-- Municipios con municipios e islas con islas, nunca mezclados: cambiar de modo vacía la comparación. -->
+    <div class="titular">
+      <h1 id="cmp-titulo">Comparar municipios</h1>
+      <div class="vistas cmp-modo" role="group" aria-label="Qué comparar">
+        <button class="vista" type="button" data-modo="municipios" aria-pressed="true">Municipios</button>
+        <button class="vista" type="button" data-modo="islas" aria-pressed="false">Islas</button>
+      </div>
+    </div>
+    <p class="cmp-intro" id="cmp-intro">Hasta tres municipios a la vez.</p>
     <div class="cmp-elegidos-caja">
       <div class="cmp-elegidos" id="cmp-elegidos"></div>
       <span class="cmp-cuenta" id="cmp-cuenta"></span>
     </div>
   </section>
 
-  <p class="cmp-vacio" id="cmp-vacio" hidden>
-    Elige un municipio en el desplegable de arriba para empezar. Puedes comparar hasta tres.
-  </p>
+  <p class="cmp-vacio" id="cmp-vacio" hidden>Elige un municipio en el desplegable de arriba para empezar. Puedes comparar hasta tres.</p>
 
   <div class="rejilla" id="cmp-resultado" hidden>
 
@@ -100,14 +105,14 @@
 
     <section class="tarjeta mitad">
       <header class="rotulo" data-ico="nacimiento">
-        <div><h2>Lugar de nacimiento</h2><p>Cada barra suma el 100 % de su municipio</p></div>
+        <div><h2>Lugar de nacimiento</h2><p id="sub-nacimiento">Cada barra suma el 100 % de su municipio</p></div>
       </header>
       <div class="cuerpo"><div id="cmp-nacimiento"></div></div>
     </section>
 
     <section class="tarjeta mitad">
       <header class="rotulo" data-ico="extranjero">
-        <div><h2>Población de origen extranjero</h2><p>Porcentaje sobre el total de habitantes de cada municipio</p></div>
+        <div><h2>Población de origen extranjero</h2><p id="sub-extranjero">Porcentaje sobre el total de habitantes de cada municipio</p></div>
       </header>
       <div class="cuerpo"><div id="cmp-extranjero"></div></div>
     </section>
@@ -116,10 +121,10 @@
 
 </main>
 
-<script src="config.js?v=86"></script>
-<script src="comun.js?v=86"></script>
-<script src="iconos.js?v=86"></script>
-<script src="datos-ui.js?v=86"></script>
-<script src="comparar.js?v=86"></script>
+<script src="config.js?v=87"></script>
+<script src="comun.js?v=87"></script>
+<script src="iconos.js?v=87"></script>
+<script src="datos-ui.js?v=87"></script>
+<script src="comparar.js?v=87"></script>
 </body>
 </html>

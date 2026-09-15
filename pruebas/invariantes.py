@@ -3,7 +3,8 @@
 cualquier sitio, también en GitHub Actions antes de publicar.
 
 Comprueba lo que no puede fallar sin que la ficha mienta: que hay 88
-municipios, que cada pirámide suma su población y las 88 suman Canarias, que
+municipios y 7 islas, que cada pirámide suma su población, las 88 suman
+Canarias y cada isla suma sus municipios, que
 la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
 por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 ámbitos, que cada fuente de gráfico lleva el año de referencia, que los 88
@@ -60,6 +61,7 @@ for m in municipios:
     if not ruta.exists():
         continue
     f = json.loads(ruta.read_text(encoding="utf-8"))
+    comprobar(f.get("tipo") == "municipio", f"{f['nombre']}: la ficha no lleva tipo «municipio»")
     p = f["piramide"]
     total = sum(p["hombres"]) + sum(p["mujeres"])
     comprobar(total == f["poblacion"], f"{f['nombre']}: la pirámide suma {total} y la población es {f['poblacion']}")
@@ -108,6 +110,45 @@ for m in municipios:
         comprobar('<meta property="og:site_name" content="Canarias Convive">' in h, f"m/{cod}.html sin og:site_name")
         comprobar((WEB / f"og/{cod}.png").exists(), f"falta la tarjeta og/{cod}.png")
 comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias es {indice['poblacion_canarias']}")
+
+# Las siete islas: su ficha suma sus municipios, lleva los índices de las siete
+# y su envoltorio i/<isla>.html con la tarjeta og.
+islas_resumen = indice.get("islas_resumen", [])
+comprobar(len(islas_resumen) == 7 and [i["nombre"] for i in islas_resumen] == list(indice["islas"]),
+          f"indice.json: islas_resumen no son las siete islas en su orden: {[i.get('nombre') for i in islas_resumen]}")
+for i in islas_resumen:
+    ruta = WEB / f"datos/isla/{i['slug']}.json"
+    comprobar(ruta.exists(), f"falta {ruta.name}")
+    if not ruta.exists():
+        continue
+    f = json.loads(ruta.read_text(encoding="utf-8"))
+    comprobar(f.get("tipo") == "isla" and f.get("slug") == i["slug"] and f["nombre"] == i["nombre"], f"{i['nombre']}: la ficha de isla no lleva tipo, slug y nombre")
+    p = f["piramide"]
+    comprobar(sum(p["hombres"]) + sum(p["mujeres"]) == f["poblacion"] == i["poblacion"], f"{i['nombre']}: la pirámide de la isla no suma su población")
+    comprobar(all(isinstance(p.get(k), list) and len(p[k]) == 21 for k in ("hombres", "mujeres", "extranjera_hombres", "extranjera_mujeres", "canarias_hombres", "canarias_mujeres")),
+              f"{i['nombre']}: la pirámide de la isla no tiene 21 grupos en las seis series")
+    suyos = [m for m in municipios if m["isla"] == i["nombre"]]
+    comprobar(sum(m["poblacion"] for m in suyos) == f["poblacion"], f"{i['nombre']}: sus municipios no suman la población de la isla")
+    comprobar([m["codmun"] for m in f["municipios"]] == [m["codmun"] for m in sorted(suyos, key=lambda m: -m["poblacion"])] and i["municipios"] == len(suyos),
+              f"{i['nombre']}: la lista de municipios no es la suya de mayor a menor")
+    for cod_ind in ("C10", "C11", "C17", "C14"):
+        ind = f["indices"].get(cod_ind, {})
+        comprobar(all(isinstance(ind.get(k), (int, float)) for k in ("isla", "canarias")) and set(ind.get("islas", {})) == set(indice["islas"]),
+                  f"{i['nombre']}: índice {cod_ind} incompleto (la isla, Canarias y las siete islas)")
+    ultimo = next((v for v in reversed(f["extranjero"]["isla"]) if v is not None), None)
+    comprobar(ultimo is not None and mostrado(ultimo) == mostrado(f["origen"]["isla"][2]),
+              f"{i['nombre']}: origen extranjero {ultimo} en la serie y {f['origen']['isla'][2]} en el lugar de nacimiento (C22I sin conciliar con C25I)")
+    comprobar(abs(sum(f["origen"]["isla"]) - 100) <= 0.15, f"{i['nombre']}: el lugar de nacimiento es {f['origen']['isla']}")
+    comprobar(f["rankings"]["canarias"]["total"] == len(islas_resumen), f"{i['nombre']}: el puesto no es entre las {len(islas_resumen)} islas")
+    envoltorio = WEB / f"i/{i['slug']}.html"
+    comprobar(envoltorio.exists(), f"falta el envoltorio i/{i['slug']}.html")
+    if envoltorio.exists():
+        h = envoltorio.read_text(encoding="utf-8")
+        comprobar(f'content="{url_publica}i/{i["slug"]}.html"' in h and f"ficha.html?isla={i['slug']}" in h, f"i/{i['slug']}.html: og:url o redirección incorrectos")
+        hab = format(i["poblacion"], ",").replace(",", ".")
+        comprobar(f'content="{hab} habitantes en {i["municipios"]} municipios.' in h and f"1 de enero de {indice['anio']}." in h,
+                  f"i/{i['slug']}.html: la población o el año no son los de indice.json: ejecutar generar_tarjetas.py")
+        comprobar((WEB / f"og/{i['slug']}.png").exists(), f"falta la tarjeta og/{i['slug']}.png")
 # La geometría lleva los mismos 88 municipios, con el mismo código INE.
 geo = json.loads((WEB / "datos/geo/municipios.json").read_text(encoding="utf-8"))
 codigos_geo = [ft["properties"]["codmun"] for ft in geo["features"]]
@@ -124,7 +165,7 @@ ui = (WEB / "datos-ui.js").read_text(encoding="utf-8")
 bloque = re.search(r"const FUENTES_GRAFICOS = \{(.*?)\n\};", ui, re.S)
 graficos = dict(re.findall(r"^\s+(\w+): '([^']*)',$", bloque.group(1), re.M)) if bloque else {}
 anio_ref = str(indice["anio"])
-for clave in ("evolucion", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
+for clave in ("evolucion", "evolucion_isla", "municipios", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
     texto = graficos.get(clave, "")
     comprobar(texto.startswith("ISTAC. ") or texto.startswith("GRAFCAN, "), f"fuente del gráfico «{clave}»: falta o no empieza por el organismo")
     comprobar(texto.endswith("."), f"fuente del gráfico «{clave}»: sin punto final")
@@ -182,4 +223,4 @@ if fallos:
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")
+print(f"ok · 88 municipios y {len(islas_resumen)} islas, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

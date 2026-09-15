@@ -1,4 +1,4 @@
-/* Dossier: solo el armazón (hoja, portada, separadores de isla e índice). Las
+/* Dossier: solo el armazón (hoja, portada e índice). Las
    fichas se maquetan con las reglas de impresión de estilos.css, que dossier.js
    copia en caliente; no se duplican aquí. */
 
@@ -76,19 +76,6 @@
 .d-indice-grupo h3 em { font-style: normal; font-weight: 500; font-size: 7pt; color: var(--gris); }
 .d-indice-grupo div { display: flex; justify-content: space-between; font-size: 8pt; line-height: 1.5; }
 .d-indice-grupo b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--gris); }
-
-/* ------------------------------------------------------------ separador --- */
-.hoja-separador { padding: 22mm 18mm 14mm; }
-.hoja-separador .d-migas { color: var(--gris); }
-.hoja-separador h2 { font-size: 30pt; font-weight: 700; letter-spacing: -.03em; color: var(--azul); line-height: 1.05; margin-top: 2mm; }
-.d-isla-datos { display: flex; gap: 12mm; margin-top: 8mm; padding-top: 5mm; border-top: .5mm solid var(--azul); }
-.d-isla-datos b { display: block; font-size: 15pt; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.d-isla-datos span { display: block; font-size: 7.5pt; color: var(--gris); margin-top: 1.5mm; max-width: 34mm; }
-.d-isla-mapa { margin: auto 0; }
-.d-isla-mapa svg { margin: 0 auto; }
-.d-isla-lista { display: flex; flex-wrap: wrap; gap: 2mm 6mm; padding-top: 6mm; border-top: .2mm solid var(--linea); }
-.d-isla-lista span { font-size: 8.5pt; }
-.d-isla-lista em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
 
 @media print {
   .d-body { background: #fff; }

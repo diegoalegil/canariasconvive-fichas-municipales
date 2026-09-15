@@ -161,17 +161,19 @@ function avisoCarga(id, mensaje = '', reintentar) {
   }
 }
 
-/** Canónica y og: del municipio en pantalla, sobre la URL pública de sitio.json
+/** Canónica y og: de la ficha en pantalla, sobre la URL pública de sitio.json
  *  (config.js). Para los rastreadores, que no ejecutan JS, están las mismas
- *  etiquetas en los envoltorios estáticos m/<código>.html. */
+ *  etiquetas en los envoltorios estáticos m/<código>.html e i/<isla>.html. */
 const URL_PUBLICA_SITIO = typeof URL_PUBLICA !== 'undefined' ? URL_PUBLICA : new URL('.', location.href).href;
 function metadatosFicha(f) {
-  const url = new URL(`m/${f.codmun}.html`, URL_PUBLICA_SITIO).href;
+  const isla = f.tipo === 'isla';
+  const url = new URL(isla ? `i/${f.slug}.html` : `m/${f.codmun}.html`, URL_PUBLICA_SITIO).href;
   const valores = {
-    'og:title': `${f.nombre} · Ficha demográfica`,
+    'og:title': `${f.nombre} · Ficha demográfica${isla ? ' de la isla' : ''}`,
     'og:url': url,
-    'og:image': new URL(`og/${f.codmun}.png`, URL_PUBLICA_SITIO).href,
-    'og:description': `${nf(f.poblacion)} habitantes. Estructura de la población, evolución e índices. Población a 1 de enero de ${f.anio}.`,
+    'og:image': new URL(`og/${isla ? f.slug : f.codmun}.png`, URL_PUBLICA_SITIO).href,
+    'og:description': `${nf(f.poblacion)} habitantes${isla ? ` en ${f.municipios.length} municipios` : ''}. `
+      + `Estructura de la población, evolución e índices. Población a 1 de enero de ${f.anio}.`,
   };
   for (const [clave, valor] of Object.entries(valores)) {
     document.querySelector(`meta[property="${clave}"]`)?.setAttribute('content', valor);

@@ -6,6 +6,8 @@
    referencia del índice. */
 const FUENTES_GRAFICOS = {
   evolucion: 'ISTAC. Cifras oficiales de población de los municipios, 1996–2025.',
+  evolucion_isla: 'ISTAC. Cifras oficiales de población de las islas, 2000–2025.',
+  municipios: 'ISTAC. Cifras oficiales de población de los municipios, 2025.',
   extranjero: 'ISTAC. Población según lugar de nacimiento, 2000–2025.',
   mapas: 'GRAFCAN, límites municipales; ISTAC, cifras de población 2025.',
   piramide: 'ISTAC. Población según sexo y grupos de edad, 2025.',
@@ -26,13 +28,18 @@ function ponerFuente(elemento, id, clave) {
   if (p.textContent !== texto) p.textContent = texto;
 }
 
-/** Las siete tarjetas con gráfico de la ficha; la pirámide sigue a su pestaña.
- *  Las cifras clave no llevan fuente: no son un gráfico. */
-function fuentesFicha(vistaPiramide = 0) {
-  [['g-evolucion', 'evolucion'], ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
+/** Las siete tarjetas con gráfico de la ficha (ocho en la de una isla, con la
+ *  lista de sus municipios); la pirámide sigue a su pestaña. Las cifras clave
+ *  no llevan fuente: no son un gráfico. */
+function fuentesFicha(vistaPiramide = 0, isla = false) {
+  [['g-evolucion', isla ? 'evolucion_isla' : 'evolucion'], ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
+   ['g-municipios', isla ? 'municipios' : null],
    ['g-piramide', vistaPiramide === 1 ? 'piramide_nacimiento' : 'piramide'],
    ['g-indices', 'indices'], ['g-componentes', 'componentes'], ['g-origen', 'nacimiento'],
-  ].forEach(([id, clave]) => ponerFuente(document.getElementById(id)?.parentElement, `fuente-${id}`, clave));
+  ].forEach(([id, clave]) => {
+    if (clave) ponerFuente(document.getElementById(id)?.parentElement, `fuente-${id}`, clave);
+    else document.getElementById(`fuente-${id}`)?.remove();
+  });
 }
 
 /** Las cuatro secciones con gráfico del comparador. */

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Tarjetas de vista previa del enlace (PNG de 1200 × 630 para WhatsApp, X y
-LinkedIn), una genérica y una por municipio, más los envoltorios web/m/<cod>.html
-con las etiquetas og: de cada municipio (los rastreadores no ejecutan
-JavaScript) y la URL pública de sitio.json en las cinco páginas y config.js.
+LinkedIn), una genérica, una por municipio y una por isla, más los envoltorios
+web/m/<cod>.html y web/i/<slug>.html con las etiquetas og: de cada ficha (los
+rastreadores no ejecutan JavaScript) y la URL pública de sitio.json en las
+cinco páginas y config.js.
 
-    python3 generar_tarjetas.py  ->  web/og/portada.png, web/og/<cod>.png, web/m/<cod>.html
+    python3 generar_tarjetas.py  ->  web/og/portada.png, web/og/<cod>.png, web/og/<slug>.png,
+                                     web/m/<cod>.html, web/i/<slug>.html
 
 La tarjeta lleva un solo dato, los habitantes, y ningún texto por debajo de
 26 px. Compone en Avenir Next (Montserrat no está en el sistema; si se instala,
@@ -22,6 +24,7 @@ AQUI = Path(__file__).resolve().parent
 WEB = AQUI / "web"
 SALIDA_OG = WEB / "og"
 SALIDA_M = WEB / "m"
+SALIDA_I = WEB / "i"
 
 W, H = 1200, 630
 AZUL = (24, 95, 165)
@@ -91,7 +94,8 @@ def cuerpo_que_cabe(d, texto, limite_ancho, alto_max, max_lineas, px_max, px_min
 
 # ------------------------------------------------------------------ silueta --
 def silueta(draw, rasgos, codmun, caja):
-    """Dibuja la isla con el municipio destacado, encajada en `caja`."""
+    """Dibuja los municipios dados encajados en `caja`, con el de `codmun`
+    destacado en blanco; con codmun=None se destacan todos (la isla entera)."""
     x0 = min(f["properties"]["bbox"][0] for f in rasgos)
     y0 = min(f["properties"]["bbox"][1] for f in rasgos)
     x1 = max(f["properties"]["bbox"][2] for f in rasgos)
@@ -106,7 +110,7 @@ def silueta(draw, rasgos, codmun, caja):
         return (dx + (p[0] - x0) * k, dy + (y1 - p[1]) * k)   # y invertida
 
     for f in rasgos:
-        destacado = f["properties"]["codmun"] == codmun
+        destacado = codmun is None or f["properties"]["codmun"] == codmun
         color = BLANCO if destacado else AZUL_MEDIO
         for poli in f["geometry"]["coordinates"]:
             for anillo in poli:
@@ -141,6 +145,32 @@ def tarjeta_municipio(m, geo, anio):
     return img
 
 
+def tarjeta_isla(i, geo, anio):
+    """La isla entera en blanco, con sus límites municipales."""
+    img = Image.new("RGB", (W, H), AZUL)
+    d = ImageDraw.Draw(img)
+
+    rasgos = [f for f in geo["features"] if f["properties"]["isla"] == i["nombre"]]
+    silueta(d, rasgos, None, (760, 96, 380, 438))
+
+    d.text((72, 74), "FICHA DEMOGRÁFICA DE LA ISLA", font=tf("demi", 27), fill=AZUL_SOBRE)
+
+    f_nombre, lineas = cuerpo_que_cabe(d, i["nombre"], 640, 212, 3, 88, 40)
+    y = 140
+    for ln in lineas:
+        d.text((72, y), ln, font=f_nombre, fill=BLANCO)
+        y += int(f_nombre.size * 1.14)
+
+    y = max(y + 30, 372)
+    d.text((72, y), nf(i["poblacion"]), font=tf("medio", 76), fill=BLANCO)
+    d.text((72, y + 90), "habitantes", font=tf("normal", 34), fill=AZUL_CLARO)
+
+    d.text((72, 524), f"{i['municipios']} municipios · 1 de enero de {anio}", font=tf("medio", 29), fill=AZUL_SOBRE)
+    d.rectangle([72, 576, 132, 580], fill=AZUL_CLARO)
+    d.text((72, 592), "Canarias Convive", font=tf("demi", 25), fill=AZUL_SOBRE)
+    return img
+
+
 def tarjeta_portada(idx):
     img = Image.new("RGB", (W, H), AZUL)
     d = ImageDraw.Draw(img)
@@ -148,7 +178,7 @@ def tarjeta_portada(idx):
 
     f = tf("demi", 74)
     y = 168
-    for ln in partir(d, "Una ficha por cada municipio de Canarias", f, 1000):
+    for ln in partir(d, "Una ficha por cada isla y cada municipio de Canarias", f, 1000):
         d.text((72, y), ln, font=f, fill=BLANCO)
         y += 88
 
@@ -159,6 +189,30 @@ def tarjeta_portada(idx):
            font=tf("medio", 32), fill=AZUL_SOBRE)
     return img
 
+
+ENVOLTORIO_ISLA = """<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>{nombre} · Ficha demográfica de la isla · Canarias Convive</title>
+<link rel="canonical" href="{base}/i/{slug}.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Canarias Convive">
+<meta property="og:title" content="{nombre} · Ficha demográfica de la isla">
+<meta property="og:description" content="{hab} habitantes en {n} municipios. Estructura de la población, evolución e índices. Población a 1 de enero de {anio}.">
+<meta property="og:image" content="{base}/og/{slug}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="{base}/i/{slug}.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url=../ficha.html?isla={slug}">
+<script>location.replace('../ficha.html?isla={slug}' + location.hash);</script>
+</head>
+<body>
+<p>Abriendo la ficha de {nombre}… <a href="../ficha.html?isla={slug}">Ir a la ficha</a>.</p>
+</body>
+</html>
+"""
 
 ENVOLTORIO = """<!DOCTYPE html>
 <html lang="es">
@@ -235,7 +289,8 @@ def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
 
 
 def escribir_envoltorios(idx, base, web=WEB):
-    """Los 88 m/<código>.html: etiquetas og: del municipio y redirección a la ficha."""
+    """Los 88 m/<código>.html y los 7 i/<isla>.html: etiquetas og: de la ficha y
+    redirección a ficha.html."""
     base = base.rstrip("/")
     salida = web / "m"
     salida.mkdir(exist_ok=True)
@@ -243,6 +298,13 @@ def escribir_envoltorios(idx, base, web=WEB):
         (salida / f"{m['codmun']}.html").write_text(
             ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"],
                               hab=nf(m["poblacion"]), anio=idx["anio"], base=base),
+            encoding="utf-8")
+    salida = web / "i"
+    salida.mkdir(exist_ok=True)
+    for i in idx.get("islas_resumen", []):
+        (salida / f"{i['slug']}.html").write_text(
+            ENVOLTORIO_ISLA.format(nombre=i["nombre"], slug=i["slug"], n=i["municipios"],
+                                   hab=nf(i["poblacion"]), anio=idx["anio"], base=base),
             encoding="utf-8")
 
 
@@ -264,11 +326,14 @@ def main():
     guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")
     for m in idx["municipios"]:
         guardar(tarjeta_municipio(m, geo, idx["anio"]), SALIDA_OG / f"{m['codmun']}.png")
+    for i in idx["islas_resumen"]:
+        guardar(tarjeta_isla(i, geo, idx["anio"]), SALIDA_OG / f"{i['slug']}.png")
 
+    n = len(idx["municipios"]) + len(idx["islas_resumen"]) + 1
     peso = sum(p.stat().st_size for p in SALIDA_OG.glob("*.png"))
-    print(f"{len(idx['municipios']) + 1} tarjetas en {SALIDA_OG}")
-    print(f"Peso total: {peso/1024:.0f} KB  ·  media {peso/(len(idx['municipios'])+1)/1024:.1f} KB")
-    print(f"{len(idx['municipios'])} envoltorios en {SALIDA_M}")
+    print(f"{n} tarjetas en {SALIDA_OG}")
+    print(f"Peso total: {peso/1024:.0f} KB  ·  media {peso/n/1024:.1f} KB")
+    print(f"{len(idx['municipios'])} envoltorios en {SALIDA_M} y {len(idx['islas_resumen'])} en {SALIDA_I}")
     print(f"Tipografía: {familia()[0]}")
     print(f"URL pública: {BASE}/ (sitio.json) en las cinco páginas, los envoltorios y config.js")
 

@@ -1,7 +1,9 @@
-/* Comparador de hasta tres municipios. Comparar no es clasificar: no hay
-   puestos ni umbrales, el color distingue columnas (nunca valores) y va pegado
-   al municipio, y Canarias queda en gris como referencia. Lo que describe un
-   reparto va en porcentaje sobre el propio total; los recuentos, como número. */
+/* Comparador de hasta tres municipios, o de hasta tres islas: municipios con
+   municipios e islas con islas, nunca mezclados. Comparar no es clasificar: no
+   hay puestos ni umbrales, el color distingue columnas (nunca valores) y va
+   pegado al territorio, y Canarias queda en gris como referencia. Lo que
+   describe un reparto va en porcentaje sobre el propio total; los recuentos,
+   como número. */
 
 const MAXIMO = 3;
 const TONOS_COL = ['#185FA5', '#2E75B6', '#85B7EB'];   // distinguen columna, no valor
@@ -11,27 +13,52 @@ const GRIS_REF = '#9AA0A6';
 let INDICE = null;
 let ELEGIDOS = [];         // fichas completas, en el orden en que se añadieron
 let ORDEN = 'poblacion';   // criterio de orden: una cifra clave o un índice
+let MODO = 'municipios';   // 'municipios' o 'islas'
+
+/** La serie propia de un bloque: «municipio» en las fichas municipales, «isla» en las insulares. */
+const propia = (bloque) => bloque.municipio ?? bloque.isla;
+/** La clave de una ficha: código INE del municipio o slug de la isla. */
+const claveDe = (f) => f.tipo === 'isla' ? f.slug : String(f.codmun);
+const rutaDatos = (clave) => MODO === 'islas' ? `datos/isla/${clave}.json` : `datos/mun/${clave}.json`;
+
+// Los rótulos que cambian con el modo.
+const TEXTOS = {
+  municipios: {
+    titulo: 'Comparar municipios', intro: 'Hasta tres municipios a la vez.',
+    vacio: 'Elige un municipio en el desplegable de arriba para empezar. Puedes comparar hasta tres.',
+    anadir: 'Añadir municipio', ninguno: 'Ningún municipio elegido todavía', fallo: 'No se ha podido añadir el municipio.',
+    nacimiento: 'Cada barra suma el 100 % de su municipio', extranjero: 'Porcentaje sobre el total de habitantes de cada municipio',
+    tabla: 'Cifras clave por municipio', parametro: 'm',
+  },
+  islas: {
+    titulo: 'Comparar islas', intro: 'Hasta tres islas a la vez.',
+    vacio: 'Elige una isla en el desplegable de arriba para empezar. Puedes comparar hasta tres.',
+    anadir: 'Añadir isla', ninguno: 'Ninguna isla elegida todavía', fallo: 'No se ha podido añadir la isla.',
+    nacimiento: 'Cada barra suma el 100 % de su isla', extranjero: 'Porcentaje sobre el total de habitantes de cada isla',
+    tabla: 'Cifras clave por isla', parametro: 'i',
+  },
+};
 
 // Las columnas van siempre de mayor a menor por el criterio elegido (Pedro).
 const CRITERIOS = {
   poblacion: (f) => f.poblacion, tvma: (f) => f.cifras.tvma,
   pct_mujeres: (f) => f.cifras.pct_mujeres, pct_hombres: (f) => f.cifras.pct_hombres,
-  C10: (f) => f.indices.C10.municipio, C11: (f) => f.indices.C11.municipio,
-  C17: (f) => f.indices.C17.municipio, C14: (f) => f.indices.C14.municipio,
+  C10: (f) => propia(f.indices.C10), C11: (f) => propia(f.indices.C11),
+  C17: (f) => propia(f.indices.C17), C14: (f) => propia(f.indices.C14),
 };
 function ordenados() {
   const valor = CRITERIOS[ORDEN] || CRITERIOS.poblacion;
   return [...ELEGIDOS].sort((a, b) => (valor(b) ?? -Infinity) - (valor(a) ?? -Infinity));
 }
 
-/** El color de un municipio es el del hueco que ocupó al elegirlo. */
+/** El color de un territorio es el del hueco que ocupó al elegirlo. */
 const COLORES = new Map();
 const PENDIENTES = new Set();
 const ELECCION = new Map();
 let secuenciaEleccion = 0;
-const tono = (f) => COLORES.get(String(f.codmun)) || TONOS_COL[0];
+const tono = (f) => COLORES.get(claveDe(f)) || TONOS_COL[0];
 function reservarColor(codigo) {
-  const usados = new Set([...ELEGIDOS.map((f) => String(f.codmun)), ...PENDIENTES]
+  const usados = new Set([...ELEGIDOS.map(claveDe), ...PENDIENTES]
     .filter((c) => c !== codigo).map((c) => COLORES.get(c)));
   const anterior = COLORES.get(codigo);
   COLORES.set(codigo, anterior && !usados.has(anterior) ? anterior : TONOS_COL.find((c) => !usados.has(c)));
@@ -128,9 +155,9 @@ function seccionCifras() {
   ];
   const municipios = ordenados();
   return `<table class="cmp-tabla" role="table">
-    <caption class="oculto">Cifras clave por municipio</caption>
+    <caption class="oculto">${TEXTOS[MODO].tabla}</caption>
     <thead role="rowgroup"><tr role="row"><th class="cmp-cab" scope="col" role="columnheader">Indicador</th>
-    ${municipios.map((f) => `<th class="cmp-cab" scope="col" role="columnheader"><b>${esc(f.nombre)}</b><span>${esc(f.isla)}</span><i class="marca-municipio" style="background:${tono(f)}"></i></th>`).join('')}
+    ${municipios.map((f) => `<th class="cmp-cab" scope="col" role="columnheader"><b>${esc(f.nombre)}</b><span>${esc(f.tipo === 'isla' ? 'Isla' : f.isla)}</span><i class="marca-municipio" style="background:${tono(f)}"></i></th>`).join('')}
     </tr></thead><tbody role="rowgroup">
     ${filas.map(([rot, uni, fn], i) => `<tr role="row">
       <th class="cmp-rot" scope="row" role="rowheader" id="cmp-fila-${i}"><b>${rot}</b><span>${uni}</span></th>
@@ -173,7 +200,7 @@ function seccionIndices() {
     // El mismo bloque que la ficha, de mayor a menor y con Canarias en gris al
     // final; el color es el del municipio, no el de la posición.
     const filas = [...ELEGIDOS].sort((a, b) =>
-      (b.indices[cod].municipio ?? -Infinity) - (a.indices[cod].municipio ?? -Infinity));
+      (propia(b.indices[cod]) ?? -Infinity) - (propia(a.indices[cod]) ?? -Infinity));
     return `<div class="cmp-indice">
       <div class="cmp-indice-tit">
         <b>${esc(ELEGIDOS[0].indices[cod].etiqueta)}</b>
@@ -183,7 +210,7 @@ function seccionIndices() {
         ${filas.map((f) => `
         <div class="peldano">
           <span style="color:var(--azul)">${esc(f.nombre)}</span>
-          <b>${nf(f.indices[cod].municipio, dec)}</b>
+          <b>${nf(propia(f.indices[cod]), dec)}</b>
           <i style="background:${tono(f)}"></i>
         </div>`).join('')}
         <div class="peldano cmp-ref">
@@ -207,7 +234,7 @@ function seccionNacimiento() {
       <span class="cmp-barra-val">${vals.map((v, i) => `<b style="color:${TONOS_ORIGEN[i]}">${nf(v, 1)}</b>`).join(' · ')}</span>
     </div>`;
   return `
-    ${ordenados().map((f) => fila(f.nombre, f.origen.municipio, true)).join('')}
+    ${ordenados().map((f) => fila(f.nombre, propia(f.origen), true)).join('')}
     ${fila('Canarias', ELEGIDOS[0].origen.canarias, false)}
     <div class="leyenda">
       ${cats.map((c, i) => `<span><i class="llave" style="background:${TONOS_ORIGEN[i]}"></i>${esc(c)}</span>`).join('')}
@@ -217,7 +244,7 @@ function seccionNacimiento() {
 /** Una sola magnitud: los anillos van del mismo azul y de mayor a menor (Pedro). */
 function seccionExtranjero() {
   const canarias = ultimoValido(ELEGIDOS[0].extranjero.canarias);
-  const porValor = ELEGIDOS.map((f) => [f, ultimoValido(f.extranjero.municipio)]).sort((a, b) => (b[1] ?? -Infinity) - (a[1] ?? -Infinity));
+  const porValor = ELEGIDOS.map((f) => [f, ultimoValido(propia(f.extranjero))]).sort((a, b) => (b[1] ?? -Infinity) - (a[1] ?? -Infinity));
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
       ${porValor.map(([f, v]) => `<div class="cmp-col">
           <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
@@ -244,7 +271,10 @@ function pintar(cruzar = false) {
   document.getElementById('cmp-vacio').hidden = !vacio;
   document.getElementById('cmp-resultado').hidden = vacio;
   pintarElegidos();
-  history.replaceState(null, '', ELEGIDOS.length ? `?m=${ELEGIDOS.map((f) => f.codmun).join(',')}` : location.pathname);
+  // ?m=38038,35016 o ?i=tenerife,la-palma; sin nada elegido, ?islas conserva el modo.
+  const parametro = TEXTOS[MODO].parametro;
+  history.replaceState(null, '', ELEGIDOS.length ? `?${parametro}=${ELEGIDOS.map(claveDe).join(',')}`
+    : MODO === 'islas' ? '?islas' : location.pathname);
   if (vacio) { soltar(); return; }
 
   document.getElementById('cmp-cifras').innerHTML = seccionCifras();
@@ -261,8 +291,8 @@ function pintarElegidos() {
   cont.innerHTML = ordenados().map((f) => `
     <span class="cmp-ficha" style="--c:${tono(f)}">
       <b>${esc(f.nombre)}</b>
-      <button type="button" data-quitar="${f.codmun}" aria-label="Quitar ${esc(f.nombre)} de la comparación">×</button>
-    </span>`).join('') || '<span class="cmp-ninguno">Ningún municipio elegido todavía</span>';
+      <button type="button" data-quitar="${claveDe(f)}" aria-label="Quitar ${esc(f.nombre)} de la comparación">×</button>
+    </span>`).join('') || `<span class="cmp-ninguno">${TEXTOS[MODO].ninguno}</span>`;
   cont.querySelectorAll('[data-quitar]').forEach((b) =>
     b.addEventListener('click', () => quitar(b.dataset.quitar)));
   document.getElementById('cmp-cuenta').textContent =
@@ -271,32 +301,34 @@ function pintarElegidos() {
   document.getElementById('cmp-cuenta').textContent += PENDIENTES.size ? ` · ${PENDIENTES.size} cargando` : '';
 }
 
-async function anadir(codmun) {
-  const codigo = String(codmun);
+async function anadir(clave) {
+  const codigo = String(clave), modo = MODO;
   if (ELEGIDOS.length + PENDIENTES.size >= MAXIMO || PENDIENTES.has(codigo)
-      || ELEGIDOS.some((f) => String(f.codmun) === codigo)) return;
+      || ELEGIDOS.some((f) => claveDe(f) === codigo)) return;
   PENDIENTES.add(codigo); reservarColor(codigo);
   ELECCION.set(codigo, ++secuenciaEleccion);
   pintarElegidos();
   avisoCarga('estado-comparador');
   try {
-    const f = await leerJSON(`datos/mun/${codigo}.json`);
+    const f = await leerJSON(rutaDatos(codigo));
+    if (modo !== MODO) return;   // se cambió de modo mientras cargaba: ya no cuenta
     ELEGIDOS.push(f);
-    ELEGIDOS.sort((a, b) => ELECCION.get(String(a.codmun)) - ELECCION.get(String(b.codmun)));
+    ELEGIDOS.sort((a, b) => ELECCION.get(claveDe(a)) - ELECCION.get(claveDe(b)));
     PENDIENTES.delete(codigo);
     pintar(true);
   } catch (error) {
-    avisoCarga('estado-comparador', 'No se ha podido añadir el municipio.', () => anadir(codigo));
+    if (modo !== MODO) return;
+    avisoCarga('estado-comparador', TEXTOS[MODO].fallo, () => anadir(codigo));
     if (!ELEGIDOS.length) pintar();
   } finally {
     PENDIENTES.delete(codigo); pintarElegidos();
   }
 }
 
-function quitar(codmun) {
+function quitar(clave) {
   // Si se quita con el teclado, el foco pasa al siguiente botón de quitar o al selector de añadir.
-  const teniaFoco = document.activeElement?.dataset?.quitar === String(codmun);
-  ELEGIDOS = ELEGIDOS.filter((f) => String(f.codmun) !== String(codmun));
+  const teniaFoco = document.activeElement?.dataset?.quitar === String(clave);
+  ELEGIDOS = ELEGIDOS.filter((f) => claveDe(f) !== String(clave));
   pintar(true);
   if (teniaFoco) (document.querySelector('#cmp-elegidos [data-quitar]') || document.getElementById('sel-anadir')).focus();
 }
@@ -327,21 +359,52 @@ async function iniciar() {
   }));
 
   const sel = document.getElementById('sel-anadir');
-  sel.innerHTML = '<option value="">Añadir municipio…</option>'
-    + Object.entries(INDICE.islas).map(([isla, muns]) =>
-        `<optgroup label="${esc(isla)}">` + muns.map((n) => {
-          const m = INDICE.municipios.find((x) => x.nombre === n);
-          return m ? `<option value="${m.codmun}">${esc(n)}</option>` : '';
-        }).join('') + '</optgroup>').join('');
   sel.addEventListener('change', () => {
     if (sel.value) anadir(sel.value);
     sel.value = '';
   });
+  document.querySelectorAll('.cmp-modo .vista').forEach((b) =>
+    b.addEventListener('click', () => cambiarModo(b.dataset.modo)));
 
-  const pedidos = (new URLSearchParams(location.search).get('m') || '')
-    .split(',').filter((c) => INDICE.municipios.some((m) => String(m.codmun) === c));
+  const params = new URLSearchParams(location.search);
+  const islas = params.has('i') || params.has('islas');
+  ponerModo(islas ? 'islas' : 'municipios');
+  const pedidos = islas
+    ? (params.get('i') || '').split(',').filter((c) => INDICE.islas_resumen.some((x) => x.slug === c))
+    : (params.get('m') || '').split(',').filter((c) => INDICE.municipios.some((m) => String(m.codmun) === c));
   for (const c of pedidos.slice(0, MAXIMO)) await anadir(c);
   if (!ELEGIDOS.length) pintar();
+}
+
+/** Rótulos y desplegable del modo; no toca lo elegido. */
+function ponerModo(modo) {
+  MODO = modo;
+  const T = TEXTOS[modo];
+  document.title = `${T.titulo} · Canarias Convive`;
+  document.getElementById('cmp-titulo').textContent = T.titulo;
+  document.getElementById('cmp-intro').textContent = T.intro;
+  document.getElementById('cmp-vacio').textContent = T.vacio;
+  document.getElementById('rot-anadir').textContent = T.anadir;
+  document.getElementById('sub-nacimiento').textContent = T.nacimiento;
+  document.getElementById('sub-extranjero').textContent = T.extranjero;
+  document.querySelectorAll('.cmp-modo .vista').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === modo)));
+  const sel = document.getElementById('sel-anadir');
+  sel.innerHTML = `<option value="">${T.anadir}…</option>` + (modo === 'islas'
+    ? INDICE.islas_resumen.map((i) => `<option value="${i.slug}">${esc(i.nombre)}</option>`).join('')
+    : Object.entries(INDICE.islas).map(([isla, muns]) =>
+        `<optgroup label="${esc(isla)}">` + muns.map((n) => {
+          const m = INDICE.municipios.find((x) => x.nombre === n);
+          return m ? `<option value="${m.codmun}">${esc(n)}</option>` : '';
+        }).join('') + '</optgroup>').join(''));
+}
+
+/** Cambiar de modo vacía la comparación: municipios con municipios, islas con islas. */
+function cambiarModo(modo) {
+  if (modo === MODO) return;
+  ELEGIDOS = []; PENDIENTES.clear(); COLORES.clear(); ELECCION.clear();
+  avisoCarga('estado-comparador');
+  ponerModo(modo);
+  pintar(true);
 }
 
 iniciar().catch((e) => {
