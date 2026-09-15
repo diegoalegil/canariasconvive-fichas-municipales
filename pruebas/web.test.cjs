@@ -8,8 +8,8 @@
    foco de la presentación, leyenda de la pirámide, redondeo único, la ficha
    de cada isla (sus municipios, los índices de las siete y el mismo
    desplegable para pasar de la isla al municipio), el comparador de islas,
-   la portada con el mapa, las 88 fichas y las 7 de isla en una A4 y el
-   dossier de 98 hojas.
+   la portada con una tarjeta por isla, las 88 fichas y las 7 de isla en una
+   A4 y el dossier de 98 hojas.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
    Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
@@ -612,47 +612,58 @@ test('comparador: el fallo de la carga inicial se ve y se puede reintentar', asy
   await contexto.close();
 });
 
-test('portada: el mapa y las pestañas eligen la isla, el panel ofrece primero la isla entera y el buscador enseña el foco', async () => {
+test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus municipios dentro de la pantalla; el buscador enseña el foco', async () => {
   const { page, contexto, errores } = await abrir('index.html', { ancho: 375, alto: 812 });
-  await page.waitForSelector('.pestana');
-  assert.equal(await page.locator('.isla-mapa').count(), 7, 'las siete islas en el mapa');
-  assert.deepEqual(await page.locator('.pestana > span').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
-  assert.equal(await page.locator('.panel-vacio').count(), 1, 'sin isla elegida, el panel lo dice');
+  await page.waitForSelector('.isla-menu');
+  assert.deepEqual(await page.locator('.isla-nombre').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
   for (const ancho of [320, 375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 812 });
-    await espera(300);
-    await sinDesborde(page, `portada a ${ancho}`);
-    assert.ok(await page.locator('.mapa-islas svg').evaluate((s) => s.getBoundingClientRect().width > 200), `el mapa se dibuja a ${ancho}`);
+    await espera(200);
+    for (const boton of await page.locator('.isla-menu > .isla-tarjeta').all()) {
+      await boton.click();
+      await espera(80);
+      const caja = await page.locator('.isla-menu .desplegable:not([hidden])').boundingBox();
+      assert.ok(caja && caja.x >= 0 && caja.x + caja.width <= ancho + 0.5, `menú fuera de la pantalla a ${ancho}: ${JSON.stringify(caja)}`);
+      await sinDesborde(page, `portada con una isla abierta a ${ancho}`);
+      await page.keyboard.press('Escape');
+    }
+    // Las siete tarjetas miden lo mismo (y a 1280 van en una fila); los siete desplegables miden lo mismo.
+    const cajas = await page.locator('.isla-tarjeta').evaluateAll((cs) => cs.map((c) => { const r = c.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }));
+    assert.equal(new Set(cajas.map((c) => `${c[1]}×${c[2]}`)).size, 1, `a ${ancho} las tarjetas no miden lo mismo: ${JSON.stringify(cajas)}`);
+    if (ancho === 1280) assert.equal(new Set(cajas.map((c) => c[0])).size, 1, 'a 1280 las siete tarjetas en una fila');
   }
+  assert.deepEqual([...new Set(await page.locator('.isla-menu .desplegable').evaluateAll((ds) => ds.map((d) => { d.hidden = false; const h = d.getBoundingClientRect().height; d.hidden = true; return h; })))], [292], 'desplegables del mismo alto');
   // Bajo el título no hay nada; las cuatro cifras van a la derecha del título.
   assert.equal(await page.locator('#tapa-anio').count(), 0, 'sin línea bajo el título');
   assert.ok(await page.evaluate(() => document.querySelector('.tapa-datos').getBoundingClientRect().top < document.querySelector('.tapa-texto').getBoundingClientRect().bottom), 'a 1280 las cifras van junto al título');
-  // Elegir en el mapa: la pestaña se marca y el panel ofrece la isla entera y luego sus municipios.
-  await page.locator('.isla-mapa[data-isla="tenerife"]').click();
-  await espera(300);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'Tenerife');
-  assert.ok(await page.locator('.isla-mapa[data-isla="tenerife"]').evaluate((g) => g.classList.contains('activa')));
-  assert.equal(await page.locator('.isla-entera').evaluate((a) => a.href), base + 'ficha.html?isla=tenerife');
-  assert.match(await page.locator('.isla-entera').textContent(), /Toda la isla · 966\.469 habitantes · 31 municipios/);
-  assert.equal(await page.locator('.panel-muns a').count(), 31);
-  assert.equal(await page.locator('.panel-muns a').first().textContent(), 'Adeje', 'municipios por orden alfabético');
-  assert.ok(page.url().endsWith('#tenerife'), page.url());
-  assert.ok(await page.evaluate(() => { const a = document.querySelector('.isla-entera'), m = document.querySelector('.panel-muns a'); return getComputedStyle(a).backgroundColor !== getComputedStyle(m).backgroundColor; }), 'la isla entera va en otro color que sus municipios');
-  // Las pestañas con teclado: las flechas cambian de isla y la eligen.
-  await page.locator('[role="tab"][aria-selected="true"]').focus();
-  await page.keyboard.press('ArrowRight');
-  await espera(250);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'Gran Canaria');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.isla), 'gran-canaria', 'el foco va con la pestaña');
-  assert.equal(await page.locator('.panel-muns a').count(), 21);
+  // Cada lista abre con la ficha de la isla entera, en otro color, y sigue con sus municipios por orden alfabético.
+  await page.locator('.isla-menu > .isla-tarjeta').nth(3).click();
+  await espera(100);
+  const lista = page.locator('.isla-menu .desplegable:not([hidden])');
+  assert.equal(await lista.getAttribute('aria-label'), 'Fichas de Tenerife');
+  assert.equal(await lista.locator('a').count(), 32, 'la isla y sus 31 municipios');
+  assert.equal(await lista.locator('a').first().evaluate((a) => a.href), base + 'ficha.html?isla=tenerife');
+  assert.match(await lista.locator('a').first().textContent(), /Toda la isla966\.469 habitantes/);
+  assert.equal(await lista.locator('a').nth(1).textContent(), 'Adeje');
+  assert.notEqual(await lista.locator('a').first().evaluate((a) => getComputedStyle(a).backgroundColor), await lista.locator('a').nth(1).evaluate((a) => getComputedStyle(a).backgroundColor), 'la isla entera va en otro color que sus municipios');
+  assert.equal(await page.locator('.isla-tarjeta[aria-expanded="true"] .isla-nombre').textContent(), 'Tenerife');
+  // Inicio y Fin con la lista abierta y el foco aún en el disparador; Escape devuelve el foco.
+  await page.keyboard.press('End');
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), await lista.locator('a').last().textContent(), 'Fin va a la última opción');
   await page.keyboard.press('Home');
-  await espera(250);
-  assert.equal(await page.locator('[role="tab"][aria-selected="true"] > span').textContent(), 'El Hierro');
-  assert.equal(await page.locator('[role="tab"][tabindex="0"]').count(), 1, 'una sola pestaña en el orden del tabulador');
-  // Un enlace con #lanzarote abre la portada con esa isla elegida.
-  await page.goto(base + 'index.html#lanzarote');
-  await page.waitForSelector('.isla-entera');
-  assert.equal(await page.locator('.isla-entera b').textContent(), 'Lanzarote');
+  assert.match(await page.evaluate(() => document.activeElement.textContent), /^Toda la isla/, 'Inicio va a la isla entera');
+  await page.keyboard.press('Escape');
+  await espera(60);
+  assert.equal(await page.locator('.isla-menu .desplegable:not([hidden])').count(), 0, 'Escape cierra la lista');
+  assert.equal(await page.evaluate(() => document.activeElement.classList.contains('isla-tarjeta')), true, 'y devuelve el foco a la tarjeta');
+  // Abierta con el ratón y sin nada enfocado (lo que hace Safari), las teclas llegan igual.
+  await page.evaluate(() => document.activeElement.blur());
+  const cajaTarjeta = await page.locator('.isla-menu > .isla-tarjeta').first().boundingBox();
+  await page.mouse.click(cajaTarjeta.x + cajaTarjeta.width / 2, cajaTarjeta.y + cajaTarjeta.height / 2); await espera(80);
+  assert.ok(await page.evaluate(() => document.activeElement !== document.body), 'abierta con el ratón, el foco está en el disparador');
+  await page.keyboard.press('ArrowDown');
+  assert.match(await page.evaluate(() => document.activeElement.textContent), /^Toda la isla/, 'la flecha entra en la lista');
+  await page.keyboard.press('Escape');
   // El buscador es un combobox: el foco no sale del campo, la opción activa se señala con
   // aria-activedescendant y Escape cierra la lista sin reabrirla. Las islas salen antes que los municipios.
   await page.fill('#buscar', 'san');
@@ -681,7 +692,7 @@ test('portada: el mapa y las pestañas eligen la isla, el panel ofrece primero l
   await page.waitForSelector('#fuente-g-origen');
   assert.match(await page.locator('#nombre').textContent(), /Guía/);
   await page.goto(base + 'index.html');
-  await page.waitForSelector('.pestana');
+  await page.waitForSelector('.isla-menu');
   await page.fill('#buscar', 'tene');
   await page.keyboard.press('Enter');
   await page.waitForSelector('#fuente-g-origen');

@@ -411,8 +411,8 @@ select {
   border: 0; outline: none; font: inherit; font-size: 14px;
   color: var(--negro); width: 100%; height: 100%; background: transparent;
 }
-/* Desplegable del buscador: crece con los resultados y la lista que no cabe se
-   desplaza por dentro. */
+/* Desplegable del buscador (crece con los resultados) y de las islas (alto fijo,
+   «del mismo tamaño en cada isla»; la lista que no cabe se desplaza por dentro). */
 .desplegable {
   position: absolute; z-index: 30; top: calc(100% + 6px); left: 0;
   width: 268px; max-width: calc(100vw - 24px); max-height: 292px; overflow-y: auto; overscroll-behavior: contain;
@@ -427,68 +427,40 @@ select {
 .desplegable a em {
   font-style: normal; font-size: 11.5px; color: var(--gris-40); white-space: nowrap;
 }
+/* La opción señalada va en claro con una marca azul: el azul pleno queda para
+   la ficha de la isla entera, la primera de cada lista. */
 .desplegable a:hover, .desplegable a:focus, .desplegable a.activa {
-  outline: none; background: var(--azul); color: #fff;
+  outline: none; background: var(--caja); color: var(--azul); box-shadow: inset 3px 0 0 var(--azul);
 }
-.desplegable a:hover em, .desplegable a:focus em, .desplegable a.activa em { color: var(--azul-sobre); }
 .desplegable .vacio { padding: var(--e-3); }
+.desplegable .toda { display: block; background: var(--azul); color: #fff; margin-bottom: 4px; }
+.desplegable .toda span { display: block; font-weight: 700; }
+.desplegable .toda em { display: block; font-size: 11.5px; color: var(--azul-sobre); white-space: normal; }
+.desplegable .toda:hover, .desplegable .toda:focus { background: var(--azul-medio); color: #fff; box-shadow: none; }
+.isla-menu .desplegable { height: 292px; }
 
 /* ------------------------------------------------------- archipiélago ------ */
-/* El mapa de las siete islas es la elección principal de la portada; las
-   pestañas son la misma elección para el teclado y el lector de pantalla. */
-.archipielago { padding: 24px var(--e-7) 30px; border-bottom: 1px solid var(--linea); }
-.mapa-islas svg { width: 100%; height: auto; display: block; }
-.isla-mapa { cursor: pointer; }
-.isla-mapa path { fill: var(--azul-claro); stroke: var(--azul-claro); stroke-width: 1; transition: fill .2s, stroke .2s; }
-.isla-mapa:hover path, .isla-mapa.resalta path { fill: var(--azul-medio); stroke: var(--azul-medio); }
-.isla-mapa.activa path { fill: var(--azul); stroke: var(--azul); }
-.isla-mapa text {
-  font-family: inherit; font-weight: 600; fill: var(--negro); pointer-events: none;
-  paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round;
+/* Siete tarjetas iguales, una por isla con su silueta; cada una despliega la
+   lista de fichas de la isla: la isla entera primero y, debajo, sus municipios. */
+.archipielago { padding: 22px var(--e-7) 26px; border-bottom: 1px solid var(--linea); }
+.islas-tarjetas { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.isla-menu { position: relative; min-width: 0; }
+.isla-tarjeta {
+  font: inherit; cursor: pointer; width: 100%; height: 100%; aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 10px 8px; color: var(--negro); background: var(--fondo);
+  border: 1px solid var(--linea); border-radius: var(--r-3);
+  transition: border-color .2s, box-shadow .2s;
 }
-.islas-pestanas { display: flex; gap: var(--e-2); flex-wrap: wrap; margin-top: var(--e-4); }
-.pestana {
-  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--negro); background: var(--fondo);
-  border: 1px solid var(--linea); border-radius: var(--r-full);
-  padding: 8px 12px 8px 14px; white-space: nowrap;
-  transition: background .2s, border-color .2s, color .2s;
-}
-.pestana em { font-style: normal; color: var(--gris); font-variant-numeric: tabular-nums; }
-.pestana:hover { border-color: var(--azul); }
-.pestana[aria-selected="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
-.pestana[aria-selected="true"] em { color: var(--azul-sobre); }
-
-/* El panel: la ficha de la isla entera, destacada, y debajo sus municipios. */
-.panel-isla { margin-top: var(--e-5); }
-.panel-vacio { font-size: 13.5px; color: var(--gris); text-wrap: pretty; }
-.isla-entera {
-  display: flex; align-items: center; gap: var(--e-4); flex-wrap: wrap;
-  padding: 14px 20px; border-radius: var(--r-3);
-  background: var(--azul); color: #fff; text-decoration: none;
-  transition: background .2s;
-}
-.isla-entera:hover { background: var(--azul-medio); }
-.isla-icono svg { display: block; }
-.isla-icono path { fill: #fff; stroke: var(--azul-claro); stroke-width: .6; }
-.isla-texto b { display: block; font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
-.isla-texto em { font-style: normal; font-size: 12.5px; color: var(--azul-sobre); }
-.isla-ir {
-  margin-left: auto; font-size: 13px; font-weight: 600; white-space: nowrap;
-  padding: 8px 14px; border: 1px solid rgba(255, 255, 255, .45); border-radius: var(--r-2);
-}
-.isla-entera:hover .isla-ir { border-color: #fff; }
-.panel-muns {
-  list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 6px 12px; margin-top: var(--e-4);
-}
-.panel-muns a {
-  display: block; padding: 8px 12px; font-size: 13.5px; color: var(--negro); text-decoration: none;
-  border: 1px solid var(--linea); border-left: 3px solid var(--azul-claro); border-radius: var(--r-2);
-  background: var(--fondo); transition: border-color .15s, color .15s;
-}
-.panel-muns a:hover { border-color: var(--azul); color: var(--azul); }
+.isla-tarjeta:hover { border-color: var(--azul); box-shadow: var(--s-2); }
+.isla-silueta svg { display: block; width: 96px; height: 64px; }
+.isla-silueta path { fill: var(--azul-claro); stroke: var(--azul-claro); stroke-width: .6; transition: fill .2s, stroke .2s; }
+.isla-tarjeta:hover .isla-silueta path, .isla-tarjeta[aria-expanded="true"] .isla-silueta path { fill: var(--azul); stroke: var(--azul); }
+.isla-nombre { font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; text-align: center; margin-top: 4px; }
+.isla-cuenta { font-size: 11px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.isla-tarjeta .galon { color: var(--gris); transition: transform .15s; margin-top: 2px; }
+.isla-tarjeta[aria-expanded="true"] { border-color: var(--azul); }
+.isla-tarjeta[aria-expanded="true"] .galon { transform: rotate(180deg); color: var(--azul); }
 
 .atajos {
   padding: var(--e-5) var(--e-7); display: flex; gap: var(--e-2); flex-wrap: wrap;
@@ -673,13 +645,10 @@ select {
 .tapa .tapa-texto { --t: 100ms; --d: 280ms; --y: 6px; }
 .tapa .tapa-datos > div { --t: calc(160ms + var(--n) * 40ms); --d: 260ms; --y: 4px; }
 .tapa .buscador   { --t: 220ms; --d: 280ms; --y: 4px; }
-.tapa .mapa-islas { --t: 260ms; --d: 360ms; --y: 6px; }
-.tapa .islas-pestanas { --t: 380ms; --d: 260ms; --y: 3px; }
-/* El panel entra cada vez que se elige una isla: el enlace de la isla y sus municipios en cascada. */
-.panel-isla.entra .ent { animation: entrar 220ms cubic-bezier(0,0,.2,1) both; animation-delay: calc(var(--n, 0) * 12ms); --y: 4px; }
+.tapa .isla-menu  { --t: calc(280ms + var(--n) * 30ms); --d: 240ms; --y: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .tapa.espera .ent, .tapa.entra .ent, .panel-isla.entra .ent { opacity: 1; animation: none; transform: none; }
+  .tapa.espera .ent, .tapa.entra .ent { opacity: 1; animation: none; transform: none; }
 }
 
 /* --------------------------------------------------------- responsive ------ */
@@ -688,6 +657,7 @@ select {
   .mapas, .mapas.dos { grid-template-columns: 1fr; gap: 26px; }
   .tapa-alto, .filtros, .atajos, .archipielago { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
+  .islas-tarjetas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 700px) {
   .lista-mun { columns: 1; }
@@ -718,9 +688,13 @@ select {
   .envoltorio { padding-inline: 14px; }
   .portada { padding-inline: 14px; }
   .tapa-alto, .filtros, .atajos, .archipielago { padding-inline: 18px; }
-  .isla-ir { margin-left: 0; width: 100%; text-align: center; }
-  .panel-muns { grid-template-columns: 1fr 1fr; gap: 6px 8px; }
-  .panel-muns a { font-size: 12.5px; padding: 7px 9px; }
+  /* En el móvil las tarjetas van en una columna, apaisadas. */
+  .islas-tarjetas { grid-template-columns: 1fr; gap: 8px; }
+  .isla-tarjeta { aspect-ratio: auto; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 8px 12px; }
+  .isla-silueta svg { width: 56px; height: 38px; }
+  .isla-nombre { margin-top: 0; text-align: left; }
+  .isla-cuenta { margin-left: auto; }
+  .isla-menu .desplegable { width: 100%; }
   .escala { gap: 6px; }
   .peldano span { font-size: 10px; }
   /* minmax(0,1fr) y clamp: en 320 px las dos columnas tienen que poder encogerse. */
@@ -729,7 +703,7 @@ select {
   .tapa-datos span { font-size: 10px; letter-spacing: .06em; }
 }
 @media (pointer: coarse) {
-  select, .btn, .vista, .pestana { min-height: 44px; }
+  select, .btn, .vista { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 

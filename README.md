@@ -14,10 +14,9 @@ el exportador.
 python3 -m http.server 8140 --directory web
 ```
 
-Y se abre `http://localhost:8140`. La raíz es la portada: el buscador y el
-mapa de las siete islas, que al elegir una ofrece primero su ficha entera y
-debajo la de cada municipio (`index.html#tenerife` la abre con esa isla
-elegida). La ficha vive en `ficha.html` y admite un municipio por código INE,
+Y se abre `http://localhost:8140`. La raíz es la portada: el buscador y una
+tarjeta por isla, que despliega primero la ficha de la isla entera y debajo
+la de cada municipio. La ficha vive en `ficha.html` y admite un municipio por código INE,
 `ficha.html?municipio=38038`, o una isla, `ficha.html?isla=tenerife` (un
 enlace antiguo del tipo `index.html?municipio=38038` redirige solo). La
 dirección estable de cada ficha es `m/38038.html` o `i/tenerife.html`: un
@@ -80,7 +79,7 @@ requirements.txt     dependencias de Python; package.json, las de las pruebas (P
 pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
-web/index.html       portada: buscador y mapa de las siete islas, con sus municipios
+web/index.html       portada: buscador y una tarjeta por isla, con sus municipios
 web/ficha.html       la ficha municipal y la ficha de isla
 web/comparar.html    hasta tres municipios en paralelo, o tres islas
 web/guia.html        qué mide cada indicador y con qué cuenta se obtiene
@@ -90,7 +89,7 @@ web/config.js        la URL pública y los orígenes del iframe, generados desde
 web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque y el aviso al enmarcar
 web/datos-ui.js      la fuente de cada gráfico
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; la ficha municipal y la de isla
-web/portada.js       buscador, mapa de las islas, pestañas y panel de la portada
+web/portada.js       buscador, tarjetas de isla con su desplegable y entrada de la portada
 web/comparar.js      el comparador
 web/guia.js          la guía
 web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
@@ -297,18 +296,18 @@ desplegable de la barra es uno solo para todo: cada isla abre su grupo con
 municipio y del municipio a la isla sin cambiar de página; la pirámide se
 transforma entre unas y otras.
 
-**La portada es el mapa.** Las siete islas dibujadas con los mismos límites
-municipales fundidos (`portada.js`), cada una con su nombre apoyado en el
-centro de gravedad de la isla (en Lanzarote los islotes del norte estiran la
-caja y el centro caía en el mar) o debajo cuando no cabe; al elegir una, el
-panel ofrece primero la ficha de la isla entera, en azul, y debajo la de cada
-municipio, por orden alfabético. Las pestañas bajo el mapa eligen lo mismo:
-son el camino del teclado y del lector de pantalla (patrón de pestañas, con
-las flechas), y el mapa va oculto a las tecnologías de apoyo porque es
-redundante con ellas. En pantallas de menos de 600 px el mapa se dibuja sin
-rótulos, que ya llevan las pestañas. El buscador encuentra islas y
-municipios, las islas primero. El mapa se dibuja al ancho real y se
-redibuja al cambiarlo, igual que los gráficos de la ficha.
+**La portada son las siete islas.** Una tarjeta por isla, las siete iguales
+y en una fila (en el móvil, apaisadas en una columna), cada una con su
+silueta dibujada con los mismos límites municipales fundidos (`portada.js`),
+su nombre y cuántos municipios tiene. La tarjeta despliega la lista de fichas
+de esa isla: la isla entera primero, en azul, y debajo cada municipio por
+orden alfabético; los siete desplegables miden lo mismo, como pidió Pedro
+para las listas de isla, y el de las tarjetas del extremo se alinea a la
+derecha para no salirse de la tapa. La opción señalada va en claro con una
+marca azul, para que el azul pleno sea solo el de la isla entera. El buscador
+encuentra islas y municipios, las islas primero. Se probó antes un mapa
+grande del archipiélago con pestañas y un panel; Diego prefirió las
+tarjetas, más limpias y del mismo tamaño.
 
 **Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
 otro, con el reparto escrito debajo.
@@ -463,12 +462,13 @@ npm test
   teclado; el comparador de islas (islas con islas, y cambiar de modo vacía
   la comparación y cambia el desplegable y los rótulos); el fallo de carga
   inicial visible en el comparador y en la portada (buscador desactivado);
-  la portada (las siete islas en el mapa de oeste a este, sin desbordes a
-  320, 375 y 1280, elegir en el mapa marca la pestaña y el panel ofrece la
-  isla entera en otro color y sus 31 municipios, las flechas cambian de
-  isla con el foco, `#lanzarote` abre la portada con esa isla, el buscador
-  como combobox con `aria-activedescendant`, Escape, las islas antes que
-  los municipios y Enter abre la primera); el dossier que reintenta una
+  la portada (siete tarjetas del mismo tamaño, en una fila a 1280, que
+  abren dentro de la pantalla a 320, 375 y 1280 y sin desbordes, siete
+  desplegables del mismo alto que empiezan por la isla entera en otro color
+  y siguen con sus 31 municipios, Inicio, Fin, Escape y el foco, también
+  abiertas con el ratón; el buscador como combobox con
+  `aria-activedescendant`, Escape, las islas antes que los municipios y
+  Enter abre la primera); el dossier que reintenta una
   petición fallida y se desplaza con teclado en pantallas estrechas; la
   ficha enmarcada en otro origen, que pasa al aviso, y enmarcada en la propia
   web, que se muestra; la guía (los enunciados de Pedro, sin edad media ni
@@ -504,11 +504,10 @@ origen extranjero y de componentes llevan una tabla oculta con su serie;
 cada gráfico lleva su descripción y su fuente, y las cifras del comparador
 son una tabla con encabezados de fila y columna. El buscador de la portada es
 un combobox: el foco no sale del campo y la opción activa se señala con
-`aria-activedescendant`. Las islas de la portada son pestañas (`tablist`,
-flechas, Inicio y Fin, una sola en el orden del tabulador; hasta que se
-elige una, ninguna va marcada como seleccionada y el panel, con nombre
-propio, dice que hay que elegir) y el mapa, que elige lo mismo con el ratón
-o el dedo, queda oculto a las tecnologías de apoyo. En la ficha de isla, la
+`aria-activedescendant`. Cada tarjeta de isla es un botón que abre un
+`listbox` (flechas, Inicio, Fin y Escape, que devuelve el foco; con el ratón,
+Safari no da el foco al botón y se le da a mano para que lleguen las teclas),
+y su silueta queda oculta a las tecnologías de apoyo. En la ficha de isla, la
 lista de municipios es una lista ordenada de enlaces, señalar uno lo destaca
 solo en el mapa de la isla (el de Canarias no responde) y el resaltado se
 suelta al salir; la escalera de índices es una lista ordenada por índice. La

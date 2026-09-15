@@ -19,7 +19,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=87">
+<link rel="stylesheet" href="estilos.css?v=88">
 </head>
 <body>
 
@@ -51,14 +51,9 @@
       </div>
     </div>
 
-    <!-- El mapa y las pestañas eligen la misma isla; el panel ofrece primero la
-         ficha de la isla entera y debajo la de cada municipio. -->
+    <!-- Una tarjeta por isla; cada una despliega la ficha de la isla entera y, debajo, la de cada municipio. -->
     <section class="archipielago" aria-label="Elegir una isla">
-      <div class="mapa-islas ent" id="mapa-islas"></div>
-      <div class="islas-pestanas ent" id="islas" role="tablist" aria-label="Islas, de oeste a este"></div>
-      <div class="panel-isla" id="panel-isla" role="tabpanel" aria-label="Isla elegida">
-        <p class="panel-vacio">Elige una isla: primero va su ficha completa y, debajo, la de cada uno de sus municipios.</p>
-      </div>
+      <div class="islas-tarjetas" id="islas"></div>
     </section>
 
     <div class="atajos">
@@ -72,9 +67,9 @@
 
 <!-- Sin JavaScript la clase «espera» no se retiraría nunca: aquí se anula. -->
 <noscript><style>.tapa.espera .ent { opacity: 1; }</style></noscript>
-<script src="config.js?v=87"></script>
-<script src="comun.js?v=87"></script>
-<script src="iconos.js?v=87"></script>
-<script src="portada.js?v=87" onerror="document.querySelector('.tapa').classList.remove('espera')"></script>
+<script src="config.js?v=88"></script>
+<script src="comun.js?v=88"></script>
+<script src="iconos.js?v=88"></script>
+<script src="portada.js?v=88" onerror="document.querySelector('.tapa').classList.remove('espera')"></script>
 </body>
 </html>
