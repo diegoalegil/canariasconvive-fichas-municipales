@@ -300,6 +300,15 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal((await ejeExtranjero()).eje, esperado, 'el tope siempre rotulado');
   assert.equal(await page.locator('#g-extranjero .oculto tbody tr').count(), oliva.extranjero.anios.length);
   assert.equal(await page.locator('#g-componentes .oculto tbody tr').count(), oliva.componentes.anios.filter((a) => a >= 2002).length);
+  // El eje de componentes: cada lado con su tope (Güímar baja poco y su lado negativo es corto).
+  await page.selectOption('#sel-municipio', '38020');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Güímar');
+  await espera(400);
+  const ejeComp = await page.locator('#g-componentes svg text').evaluateAll((ts) => ts.map((t) => t.textContent).filter((t) => !/^20\d\d$/.test(t)).map((t) => parseInt(t.replace(/\./g, ''), 10)));
+  const comp = (await json(path.join(WEB, 'datos/mun/38020.json'))).componentes;
+  const serie = comp.anios.flatMap((a, i) => a >= 2002 ? [comp.vegetativo[i], comp.migratorio[i]] : []).filter((v) => v != null);
+  assert.ok(Math.max(...ejeComp) >= Math.max(...serie) && Math.min(...ejeComp) <= Math.min(...serie), `el eje cubre las barras: ${ejeComp}`);
+  assert.ok(-Math.min(...ejeComp) < Math.max(...ejeComp) / 2, `el lado negativo se ajusta a sus barras: ${ejeComp}`);
   // Tías: municipio y Canarias empatan a 41,6 en dependencia y llevan el mismo tono.
   await page.selectOption('#sel-municipio', '35028');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Tías');

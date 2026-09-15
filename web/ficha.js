@@ -453,25 +453,30 @@ function graficoComponentes(c, w, h) {
   const V = idx.map((i) => c.vegetativo[i]);
   const S = idx.map((i) => c.migratorio[i]);
 
-  // Eje ajustado a cada municipio (Pedro): paso redondo para unas cuatro
-  // divisiones por lado y tope en el múltiplo justo por encima de la barra más larga.
+  // Eje ajustado a cada municipio (Pedro): el mismo paso redondo a los dos
+  // lados y cada lado con su tope, el múltiplo justo por encima de su barra más
+  // larga; sin negativos, el cero es el suelo del gráfico.
   const vals = [...V, ...S].filter((v) => v != null && isFinite(v));
-  const maximo = Math.max(...vals.map(Math.abs));
-  const paso = pasoRedondo(maximo, 4);
-  const tope = Math.max(paso, Math.ceil(maximo / paso - 1e-9) * paso);
-  const py = (v) => m.t + (tope - v) / (2 * tope) * (h - m.t - m.b);
+  const paso = pasoRedondo(Math.max(...vals.map(Math.abs)), 4);
+  const tope = (v) => Math.max(0, Math.ceil(v / paso - 1e-9) * paso);
+  const topePos = Math.max(paso, tope(Math.max(0, ...vals)));
+  const topeNeg = tope(Math.max(0, ...vals.map((v) => -v)));
+  const rango = topePos + topeNeg;
+  const py = (v) => m.t + (topePos - v) / rango * (h - m.t - m.b);
   // Rótulo en el cero, en los topes y en los pasos intermedios que quepan.
-  const cadaRotulo = (h - m.t - m.b) / (2 * tope / paso) >= fe * 1.6 ? 1 : 2;
+  const cadaRotulo = (h - m.t - m.b) / (rango / paso) >= fe * 1.6 ? 1 : 2;
   const ancho = (w - m.l - m.r) / A.length;
   const bw = Math.min(ancho * 0.38, P ? 7 : 13);
   // Eje temporal cada dos años (Pedro), también en papel; en pantallas estrechas cada cuatro.
   const cadaAnio = !P && w < 430 ? 4 : 2;
 
   let rejilla = '', ejeY = '';
-  for (let k = -tope / paso; k <= tope / paso; k++) {
+  for (let k = -topeNeg / paso; k <= topePos / paso; k++) {
     const v = k * paso;
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? C.gris40 : C.rejilla}"/>`;
-    if (k === 0 || Math.abs(v) === tope || (k % cadaRotulo === 0 && tope - Math.abs(v) >= cadaRotulo * paso)) {
+    const esTope = v === topePos || v === -topeNeg;
+    const hastaTope = v > 0 ? topePos - v : topeNeg + v;
+    if (k === 0 || esTope || (k % cadaRotulo === 0 && hastaTope >= cadaRotulo * paso)) {
       ejeY += `<text x="${m.l - (P ? 5 : 9)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}</text>`;
     }
   }

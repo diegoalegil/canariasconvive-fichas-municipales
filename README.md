@@ -235,9 +235,11 @@ la de componentes del cambio, igual.
 **Componentes del cambio.** Crecimiento vegetativo y saldo migratorio desde
 2002, que es donde arranca la serie del saldo; el eje temporal va cada dos
 años, también en papel, y cada cuatro en pantallas estrechas. El eje vertical
-se ajusta a cada municipio, como la pirámide: paso redondo (1-2-5) para unas
-cuatro divisiones por lado y tope en el múltiplo justo por encima de la barra
-más larga; se rotulan el cero, los topes y los pasos que quepan.
+se ajusta a cada municipio, como la pirámide: el mismo paso redondo (1-2-5) a
+los dos lados y cada lado con su tope, el múltiplo justo por encima de su
+barra más larga (el negativo no baja más de lo que bajan sus barras; sin
+negativos, el cero es el suelo); se rotulan el cero, los topes y los pasos
+que quepan.
 
 **El municipio en su entorno.** Tres mapas —Canarias, la isla y la comarca—
 con el puesto por población y el peso en cada ámbito; la unidad territorial
