@@ -192,15 +192,15 @@ function conectarListaMunicipios() {
 
 /** Los municipios de la isla de mayor a menor población, cada uno con su barra
  *  de fondo proporcional al mayor, sus habitantes y su peso en la isla; el
- *  nombre lleva a su ficha. En el dossier, `paginas` añade la hoja de cada uno.
- *  El reparto en columnas lo decide el número de municipios (y el papel). */
-function listaMunicipios(f, paginas = null) {
+ *  nombre lleva a su ficha. El reparto en columnas lo decide el número de
+ *  municipios (y el papel). */
+function listaMunicipios(f) {
   const max = f.municipios[0].poblacion, n = f.municipios.length;
   const cols = IMPRIMIENDO ? (n > 20 ? 4 : n > 5 ? 3 : 2) : (n > 12 ? 2 : 1);
   return `<ol class="lista-mun" style="--cols:${cols}">` + f.municipios.map((m, i) => `
     <li data-codmun="${m.codmun}" style="--w:${(m.poblacion / max * 100).toFixed(1)}%">
       <a href="${rutaWeb(`m/${m.codmun}.html`)}"><em>${i + 1}</em> ${esc(m.nombre)}</a>
-      <b>${nf(m.poblacion)}</b><span>${pct(m.peso, 1)}</span>${paginas ? `<i>${paginas.get(m.codmun)}</i>` : ''}
+      <b>${nf(m.poblacion)}</b><span>${pct(m.peso, 1)}</span>
     </li>`).join('') + '</ol>';
 }
 
@@ -854,7 +854,7 @@ function rotulosFicha(f, ent) {
   return ent.isla ? {
     migas: `Canarias · ${f.municipios.length} municipios`,
     entorno: ['La isla en Canarias', 'Su puesto y su peso por población'],
-    municipios: `Los ${f.municipios.length} municipios de la isla, de mayor a menor población, y su peso en ella`,
+    municipios: `Los ${f.municipios.length} municipios de la isla y su peso demográfico de mayor a menor`,   // literal de Pedro
     indices: 'Las siete islas y Canarias, ordenadas de menor a mayor valor',
     comparar: `comparar.html?i=${f.slug}`,
     titulo: `${f.nombre} · Ficha de la isla · Canarias Convive`,

@@ -355,7 +355,8 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   const envoltorio = await fs.readFile(path.join(WEB, 'i/tenerife.html'), 'utf8');
   assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), /<meta property="og:description" content="([^"]*)">/.exec(envoltorio)[1]);
   assert.deepEqual(await page.locator('.vista').allTextContents(), ['Isla y Canarias', 'Isla: Según origen'], 'las pestañas dicen «Isla»');
-  // Sus municipios: los 31 de mayor a menor población, cada uno con enlace a su ficha.
+  // Sus municipios: el enunciado de Pedro, los 31 de mayor a menor población, cada uno con enlace a su ficha.
+  assert.equal(await page.locator('#sub-municipios').textContent(), 'Los 31 municipios de la isla y su peso demográfico de mayor a menor');
   const filas = await page.locator('.lista-mun li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, parseInt(l.querySelector('b').textContent.replace(/\./g, ''), 10)]));
   assert.equal(filas.length, 31);
   assert.ok(filas.every((f, i) => !i || f[1] <= filas[i - 1][1]), 'de mayor a menor');
@@ -897,7 +898,7 @@ test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98
   assert.equal(await page.locator('.hoja-ficha .mapas.dos').count(), 3, 'las tres hojas de El Hierro llevan dos mapas');
   assert.equal(await page.locator('.hoja-isla').count(), 7, 'la ficha de cada isla abre su grupo');
   assert.equal(await page.locator('.hoja-ficha').first().evaluate((h) => h.classList.contains('hoja-isla') && h.querySelector('.d-migas').textContent), 'Canarias · 3 municipios', 'la primera hoja es la de la isla de El Hierro');
-  assert.deepEqual(await page.locator('.hoja-isla').first().locator('.lista-mun i').allTextContents(), ['7', '6', '5'], 'la lista de la isla lleva la hoja de cada municipio (de mayor a menor población)');
+  assert.deepEqual(await page.locator('.hoja-isla').first().locator('.lista-mun span').allTextContents().then((t) => t.map((x) => x.replace(/\s/g, ''))), ['44,2%', '38,8%', '17,0%'], 'la lista de la isla lleva el peso de cada municipio, también en papel');
   assert.equal(await page.locator('.hoja-ficha:not(.hoja-isla) .d-migas').first().textContent(), 'El Hierro', 'la primera hoja municipal es de El Hierro, sin comarca repetida');
   assert.match(await page.locator('.hoja-texto').nth(1).textContent(), /El Hierro la isla · 4/, 'el índice lleva la hoja de la ficha de cada isla');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');

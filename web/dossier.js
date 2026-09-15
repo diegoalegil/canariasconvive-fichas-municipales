@@ -9,9 +9,9 @@ const DIRECCION_WEB = URL_PUBLICA_SITIO.replace(/^https?:\/\//, '').replace(/\/$
 
 /* ----------------------------------------------------------- una ficha ---- */
 /** La tarjeta del entorno: los mapas del municipio o, en la isla, la isla en
- *  Canarias (con sus municipios al lado) y la lista de sus municipios con la
- *  hoja de cada uno. */
-function tarjetasEntorno(f, ent, paginas) {
+ *  Canarias y la lista de sus municipios (la misma que en pantalla; la hoja de
+ *  cada uno está en el índice). */
+function tarjetasEntorno(f, ent) {
   const niveles = nivelesMapas(f);
   const wMapa = ent.isla ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
   const mapas = niveles.map(([tit, filtro, r, lim, foco]) => `
@@ -34,12 +34,12 @@ function tarjetasEntorno(f, ent, paginas) {
     </section>
     <section class="tarjeta dos-tercios municipios-isla">
       <header class="rotulo">${icono('poblacion', 13)}<div><h2>Sus municipios</h2>
-        <p>Los ${f.municipios.length} municipios de la isla, de mayor a menor población, su peso en ella y su hoja</p></div></header>
-      <div class="cuerpo">${listaMunicipios(f, paginas)}${fuenteGrafico('municipios')}</div>
+        <p>Los ${f.municipios.length} municipios de la isla y su peso demográfico de mayor a menor</p></div></header>
+      <div class="cuerpo">${listaMunicipios(f)}${fuenteGrafico('municipios')}</div>
     </section>`;
 }
 
-function hojaFicha(f, pagina, paginas = null) {
+function hojaFicha(f, pagina) {
   const ent = entidad(f);
   const wEv = anchoHoja(7), wEx = anchoHoja(5), wPi = anchoHoja(7), wCo = anchoHoja(6);
   const ev = f.evolucion;
@@ -71,7 +71,7 @@ function hojaFicha(f, pagina, paginas = null) {
           <div class="leyenda">${leyendaExtranjero(f, 2)}</div>${fuenteGrafico('extranjero')}</div>
       </section>
 
-      ${tarjetasEntorno(f, ent, paginas)}
+      ${tarjetasEntorno(f, ent)}
 
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
@@ -261,7 +261,7 @@ async function iniciarDossier() {
   aviso.textContent = 'Componiendo las hojas…';
   const partes = [hojaPortada(), hojaGuia(fichas, 2), hojaIndice(grupos, 3)];
   for (const g of grupos) {
-    partes.push(hojaFicha(g.isla, g.paginaIsla, new Map(g.fichas.map((f, i) => [f.codmun, g.paginaPrimera + i]))));
+    partes.push(hojaFicha(g.isla, g.paginaIsla));
     g.fichas.forEach((f, i) => partes.push(hojaFicha(f, g.paginaPrimera + i)));
   }
 

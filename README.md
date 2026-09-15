@@ -324,10 +324,12 @@ extranjero, pirámide con las pestañas «Isla y Canarias» e «Isla: según
 origen», componentes y lugar de nacimiento). Los otros dos: en vez de «El
 municipio en su entorno», «La isla en Canarias» (la isla destacada en el
 archipiélago, su puesto entre las siete y su peso, y debajo la isla con sus
-términos municipales) junto a «Sus municipios», la lista de mayor a menor
-población con una barra de fondo proporcional al mayor, sus habitantes y su
-peso en la isla, cada uno enlazado a su ficha (señalar uno en la lista lo
-destaca en el mapa); y en «Información geodemográfica», las siete islas y
+términos municipales) junto a «Sus municipios» («Los 31 municipios de la
+isla y su peso demográfico de mayor a menor», con las palabras de Pedro), la
+lista de mayor a menor población con una barra de fondo proporcional al
+mayor, sus habitantes y su peso en la isla, cada uno enlazado a su ficha
+(señalar uno en la lista lo destaca en el mapa); y en «Información
+geodemográfica», las siete islas y
 Canarias ordenadas de menor a mayor en cada índice, en una escalera vertical
 con la barra proporcional al mayor valor, la isla en azul y Canarias en gris,
 que es la escala de tres ámbitos de Pedro extendida a ocho. La cabecera dice
@@ -426,18 +428,18 @@ Pinar y Frontera, por su nota de 2007), y la hoja más alta del dossier,
 La ficha de isla también es una A4, con tres concesiones al papel: la
 tarjeta del mapa cede sitio a la lista de municipios (3/9 de la retícula en
 vez de 4/8) y lleva solo el mapa de Canarias, la lista va en cuatro columnas
-para Tenerife y Gran Canaria (tres o dos para las demás) sin la columna del
-peso, que no cabe, y los índices van a dos columnas dentro de su tarjeta.
-Las siete miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt.
+para Tenerife y Gran Canaria (tres o dos para las demás) con sus tres
+cifras, y los índices van a dos columnas dentro de su tarjeta. Las siete
+miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt.
 
 El dossier (`dossier.html`) compone las 98 hojas —portada, guía de uso,
 índice y, por cada isla, su ficha seguida de una hoja por municipio— con las
 reglas de impresión de `estilos.css`, que copia en caliente, y los mismos
 gráficos que la ficha, con la misma placa en la cabecera de cada hoja. La
-ficha de la isla hace de portada de su grupo: su lista de municipios lleva
-la hoja de cada uno, y el índice, la hoja de cada isla. Las hojas de isla
-miden 293,4 mm de 297. Las 95 fichas se piden a la vez y lo que falle se
-vuelve a pedir hasta dos veces antes de dar el error.
+ficha de la isla hace de portada de su grupo, y el índice lleva la hoja de
+cada isla y de cada municipio. Las hojas de isla miden 292,6 mm de 297. Las
+95 fichas se piden a la vez y lo que falle se vuelve a pedir hasta dos veces
+antes de dar el error.
 
 ## Verificación
 
@@ -630,7 +632,7 @@ cambiar el origen en los dos sitios del fragmento de arriba.
 - [ ] Enseñar a Pedro lo que no ha visto desde la v=79: la portada con las
       tarjetas, la ficha de isla (títulos «La isla en Canarias», «Sus
       municipios», «Las siete islas y Canarias, ordenadas de menor a mayor
-      valor», y en papel la lista sin la columna del peso) y el comparador
+      valor») y el comparador
       de islas. Y las preguntas que quedan de la auditoría: Frontera y El
       Pinar en 2007, si juventud lleva «%», las cifras de color del lugar
       de nacimiento (no llegan al contraste AA; la alternativa es un chip de
