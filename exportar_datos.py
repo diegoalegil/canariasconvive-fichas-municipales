@@ -1,9 +1,8 @@
 # Exportación del libro BASE_DATOS_CANCON.xlsx a JSON para la web, con las
 # funciones de lectura del cuaderno FICHAS_MUNICIPALES.ipynb. Los cuatro índices
-# se leen ya calculados del Excel; la TVMA, la edad media y los puestos se
-# calculan aquí.
+# se leen ya calculados del Excel; la TVMA y los puestos se calculan aquí.
 #
-#  Salida:  web/datos/indice.json       · municipios, islas y fuentes
+#  Salida:  web/datos/indice.json       · municipios e islas
 #           web/datos/mun/<codmun>.json · una ficha por municipio
 import json
 import math
@@ -13,7 +12,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from metadatos import fuentes_indicadores
 from territorios import ISLAS, COMARCAS, EXC_GEO
 
 RUTA = Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
@@ -220,9 +218,6 @@ if _sin_cod:
 
 
 # --------------------------------------------------------------- cálculos ---
-MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase, 21 grupos
-
-
 def variacion(x, y, anio_base=ANIO_BASE_VAR):
     """(% acumulado, año inicial real, año final)."""
     d = dict(zip(x, y))
@@ -244,11 +239,6 @@ def tvma(x, y, anio_base=ANIO_BASE_VAR):
     if not d[a0] or n <= 0:
         return None
     return ((d[a1] / d[a0]) ** (1 / n) - 1) * 100
-
-
-def edad_media(h, m):
-    total = h + m
-    return float((total * np.array(MARCAS)).sum() / total.sum())
 
 
 def r2(v, dec=2):
@@ -356,7 +346,6 @@ for mun in MUNICIPIOS:
 
         "cifras": {
             "tvma": tvma(x1, y1),  # sin redondear: la web redondea una sola vez
-            "edad_media": r2(edad_media(h, m), 1),
             "hombres": int(h.sum()),
             "mujeres": int(m.sum()),
             "pct_hombres": r2(h.sum() / pob_pir * 100, 1),
@@ -442,18 +431,17 @@ indice = {
     "extranjero_canarias": float(_ext_canarias),
     "municipios": sorted(fichas, key=lambda f: _norm(f["nombre"])),
     "islas": {i: sorted(ISLAS[i], key=_norm) for i in ORDEN_ISLAS},
-    "fuentes_indicadores": fuentes_indicadores(RUTA, todas_las_fichas),
 }
 with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
 
 # ---------------------------------------------------------------------------
 # El eje de cada pirámide lo calcula la web (ejeAutomatico en web/comun.js): el
-# par más pequeño de 6, 8, 10… que cubre el grupo más numeroso de la pestaña,
-# cada población sobre su propio total. Aquí se repite el cálculo para dejar
-# escrito el reparto en cada exportación y avisar de un escalón por encima de 14.
+# entero más pequeño que cubre el grupo más numeroso de la pestaña, cada
+# población sobre su propio total. Aquí se repite el cálculo para dejar escrito
+# el reparto en cada exportación y avisar de un eje por encima de 14.
 def _eje_automatico(maximo):
-    return max(6, math.ceil(maximo / 2) * 2)
+    return max(1, math.ceil(maximo - 1e-9))
 
 def _modal(H, M):
     tot = sum(H) + sum(M)
@@ -462,7 +450,8 @@ def _modal(H, M):
 _ejes = {"canarias": [], "municipio": []}
 for f in todas_las_fichas:
     pi = f["piramide"]
-    _ejes["canarias"].append((_eje_automatico(_modal(pi["hombres"], pi["mujeres"])), f["nombre"]))
+    _ejes["canarias"].append((_eje_automatico(max(_modal(pi["hombres"], pi["mujeres"]),
+                                                  max(pi["canarias_hombres"] + pi["canarias_mujeres"]))), f["nombre"]))
     if pi.get("extranjera_hombres"):
         eh, em = pi["extranjera_hombres"], pi["extranjera_mujeres"]
         esph = [max(0, a - b) for a, b in zip(pi["hombres"], eh)]

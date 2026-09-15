@@ -188,6 +188,7 @@ ENVOLTORIO = """<!DOCTYPE html>
 # fichero y volver a ejecutar este script.
 SITIO = json.loads((AQUI / "sitio.json").read_text(encoding="utf-8"))
 BASE = SITIO["url_publica"].rstrip("/")
+ORIGENES = SITIO.get("origenes_iframe", [])   # los sitios que pueden enmarcar la web (comun.js)
 
 PAGINAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html",
            "guia": "guia.html", "dossier": "dossier.html"}
@@ -198,11 +199,12 @@ def _meta(html, propiedad, valor):
     return re.sub(patron, lambda m: m.group(1) + valor + m.group(2), html)
 
 
-def reescribir_paginas(base, web=WEB, anio=None):
+def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
     """Canónica, og:url y og:image de las cinco páginas, la fecha del dato en
-    la descripción de la portada, el enlace de vuelta de 404.html y
-    web/config.js, con la URL pública dada (sin barra final). Devuelve los
-    ficheros tocados."""
+    la descripción de la portada, el enlace de vuelta de 404.html y de
+    enmarcada.html, y web/config.js (URL pública y orígenes que pueden enmarcar
+    la web), con la URL pública dada (sin barra final). Devuelve los ficheros
+    tocados."""
     base = base.rstrip("/")
     tocados = []
     for nombre, ruta in PAGINAS.items():
@@ -217,15 +219,17 @@ def reescribir_paginas(base, web=WEB, anio=None):
             html = re.sub(r"1 de enero de \d{4}\.", f"1 de enero de {anio}.", html)
         p.write_text(html, encoding="utf-8")
         tocados.append(p)
-    p = web / "404.html"
-    if p.exists():
-        html = re.sub(r'(<a class="btn" href=")[^"]*(">)', lambda m: m.group(1) + base + "/" + m.group(2),
-                      p.read_text(encoding="utf-8"))
-        p.write_text(html, encoding="utf-8")
-        tocados.append(p)
+    for nombre in ("404.html", "enmarcada.html"):
+        p = web / nombre
+        if p.exists():
+            html = re.sub(r'(<a class="btn" href=")[^"]*(")', lambda m: m.group(1) + base + "/" + m.group(2),
+                          p.read_text(encoding="utf-8"))
+            p.write_text(html, encoding="utf-8")
+            tocados.append(p)
     config = web / "config.js"
     config.write_text("// Generado por generar_tarjetas.py desde sitio.json. No editar a mano.\n"
-                      f"const URL_PUBLICA = {json.dumps(base + '/')};\n", encoding="utf-8")
+                      f"const URL_PUBLICA = {json.dumps(base + '/')};\n"
+                      f"const ORIGENES_IFRAME = {json.dumps(list(origenes))};\n", encoding="utf-8")
     tocados.append(config)
     return tocados
 
@@ -254,7 +258,7 @@ def main():
     if Image is None:
         raise SystemExit("Hace falta Pillow para las tarjetas: pip install -r requirements.txt")
     SALIDA_OG.mkdir(exist_ok=True)
-    reescribir_paginas(BASE, anio=idx["anio"])
+    reescribir_paginas(BASE, anio=idx["anio"], origenes=ORIGENES)
     escribir_envoltorios(idx, BASE)
 
     guardar(tarjeta_portada(idx), SALIDA_OG / "portada.png")

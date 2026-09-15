@@ -10,14 +10,18 @@ const GRIS_REF = '#9AA0A6';
 
 let INDICE = null;
 let ELEGIDOS = [];         // fichas completas, en el orden en que se añadieron
-let ORDEN = 'poblacion';   // orden de presentación: habitantes, nombre o elección
+let ORDEN = 'poblacion';   // criterio de orden: una cifra clave o un índice
 
-/** Las fichas en el orden de presentación (`ELEGIDOS` conserva el de elección). */
+// Las columnas van siempre de mayor a menor por el criterio elegido (Pedro).
+const CRITERIOS = {
+  poblacion: (f) => f.poblacion, tvma: (f) => f.cifras.tvma,
+  pct_mujeres: (f) => f.cifras.pct_mujeres, pct_hombres: (f) => f.cifras.pct_hombres,
+  C10: (f) => f.indices.C10.municipio, C11: (f) => f.indices.C11.municipio,
+  C17: (f) => f.indices.C17.municipio, C14: (f) => f.indices.C14.municipio,
+};
 function ordenados() {
-  const l = [...ELEGIDOS];
-  if (ORDEN === 'poblacion') l.sort((a, b) => b.poblacion - a.poblacion);
-  if (ORDEN === 'nombre') l.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  return l;
+  const valor = CRITERIOS[ORDEN] || CRITERIOS.poblacion;
+  return [...ELEGIDOS].sort((a, b) => (valor(b) ?? -Infinity) - (valor(a) ?? -Infinity));
 }
 
 /** El color de un municipio es el del hueco que ocupó al elegirlo. */
@@ -116,7 +120,6 @@ function anillo(porcentaje, color, radio = 62, grosor = 22) {
 function seccionCifras() {
   const filas = [
     ['Habitantes', 'personas', (f) => nf(f.poblacion)],
-    ['Edad media', 'años', (f) => nf(f.cifras.edad_media, 1)],
     ['Variación media anual', '% medio por año',
       (f) => `${f.cifras.tvma >= 0 ? '+' : '−'}${nf(Math.abs(f.cifras.tvma), 1)}${UNI}%`
            + `<em>${f.evolucion.anio_base}–${f.evolucion.anio_fin}</em>`],
@@ -148,7 +151,6 @@ function seccionPiramides(ancho) {
       <div class="cmp-col">
         <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
         ${piramide(f, tope, ancho)}
-        ${f.poblacion < 5000 ? `<p class="cmp-aviso">Con ${nf(f.poblacion)} habitantes, cada franja de cinco años reúne pocas personas y la silueta sale irregular. No se ha suavizado.</p>` : ''}
       </div>`).join('')}
   </div>
   <div class="leyenda">
@@ -197,32 +199,31 @@ function seccionIndices() {
 function seccionNacimiento() {
   const cats = ELEGIDOS[0].origen.categorias;
   // El rótulo de cada municipio va en azul; el de Canarias, la referencia, en negro.
+  // Cada cifra va del tono de su tramo de la barra (Pedro).
   const fila = (rot, vals, municipio) => `
     <div class="cmp-apilada">
       <span class="cmp-barra-rot" ${municipio ? 'style="color:var(--azul)"' : ''}>${esc(rot)}</span>
       ${barraApilada(vals)}
-      <span class="cmp-barra-val">${vals.map((v) => nf(v, 1)).join(' · ')}</span>
+      <span class="cmp-barra-val">${vals.map((v, i) => `<b style="color:${TONOS_ORIGEN[i]}">${nf(v, 1)}</b>`).join(' · ')}</span>
     </div>`;
   return `
     ${ordenados().map((f) => fila(f.nombre, f.origen.municipio, true)).join('')}
     ${fila('Canarias', ELEGIDOS[0].origen.canarias, false)}
     <div class="leyenda">
       ${cats.map((c, i) => `<span><i class="llave" style="background:${TONOS_ORIGEN[i]}"></i>${esc(c)}</span>`).join('')}
-    </div>
-    <p class="cmp-escala">Cada barra suma el 100 % de la población de su municipio, así que se pueden comparar entre sí sea cual sea su tamaño.</p>`;
+    </div>`;
 }
 
+/** Una sola magnitud: los anillos van del mismo azul y de mayor a menor (Pedro). */
 function seccionExtranjero() {
   const canarias = ultimoValido(ELEGIDOS[0].extranjero.canarias);
+  const porValor = ELEGIDOS.map((f) => [f, ultimoValido(f.extranjero.municipio)]).sort((a, b) => (b[1] ?? -Infinity) - (a[1] ?? -Infinity));
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
-      ${ordenados().map((f) => {
-        const v = ultimoValido(f.extranjero.municipio);
-        return `<div class="cmp-col">
+      ${porValor.map(([f, v]) => `<div class="cmp-col">
           <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
           <p><b>${pct(v)}</b> de su población</p>
-          ${anillo(v, tono(f))}
-        </div>`;
-      }).join('')}
+          ${anillo(v, '#185FA5')}
+        </div>`).join('')}
     </div>
     <p class="cmp-escala">En el conjunto de Canarias son ${pct(canarias)}.</p>`;
 }
@@ -316,10 +317,14 @@ async function iniciar() {
 
   INDICE = await leerJSON('datos/indice.json');
 
-  document.getElementById('sel-orden').addEventListener('change', (e) => {
-    ORDEN = e.target.value;
+  // Dos desplegables, un solo criterio: elegir en uno deja el otro sin elección.
+  const selectores = ['sel-orden-cifras', 'sel-orden-indices'].map((id) => document.getElementById(id));
+  selectores.forEach((sel) => sel.addEventListener('change', () => {
+    if (!sel.value) { sel.value = [...sel.options].some((o) => o.value === ORDEN) ? ORDEN : ''; return; }
+    ORDEN = sel.value;
+    selectores.forEach((otro) => { if (otro !== sel) otro.value = ''; });
     if (ELEGIDOS.length) pintar(true);
-  });
+  }));
 
   const sel = document.getElementById('sel-anadir');
   sel.innerHTML = '<option value="">Añadir municipio…</option>'

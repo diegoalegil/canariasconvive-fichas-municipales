@@ -6,7 +6,7 @@ Comprueba lo que no puede fallar sin que la ficha mienta: que hay 88
 municipios, que cada pirámide suma su población y las 88 suman Canarias, que
 la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
 por lugar de nacimiento suman cien, que los cuatro índices están en los tres
-ámbitos, que cada indicador tiene su fuente con enlace https, que los 88
+ámbitos, que cada fuente de gráfico lleva el año de referencia, que los 88
 envoltorios de web/m/ apuntan a la URL pública de sitio.json y llevan la
 población y el año de los datos (con su tarjeta og), que la serie de origen
 extranjero se muestra con un solo redondeo, que las islas van en el mismo orden
@@ -41,11 +41,12 @@ indice = json.loads((WEB / "datos/indice.json").read_text(encoding="utf-8"))
 sitio = json.loads((RAIZ / "sitio.json").read_text(encoding="utf-8"))
 url_publica = sitio["url_publica"]
 comprobar(url_publica.startswith("https://") and url_publica.endswith("/"), "sitio.json: url_publica debe ser https y acabar en /")
-comprobar(url_publica in (WEB / "config.js").read_text(encoding="utf-8"), "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
+config = (WEB / "config.js").read_text(encoding="utf-8")
+comprobar(url_publica in config, "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
+comprobar(all(o in config for o in sitio.get("origenes_iframe", [])), "web/config.js no lleva los orígenes de sitio.json: ejecutar generar_tarjetas.py")
 
 municipios = indice["municipios"]
 comprobar(len(municipios) == 88, f"indice.json: {len(municipios)} municipios, no 88")
-MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase de la edad media (exportar_datos.py)
 suma = 0
 primer_anio = None
 for m in municipios:
@@ -71,10 +72,6 @@ for m in municipios:
     if isinstance(p.get("extranjera_hombres"), list) and isinstance(p.get("extranjera_mujeres"), list):
         comprobar(all(p["extranjera_hombres"][i] <= p["hombres"][i] and p["extranjera_mujeres"][i] <= p["mujeres"][i] for i in range(21)),
                   f"{f['nombre']}: nacidos fuera por encima del total en algún grupo")
-    # La edad media es la de la propia pirámide, con las marcas de clase del exportador.
-    totales = [h + mu for h, mu in zip(p["hombres"], p["mujeres"])]
-    edad = sum(t * marca for t, marca in zip(totales, MARCAS)) / sum(totales)
-    comprobar(abs(edad - f["cifras"]["edad_media"]) <= 0.05 + 1e-9, f"{f['nombre']}: edad media {f['cifras']['edad_media']} y la pirámide da {edad:.3f}")
     ev = f["evolucion"]
     primer_anio = ev["anios"][0] if primer_anio is None else min(primer_anio, ev["anios"][0])
     serie = dict(zip(ev["anios"], ev["valores"]))
@@ -120,14 +117,6 @@ comprobar(len(codigos_geo) == 88 and set(codigos_geo) == {m["codmun"] for m in m
 comprobar(list(indice["islas"]) == ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"],
           f"indice.json: las islas no van de oeste a este: {list(indice['islas'])}")
 
-fuentes = indice.get("fuentes_indicadores", {})
-for clave in ("poblacion", "tvma", "edad", "sexo", "evolucion", "extranjero", "piramide", "nacimiento",
-              "vegetativo", "migratorio", "rankings", "envejecimiento", "juventud", "dependencia", "reemplazo"):
-    fu = fuentes.get(clave)
-    comprobar(fu is not None and fu.get("periodo") and fu.get("nota") and fu.get("enlaces"), f"fuentes_indicadores: falta o está incompleta «{clave}»")
-    for e in (fu or {}).get("enlaces", []):
-        comprobar(str(e.get("url", "")).startswith("https://") and e.get("organismo"), f"fuentes_indicadores «{clave}»: enlace sin https u organismo")
-
 # La fuente de cada gráfico (FUENTES_GRAFICOS en datos-ui.js) lleva los años de la
 # operación estadística escritos a mano: cuando se actualicen los datos, el año
 # de referencia del índice tiene que seguir apareciendo en cada una.
@@ -172,11 +161,13 @@ try:
     with tempfile.TemporaryDirectory() as tmp:
         web_tmp = Path(tmp) / "web"
         web_tmp.mkdir()
-        for pagina in [*RUTAS, "404"]:
+        for pagina in [*RUTAS, "404", "enmarcada"]:
             shutil.copy(WEB / f"{pagina}.html", web_tmp / f"{pagina}.html")
         ficticia = "https://ejemplo.test/fichas/"
-        reescribir_paginas(ficticia, web_tmp)
+        reescribir_paginas(ficticia, web_tmp, origenes=sitio.get("origenes_iframe", []))
         escribir_envoltorios(indice, ficticia, web_tmp)
+        comprobar(all(o in (web_tmp / "config.js").read_text(encoding="utf-8") for o in sitio.get("origenes_iframe", [])),
+                  "ensayo de mudanza: config.js no lleva los orígenes del iframe")
         dominio_actual = re.sub(r"^https?://", "", url_publica).split("/")[0]
         for f in sorted(web_tmp.rglob("*")):
             if f.is_file():
@@ -191,4 +182,4 @@ if fallos:
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(fuentes)} fuentes con enlace y {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")
+print(f"ok · 88 municipios, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

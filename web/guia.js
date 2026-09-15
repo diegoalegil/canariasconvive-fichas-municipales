@@ -1,6 +1,6 @@
 /* Guía de lectura: qué mide cada indicador y con qué cuenta se obtiene. Las
-   fórmulas de los cuatro índices son las del Excel (C10M, C11M, C14M y C17M).
-   Bajo cada indicador va su fuente con enlace y fecha, de indice.json. */
+   fórmulas de los cuatro índices son las del Excel (C10M, C11M, C14M y C17M);
+   los enunciados son los de Pedro. */
 
 /* ------------------------------------------------------------- fórmulas --- */
 /** División con barra horizontal; `coda` es lo que va detrás (× 100). Los dos
@@ -17,14 +17,8 @@ const INDICADORES = [
   {
     id: 'tvma', ico: 'variacion', nombre: 'Variación media anual',
     unidad: 'Se expresa en porcentaje anual',
-    mide: 'La tasa anual equivalente entre la población inicial y final. n es el número de años transcurridos.',
+    mide: 'Ritmo constante al que habría crecido la población cada año para pasar de la cifra inicial a la final. n es el número de años transcurridos.',
     formula: `<span class="frm" role="img" aria-label="Población final dividida por población inicial, elevada a uno partido por n; menos uno, por cien">[${fraccion('Población final', 'Población inicial')}<sup>1/n</sup> − 1] × 100</span>`,
-  },
-  {
-    id: 'edad', ico: 'edad', nombre: 'Edad media',
-    unidad: 'Se expresa en años; valor aproximado',
-    mide: 'Media ponderada de las marcas de los grupos de edad. Para el grupo de 100 o más se utiliza una marca de 102 años.',
-    formula: fraccion('Σ (marca del grupo × habitantes del grupo)', 'Total de habitantes'),
   },
   {
     id: 'envejecimiento', ico: 'edad', nombre: 'Índice de envejecimiento',
@@ -41,7 +35,7 @@ const INDICADORES = [
   {
     id: 'dependencia', ico: 'dependencia', nombre: 'Índice de dependencia',
     unidad: 'Se expresa por cien',
-    mide: 'Cuántas personas hay en los dos extremos de edad juntos por cada cien de 15 a 64.',
+    mide: 'Cuántas personas hay menores de 15 y mayores de 64 años por cada cien entre 15 y 64 años.',
     formula: fraccion('Menores de 15 + mayores de 64', 'Población de 15 a 64 años', '× 100'),
   },
   {
@@ -69,7 +63,7 @@ const INDICADORES = [
   {
     id: 'extranjero', ico: 'extranjero', nombre: 'Población de origen extranjero',
     unidad: 'Se expresa en porcentaje',
-    mide: 'Personas nacidas fuera de España, con independencia de su nacionalidad, por cada cien habitantes.',
+    mide: 'Personas nacidas fuera de España por cada cien habitantes.',
     formula: fraccion('Personas nacidas fuera de España', 'Total de habitantes', '× 100'),
   },
 ];
@@ -88,7 +82,6 @@ function pintarGuia() {
       <div class="cuerpo">
         <p class="guia-mide">${esc(x.mide)}</p>
         ${x.formula ? `<div class="guia-formula">${x.formula}</div>` : ''}
-        <div id="fuente-guia-${x.id}"></div>
       </div>
     </section>`).join('');
 
@@ -99,12 +92,4 @@ function pintarGuia() {
     b.insertAdjacentHTML('afterbegin', icono(b.dataset.ico, 15)));
 }
 
-if (document.getElementById('guia-fichas')) {
-  pintarGuia();
-  leerJSON('datos/indice.json').then((indice) => {
-    configurarFuentes(indice);
-    INDICADORES.forEach((x) => ponerDetalle(document.getElementById(`fuente-guia-${x.id}`), `detalle-guia-${x.id}`, fuenteHTML(x.id), String(indice.anio)));
-  }).catch(() => {
-    document.querySelector('.cmp-intro').insertAdjacentHTML('afterend', '<p class="aviso-carga" role="status">No se han podido cargar las fuentes. <a href="guia.html">Reintentar</a></p>');
-  });
-}
+if (document.getElementById('guia-fichas')) pintarGuia();

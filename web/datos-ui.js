@@ -1,6 +1,4 @@
-/* Fuente de cada gráfico («Fuente: …» al pie, en pantalla y en papel) y, para
-   la guía, el desplegable «Fuente y fecha» de cada indicador con los enlaces y
-   periodos de indice.json (`fuentes_indicadores`, escritos por metadatos.py). */
+/* Fuente de cada gráfico («Fuente: …» al pie, en pantalla y en papel). */
 
 /* Texto de cada fuente, con la redacción de Pedro. Los años son los de la
    operación estadística de origen, no se calculan con los datos: se revisan a
@@ -9,12 +7,12 @@
 const FUENTES_GRAFICOS = {
   evolucion: 'ISTAC. Cifras oficiales de población de los municipios, 1996–2025.',
   extranjero: 'ISTAC. Población según lugar de nacimiento, 2000–2025.',
-  mapas: 'GRAFCAN, límites municipales; ISTAC, cifras de población 2025. Elaboración propia.',
-  piramide: 'ISTAC. Población según sexo y grupos de edad, 2025. Elaboración propia.',
-  piramide_nacimiento: 'ISTAC. Población según sexo, edad y lugar de nacimiento, 2025. Elaboración propia.',
-  indices: 'ISTAC. Indicadores demográficos, 2025.',
+  mapas: 'GRAFCAN, límites municipales; ISTAC, cifras de población 2025.',
+  piramide: 'ISTAC. Población según sexo y grupos de edad, 2025.',
+  piramide_nacimiento: 'ISTAC. Población según sexo, edad y lugar de nacimiento, 2025.',
+  indices: 'ISTAC. Población según sexo y edades, 2025.',
   componentes: 'ISTAC. Movimiento natural de la población y estadística de migraciones, 2002–2024.',
-  nacimiento: 'ISTAC. Población según lugar de nacimiento, 2025. Elaboración propia.',
+  nacimiento: 'ISTAC. Población según lugar de nacimiento, 2025.',
 };
 function textoFuente(clave) { return `Fuente: ${FUENTES_GRAFICOS[clave]}`; }
 function fuenteGrafico(clave) { return `<p class="fuente-grafico">${esc(textoFuente(clave))}</p>`; }
@@ -41,27 +39,4 @@ function fuentesFicha(vistaPiramide = 0) {
 function fuentesComparador() {
   [['cmp-piramides', 'piramide'], ['cmp-indices', 'indices'], ['cmp-nacimiento', 'nacimiento'], ['cmp-extranjero', 'extranjero']]
     .forEach(([id, clave]) => ponerFuente(document.getElementById(id), `fuente-${id}`, clave));
-}
-
-/* ------------------------------------------------------------------- guía --- */
-let FUENTES_ACTUALES = {};
-function configurarFuentes(indice) { FUENTES_ACTUALES = indice.fuentes_indicadores || {}; }
-
-function fuenteHTML(clave) {
-  const fuente = FUENTES_ACTUALES[clave];
-  if (!fuente) return '';
-  const enlaces = fuente.enlaces.map((e) => `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.organismo)} · ${e.desde}–${e.hasta}<span class="oculto"> (abre otra pestaña)</span></a>`).join(' · ');
-  return `<div class="fuente-dato"><p><b>${esc(fuente.titulo)}</b> · Datos: ${esc(fuente.periodo || 'Fecha no disponible')}.</p>
-    <p>${esc(fuente.nota)}</p><p>${fuente.enlaces.length > 1 ? 'Enlaces' : 'Enlace'}: ${enlaces}.</p></div>`;
-}
-
-/** Desplegable bajo un elemento; `firma` evita reescribirlo si no ha cambiado. */
-function ponerDetalle(elemento, id, html, firma, rotulo = 'Fuente y fecha') {
-  if (!elemento) return;
-  let detalle = document.getElementById(id);
-  if (detalle?.dataset.firma === firma) return;
-  const abierto = detalle?.open || false;
-  if (!detalle) { detalle = document.createElement('details'); detalle.id = id; detalle.className = 'datos-detalle'; elemento.append(detalle); }
-  detalle.innerHTML = `<summary>${rotulo}</summary><div class="datos-contenido">${html}</div>`;
-  detalle.dataset.firma = firma; detalle.open = abierto;
 }

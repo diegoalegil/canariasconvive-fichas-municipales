@@ -1,5 +1,20 @@
 /* Ayudantes comunes a todas las páginas. Se carga antes que cualquier otro script. */
 
+/* Enmarcada en un sitio que no sea la propia web ni los de sitio.json
+   (ORIGENES_IFRAME, config.js), la página se sustituye por un aviso con el
+   camino a la web. Si no se puede saber quién la enmarca, no se bloquea. */
+(() => {
+  if (window.self === window.top) return;
+  let padre = null;
+  try {
+    padre = location.ancestorOrigins && location.ancestorOrigins.length ? location.ancestorOrigins[0]
+      : document.referrer ? new URL(document.referrer).origin : null;
+  } catch { padre = null; }
+  if (!padre) return;
+  const permitidos = [location.origin, ...(typeof ORIGENES_IFRAME !== 'undefined' ? ORIGENES_IFRAME : [])];
+  if (!permitidos.includes(padre)) location.replace(new URL('enmarcada.html', document.currentScript.src).href);
+})();
+
 /** Cifra en español: punto de millar siempre, coma decimal, `d` decimales. */
 const nf = (v, d = 0) => v == null || !isFinite(v)
   ? '—'
@@ -15,10 +30,10 @@ const ultimoValido = (V) => {
   for (let i = V.length - 1; i >= 0; i--) if (V[i] != null && isFinite(V[i])) return V[i];
   return null;
 };
-/** Eje de una pirámide: el par más pequeño de 6, 8, 10… que cubre el grupo más
- *  numeroso (regla de Pedro). La misma en ficha, dossier y comparador;
- *  exportar_datos.py la repite. */
-const ejeAutomatico = (maximo) => Math.max(6, Math.ceil(maximo / 2) * 2);
+/** Eje de una pirámide: el entero más pequeño que cubre el grupo más numeroso,
+ *  el mismo a los dos lados (regla de Pedro: que se adapte a cada pirámide).
+ *  La misma en ficha, dossier y comparador; exportar_datos.py la repite. */
+const ejeAutomatico = (maximo) => Math.max(1, Math.ceil(maximo - 1e-9));
 /** Comarca sin el prefijo de isla («Tenerife - Abona» → «Abona»), o null cuando
  *  la comarca es la isla entera (El Hierro): migas y tercer mapa la omiten. */
 const comarcaDe = (f) => { const c = f.comarca.replace(/^.*? - /, ''); return c === f.isla ? null : c; };

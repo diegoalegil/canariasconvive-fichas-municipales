@@ -36,6 +36,7 @@ async function abrir(ruta, { ancho = 1280, alto = 900, movimiento = 'reduce' } =
   page.on('console', (m) => { if (m.type() === 'error') errores.push('consola: ' + m.text()); });
   // Ninguna página pide nada fuera de la web: ni tipografía ni recursos de terceros.
   page.on('request', (r) => { const u = r.url(); if (!u.startsWith(base) && !u.startsWith('data:')) errores.push('petición externa: ' + u); });
+  page.on('response', (r) => { if (r.status() >= 400) errores.push(`respuesta ${r.status()}: ${r.url()}`); });
   await page.goto(base + ruta);
   return { contexto, page, errores };
 }
@@ -131,6 +132,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.waitForSelector('#fuente-g-origen');
   await page.locator('.vista').nth(1).click();
   await espera(200);
+  assert.equal(await page.locator('.vista').nth(1).textContent(), 'Municipio: según origen', 'el nombre de la pestaña que dictó Pedro');
   assert.equal(await page.locator('#leyenda-piramide').innerText(), 'Hombres españoles\nMujeres españolas\nExtranjeros', 'la leyenda que dictó Pedro');
   // En reposo la pirámide no enseña ninguna cifra; al señalar un grupo, las cifras van
   // dentro del dibujo y la región viva las dice en palabras.
@@ -143,18 +145,20 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.match(await page.locator('#marcas-activas text').first().textContent(), /^\d+,\d\d\u00a0% · \d+,\d\d\u00a0%$/);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#lectura-piramide').textContent(), '');
-  // El eje es el par más pequeño que cubre las barras, por pestaña y municipio: Santa Cruz 6 y 6,
-  // Artenara 8 y 14, siempre con el tope rotulado. Sin horizontales.
+  // El eje es el entero más pequeño que cubre las barras, por pestaña y municipio: Santa Cruz 5 y 6,
+  // Artenara 7 y 14, siempre con el tope rotulado y sin el múltiplo anterior si queda pegado. Sin horizontales.
   const rotulosEje = () => page.locator('#eje-piramide text').allTextContents().then((t) => [...new Set(t.map((x) => x.replace(/\s/g, '')))].join(' '));
   assert.equal(await rotulosEje(), '0% 2% 4% 6%');
   assert.equal(await page.locator('#g-piramide line').evaluateAll((ls) => ls.filter((l) => l.getAttribute('y1') === l.getAttribute('y2')).length), 0, 'sin líneas horizontales');
   // La fuente de cada gráfico, con la redacción de Pedro; la de la pirámide sigue a la pestaña.
-  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, ${indice.anio}.`);
   await page.locator('.vista').nth(0).click();
-  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}.`);
   assert.equal(await page.locator('.fuente-grafico').count(), 7, 'siete gráficos con fuente; las cifras clave no la llevan');
   assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de los municipios, 1996–${indice.anio}.`);
-  assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, cifras de población ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, cifras de población ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-indices').textContent(), `Fuente: ISTAC. Población según sexo y edades, ${indice.anio}.`);
+  assert.equal(await page.locator('.fuente-grafico').evaluateAll((ps) => ps.filter((p) => p.textContent.includes('Elaboración propia')).length), 0, 'ninguna fuente dice «Elaboración propia»');
   // Sin desplegables de datos en las tarjetas: la fuente cierra la tarjeta.
   assert.equal(await page.locator('.tarjeta details').count(), 0, 'las tarjetas no llevan desplegable');
   assert.equal(await page.locator('#g-evolucion').evaluate((e) => e.parentElement.lastElementChild.id), 'fuente-g-evolucion');
@@ -180,11 +184,22 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.locator('#g-piramide').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
   assert.match(await page.locator('#lectura-piramide').textContent(), /^5 a 9 años/, 'tras imprimir');
-  // Artenara: 6,62 % en un grupo sobre el total (eje 8) y 13,85 % entre los nacidos fuera (eje 14).
+  // Santa Cruz en la primera pestaña: 4,51 % en el grupo mayor, eje 5 (el 4 queda pegado y no se rotula).
+  assert.equal(await rotulosEje(), '0% 2% 5%');
+  // Alajeró, según origen: eje 9 (impar por encima de 8): el tope se dibuja y se rotula igualmente.
+  await page.selectOption('#sel-municipio', '38003');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Alajeró');
+  await espera(1000);
+  await page.locator('.vista').nth(1).click();
+  await espera(1000);
+  assert.equal(await rotulosEje(), '0% 2% 4% 6% 9%', 'eje impar con el tope rotulado (el 8 queda pegado)');
+  await page.locator('.vista').nth(0).click();
+  await espera(600);
+  // Artenara: 6,62 % en un grupo sobre el total (eje 7) y 13,85 % entre los nacidos fuera (eje 14).
   await page.selectOption('#sel-municipio', '35005');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Artenara');
   await espera(1000);
-  assert.equal(await rotulosEje(), '0% 2% 4% 6% 8%');
+  assert.equal(await rotulosEje(), '0% 2% 4% 7%');
   await page.locator('.vista').nth(1).click();
   await espera(1000);
   assert.equal(await rotulosEje(), '0% 2% 4% 6% 8% 10% 12% 14%', 'rótulos de dos en dos, como en el cuaderno de Pedro');
@@ -215,6 +230,19 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   const cajas = await page.locator('#marcas-activas text').evaluateAll((ts) => ts.map((t) => t.getBoundingClientRect().right));
   const barra = await page.locator('#ph18').evaluate((b) => b.getBoundingClientRect().left);
   assert.ok(cajas[0] < barra, 'la cifra de la izquierda cae fuera de la barra cuando cabe');
+  // En la fila más larga la cifra no cabe fuera en una línea: va en dos líneas junto a la punta (puede
+  // salir un poco del dibujo, sobre el relleno de la tarjeta) o dentro de la barra pegada a la punta; nunca en la base.
+  const larga = await page.evaluate(() => { const r = [...document.querySelectorAll('#g-piramide rect[id^="ph"]')]; return r.reduce((m, b) => +b.getAttribute('width') > +m.getAttribute('width') ? b : m).id.slice(2); });
+  await page.locator(`.franja[data-i="${larga}"]`).click();
+  await espera(150);
+  const dentro = await page.evaluate((i) => {
+    const t = document.querySelector('#marcas-activas text[data-sg="-1"]'), b = document.getElementById('ph' + i);
+    const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect(), svg = t.ownerSVGElement.getBoundingClientRect();
+    return { cerca: rt.right <= rb.left + 1 || Math.abs(rt.left - rb.left) < 12, enBase: rt.right > rb.right - 20, fuera: rt.left < svg.left - 24, apilada: !!t.dataset.apilada };
+  }, larga);
+  assert.deepEqual(dentro, { cerca: true, enBase: false, fuera: false, apilada: true }, `fila ${larga}: ${JSON.stringify(dentro)}`);
+  await page.locator(`.franja[data-i="18"]`).click();
+  await espera(150);
   await page.setViewportSize({ width: 1100, height: 900 });
   await espera(500);
   await page.locator('.franja[data-i="3"]').hover();
@@ -258,6 +286,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.deepEqual(await ejeExtranjero(), { eje: '0% 10% 20% 30% 40% 50% 60%', ultimo: '56,5%' }, 'por encima del 40 %, rótulos cada 10 con la rejilla cada 5');
   // En El Hierro la comarca es la isla: dos mapas y migas sin repetir; el tercer mapa dice «en la comarca».
   assert.deepEqual(await page.locator('.mapa-pie span').allTextContents().then((t) => t.filter((x) => x.startsWith('en '))), ['en Canarias', 'en Tenerife', 'en la comarca']);
+  assert.deepEqual(await page.locator('.mapa-pie > span').first().evaluate((s) => [getComputedStyle(s).fontWeight, getComputedStyle(s).color]), ['700', 'rgb(26, 26, 26)'], 'la unidad territorial en negrita negra');
   assert.match(await page.locator('.mapa-pie b').first().textContent(), /^\d+\.º de \d+$/, 'ordinal con punto');
   // La Oliva: el tope del eje no es múltiplo de 10 y se rotula igualmente, sin el 50 pegado; y las
   // tablas ocultas llevan la serie entera para el lector de pantalla.
@@ -348,6 +377,7 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   await espera(900);
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
+  assert.equal(await page.locator('.pres-cifras > div').count(), 3, 'la presentación tampoco lleva edad media');
   assert.match(await page.locator('#pres-leyenda').textContent(), /Hombres españolesMujeres españolasExtranjeros/);
   assert.equal(await page.locator('#pres-lectura').count(), 0, 'la presentación tampoco lleva el bloque de lectura');
   await page.keyboard.press('Home');
@@ -411,11 +441,11 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   await espera(600);
   assert.equal(new Set(Object.values(await colores())).size, 3);
   // Cifras: una tabla de verdad, y ningún nombre en el azul claro (2,1:1).
-  assert.equal(await page.locator('table.cmp-tabla th[scope="row"]').count(), 5);
+  assert.equal(await page.locator('table.cmp-tabla th[scope="row"]').count(), 4, 'habitantes, variación, mujeres y hombres; sin edad media');
   assert.equal(await page.locator('table.cmp-tabla th[scope="col"]').count(), 4);
   const claros = await page.locator('#cmp-resultado *').evaluateAll((els) => els.filter((e) => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).color === 'rgb(133, 183, 235)').length);
   assert.equal(claros, 0, 'texto en #85B7EB sobre blanco');
-  assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}. Elaboración propia.`);
+  assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}.`);
   assert.equal(await page.locator('#cmp-resultado details').count(), 0, 'el comparador tampoco lleva desplegables');
   for (const ancho of [1280, 375]) {
     await page.setViewportSize({ width: ancho, height: 900 });
@@ -431,12 +461,19 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   const columnas = await page.locator('table.cmp-tabla th[scope="row"]').first().evaluate((e) => e.getBoundingClientRect().width);
   assert.ok(columnas < 220, `la columna de rótulos mide ${columnas} px con un municipio`);
   await sinDesborde(page, 'comparador con 1');
-  // El orden elegido también manda en la tira de elegidos.
+  // Un solo criterio de orden, de mayor a menor, que manda en todas las secciones y en la tira de elegidos.
   await page.selectOption('#sel-anadir', '38038'); await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3'); await espera(400);
-  await page.selectOption('#sel-orden', 'nombre'); await espera(400);
+  await page.selectOption('#sel-orden-indices', 'C10'); await espera(400);
+  assert.equal(await page.locator('#sel-orden-cifras').inputValue(), '', 'elegir un índice deja la cifra clave sin elección');
   const tira = await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents();
-  assert.deepEqual(tira, [...tira].sort((a, b) => a.localeCompare(b, 'es')), 'la tira de elegidos sigue el orden alfabético');
+  const envejecimiento = await Promise.all(['35017', '38038'].map(async (c) => { const f = await json(path.join(WEB, `datos/mun/${c}.json`)); return [f.nombre, f.indices.C10.municipio]; }));
+  assert.deepEqual(tira, envejecimiento.sort((a, b) => b[1] - a[1]).map((x) => x[0]), 'de mayor a menor envejecimiento');
   assert.deepEqual(await page.locator('#cmp-piramides .cmp-col h3').allTextContents(), tira);
+  assert.equal(await page.locator('.cmp-aviso').count(), 0, 'sin avisos bajo las pirámides');
+  assert.equal(await page.locator('#cmp-nacimiento .cmp-barra-val b').evaluateAll((bs) => new Set(bs.map((b) => b.style.color)).size), 3, 'cada cifra del lugar de nacimiento con el tono de su tramo');
+  const anillos = await page.locator('#cmp-extranjero .cmp-col').evaluateAll((cs) => cs.map((c) => [c.querySelector('p b').textContent, c.querySelector('path').getAttribute('fill')]));
+  assert.ok(anillos.every((a) => a[1] === '#185FA5') && anillos.map((a) => parseFloat(a[0].replace(',', '.'))).every((v, i, l) => !i || v <= l[i - 1]), `anillos de un solo azul y de mayor a menor: ${JSON.stringify(anillos)}`);
+  await page.selectOption('#sel-orden-cifras', 'poblacion'); await espera(300);
   // Quitar con el teclado deja el foco en el siguiente botón de quitar, y el último en el selector de añadir.
   await page.locator('[data-quitar]').first().focus(); await page.keyboard.press('Enter'); await espera(400);
   assert.equal(await page.evaluate(() => document.activeElement.dataset.quitar !== undefined), true, 'el foco pasa al siguiente botón de quitar');
@@ -551,12 +588,40 @@ test('dossier: una petición fallida se reintenta, el aviso es una región de es
   await contexto.close();
 });
 
-test('guía: fuentes cargadas, variación media anual y edad media explicadas', async () => {
+test('enmarcada en otro sitio, la ficha se sustituye por el aviso; en la propia web, no', async () => {
+  const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const page = await contexto.newPage();
+  const marco = (src) => `<!DOCTYPE html><html><body><iframe id="f" src="${src}" width="1000" height="800"></iframe></body></html>`;
+  // Otro sitio: un segundo servidor en otro puerto (otro origen) que enmarca la ficha.
+  const otro = http.createServer((req, res) => { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(marco(base + 'ficha.html?municipio=38038')); });
+  await new Promise((r) => otro.listen(0, '127.0.0.1', r));
+  await page.goto(`http://127.0.0.1:${otro.address().port}/pagina.html`);
+  // El marco es de otro origen: se espera a que Playwright vea su navegación al aviso.
+  let dentro = null;
+  for (let i = 0; i < 100 && !dentro; i++) { dentro = page.frames().find((f) => f.url().includes('enmarcada.html')); if (!dentro) await espera(100); }
+  assert.ok(dentro, `la ficha enmarcada en otro sitio pasa al aviso (marcos: ${page.frames().map((f) => f.url()).join(', ')})`);
+  await dentro.waitForSelector('h1');
+  assert.match(await dentro.locator('h1').textContent(), /Canarias Convive/);
+  assert.equal(await dentro.locator('a.btn').getAttribute('target'), '_top');
+  // La misma ficha enmarcada desde la propia web se muestra.
+  await page.route(base + 'embebida.html', (r) => r.fulfill({ contentType: 'text/html; charset=utf-8', body: marco(base + 'ficha.html?municipio=38038') }));
+  await page.goto(base + 'embebida.html');
+  const propia = page.frames().find((f) => f.url().includes('ficha.html'));
+  await propia.waitForSelector('#fuente-g-origen');
+  assert.equal(await propia.locator('#nombre').textContent(), 'Santa Cruz de Tenerife');
+  await new Promise((r) => otro.close(r));
+  await contexto.close();
+});
+
+test('guía: los enunciados de Pedro, sin edad media ni desplegables de fuente', async () => {
   const { page, contexto, errores } = await abrir('guia.html', { ancho: 375, alto: 812 });
-  await page.waitForSelector('#detalle-guia-edad');
-  assert.ok((await page.locator('.guia-formula').count()) >= 8);
-  assert.match(await page.locator('#edad').textContent(), /102 años/);
-  assert.match(await page.locator('#extranjero').textContent(), /independencia de su nacionalidad/);
+  await page.waitForSelector('#guia-fichas .tarjeta');
+  assert.ok((await page.locator('.guia-formula').count()) >= 7);
+  assert.equal(await page.locator('#edad').count(), 0, 'sin edad media');
+  assert.equal(await page.locator('details').count(), 0, 'sin desplegables de fuente y fecha');
+  assert.match(await page.locator('#tvma').textContent(), /Ritmo constante al que habría crecido la población cada año/);
+  assert.match(await page.locator('#dependencia').textContent(), /menores de 15 y mayores de 64 años por cada cien entre 15 y 64 años/);
+  assert.match(await page.locator('#extranjero').textContent(), /Personas nacidas fuera de España por cada cien habitantes\./);
   await sinDesborde(page, 'guía a 375');
   // El exponente de la variación media anual va arriba, pegado a la fracción.
   const sup = await page.locator('#tvma .frm sup').evaluate((s) => { const f = s.previousElementSibling.getBoundingClientRect(), r = s.getBoundingClientRect(); return { arriba: r.top <= f.top + 4, pegado: r.left - f.right < 8 }; });
@@ -565,7 +630,6 @@ test('guía: fuentes cargadas, variación media anual y edad media explicadas', 
   await page.locator('#guia-indice a[href="#reemplazo"]').click();
   await espera(300);
   assert.ok(await page.evaluate(() => document.querySelector('#reemplazo h2').getBoundingClientRect().top >= document.querySelector('.barra').getBoundingClientRect().bottom), 'el título del indicador se ve entero');
-  assert.match(await page.locator('#detalle-guia-vegetativo').textContent(), /Datos: 2002–\d{4}\./, 'el periodo del crecimiento vegetativo es el que dibuja la ficha');
   assert.deepEqual(errores, []);
   await contexto.close();
 });
@@ -582,11 +646,13 @@ test('papel: las 88 fichas caben en una A4 y el dossier tiene 98 páginas con su
   await page.goto(base + 'ficha.html?municipio=38048');
   await page.waitForSelector('#fuente-g-origen');
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
-  assert.equal(await page.locator('.pie-fuentes-papel a').textContent(), (sitio.url_publica + 'guia.html').replace(/^https?:\/\//, ''), 'el pie del papel lleva la dirección de la guía');
-  // En la hoja se imprime la fuente de cada gráfico, y la ficha es una A4.
+  assert.equal(await page.locator('.pie-fuentes-papel').count(), 0, 'sin el pie de la guía en el papel');
+  // En la hoja se imprime la fuente de cada gráfico, la marca del programa va en la cabecera, y la ficha es una A4.
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('.fuente-grafico:visible').count(), 7, 'siete fuentes en la hoja');
-  assert.ok(await page.locator('.cabecera .pie-fuentes-papel').isVisible(), 'el camino a la guía va en la cabecera de la hoja');
+  assert.ok(await page.locator('.cabecera .placa-papel img').isVisible(), 'la marca del programa va en la cabecera de la hoja');
+  assert.ok(await page.locator('.cabecera .placa-papel img').evaluate((i) => i.complete && i.naturalWidth > 0), 'el logotipo carga');
+  assert.equal(await page.locator('.cifra').count(), 3, 'tres cifras clave, sin edad media');
   await page.emulateMedia({ media: null });
   const a4 = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   assert.equal(paginasPDF(a4), 1);
@@ -600,14 +666,15 @@ test('papel: las 88 fichas caben en una A4 y el dossier tiene 98 páginas con su
   const comp = (await json(path.join(WEB, 'datos/mun/38038.json'))).componentes;
   const ultimoAnio = Math.max(...comp.anios.filter((a, i) => comp.vegetativo[i] != null || comp.migratorio[i] != null));
   assert.ok(guiaDossier.includes(`hasta ${ultimoAnio}`), 'la guía del dossier calcula el último año de los componentes');
-  for (const t of ['Variación media anual', 'Edad media', 'Lugar de nacimiento', 'Población a 1 de enero', 'guia.html', 'GRAFCAN']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
+  for (const t of ['Variación media anual', 'Lugar de nacimiento', 'Población a 1 de enero', sitio.url_publica.replace(/^https?:\/\//, '').replace(/\/$/, ''), 'GRAFCAN']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
+  assert.ok(!guiaDossier.includes('Edad media') && !guiaDossier.includes('Elaboración propia'), 'la guía del dossier no dice edad media ni elaboración propia');
   assert.ok(!guiaDossier.includes('adrón'), 'la guía del dossier no atribuye los datos al padrón');
   assert.ok(!guiaDossier.includes('mueven mucho'), 'la guía del dossier no orienta la lectura');
   assert.equal(await page.locator('.hoja-ficha .mapas.dos').count(), 3, 'las tres hojas de El Hierro llevan dos mapas');
   assert.equal(await page.locator('.hoja-ficha .d-migas').first().textContent(), 'El Hierro', 'la primera hoja es de El Hierro, sin comarca repetida');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
   assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7, 'cada gráfico del dossier lleva su fuente');
-  assert.equal(await page.locator('.hoja-ficha .d-cab .pie-fuentes-papel:visible').count(), 88, 'cada hoja del dossier lleva la dirección de la guía en la cabecera');
+  assert.equal(await page.locator('.hoja-ficha .d-cab .placa-papel:visible').count(), 88, 'cada hoja del dossier lleva la marca del programa en la cabecera');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });

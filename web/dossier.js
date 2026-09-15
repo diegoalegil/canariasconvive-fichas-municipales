@@ -4,8 +4,8 @@
    municipios por orden alfabético. */
 
 let IDX = null, GEOD = null;
-// La dirección de la guía, en la cabecera de cada hoja y en la guía del dossier (sin protocolo, para teclearla).
-const DIRECCION_GUIA = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '');
+// La dirección de la web, en la guía del dossier (sin protocolo, para teclearla).
+const DIRECCION_WEB = URL_PUBLICA_SITIO.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /* ------------------------------------------------------- datos por isla --- */
 /** Recuentos de la isla; el envejecimiento insular viene dentro de cada ficha.
@@ -35,7 +35,7 @@ function hojaFicha(f, pagina) {
       <p class="d-migas">${esc([f.isla, comarcaDe(f)].filter(Boolean).join(' · '))}</p>
       <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
       <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
-      <p class="pie-fuentes-papel">Método, fechas y enlace a cada recurso estadístico: ${esc(DIRECCION_GUIA)}</p>
+      <span class="placa placa-papel"><img src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive"></span>
     </header>
 
     <div class="cifras">${cifrasClave(f)}</div>
@@ -132,14 +132,8 @@ function hojaGuia(fichas, pagina) {
   const anios = ['vegetativo', 'migratorio'].flatMap((clave) => fichas.flatMap((f) =>
     f.componentes.anios.filter((a, i) => f.componentes[clave][i] != null)));
   const anioComp = anios.length ? Math.max(...anios) : IDX.anio - 1;
-  // Los organismos de los enlaces del índice (ISTAC, INE) más GRAFCAN, que firma los mapas.
-  const organismos = [...new Set(Object.values(IDX.fuentes_indicadores || {})
-    .flatMap((x) => (x.enlaces || []).map((e) => e.organismo)).filter(Boolean))];
-  if (!organismos.includes('GRAFCAN')) organismos.push('GRAFCAN');
-  const listaOrganismos = organismos.length > 1
-    ? `${organismos.slice(0, -1).join(', ')} y ${organismos[organismos.length - 1]}` : organismos.join('');
   // Partida solo en las barras: un guion al final de línea se teclearía mal desde el papel.
-  const guia = DIRECCION_GUIA.split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
+  const web = DIRECCION_WEB.split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
   const definicion = (x) => `<p><b>${esc(x.nombre)}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Cómo usar este dossier</h2>
@@ -156,9 +150,9 @@ function hojaGuia(fichas, pagina) {
            Las cifras de origen extranjero y de lugar de nacimiento cuentan dónde nació cada
            persona, con independencia de su nacionalidad.</p>
         <h3>Las fuentes</h3>
-        <p>${esc(listaOrganismos)}. El enlace a cada recurso estadístico, con los años
-           que cubre y la fecha del dato, está en la guía en línea de cada indicador:
-           <b>${guia}</b></p>
+        <p>ISTAC (población, movimiento natural y migraciones) y GRAFCAN (límites
+           municipales). Cada gráfico lleva la suya al pie. Las fichas interactivas están en
+           <b>${web}</b></p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>

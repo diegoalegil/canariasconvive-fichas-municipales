@@ -112,8 +112,9 @@ function mapa(geo, codmun, ambito, w, h, conLimites) {
       foco = `<path d="${d}" fill="${C.azul}" stroke="${C.azul}" stroke-width="0.8"/>`;
     } else {
       // Sin límites, el trazo va del color del relleno y las piezas se funden.
+      // En papel el límite municipal va más grueso: a 16 mm de alto, 0,7 px no se ve.
       const trazo = conLimites ? '#FFFFFF' : C.azulClaro;
-      base += `<path d="${d}" fill="${C.azulClaro}" stroke="${trazo}" stroke-width="${conLimites ? 0.7 : 0.5}"/>`;
+      base += `<path d="${d}" fill="${C.azulClaro}" stroke="${trazo}" stroke-width="${conLimites ? (IMPRIMIENDO ? 1.2 : 0.7) : 0.5}"/>`;
     }
   }
   return abrirSVG(w, h, 'Situación del municipio', false) + base + foco + '</svg>';
@@ -259,9 +260,9 @@ function graficoExtranjero(ext, w, h) {
 }
 
 /* --------------------------------------------------------------- pirámide -- */
-/* El eje de cada pestaña es el par más pequeño (6, 8, 10…) que cubre sus barras
-   (`ejeAutomatico`, comun.js), regla de Pedro: «al 6 u 8 por cien según el
-   valor; si hay excepciones, que se ajuste automáticamente». exportar_datos.py
+/* El eje de cada pestaña es el entero más pequeño que cubre sus barras, igual
+   a los dos lados (`ejeAutomatico`, comun.js), regla de Pedro: que se adapte a
+   cada pirámide para que se vea lo más ancha posible. exportar_datos.py
    imprime el reparto por municipio en cada exportación. */
 
 /* Alto de la pirámide en la hoja A4: la única constante que se toca si la hoja
@@ -323,7 +324,7 @@ function construirPiramide(p, w, h, vistaFija = null) {
       rotH: 'Hombres', rotM: 'Mujeres', rotNegro: 'Canarias',
     },
     {
-      clave: 'municipio', etiqueta: 'Por lugar de nacimiento',
+      clave: 'municipio', etiqueta: 'Municipio: según origen',
       relleno: { H: sobre(esp.H, totalEsp), M: sobre(esp.M, totalEsp) },
       negro: { H: sobre(ext.H, totalExt), M: sobre(ext.M, totalExt) },
       rotH: 'Hombres españoles', rotM: 'Mujeres españolas', rotNegro: 'Extranjeros',
@@ -354,8 +355,12 @@ function construirPiramide(p, w, h, vistaFija = null) {
     const paso = eje <= 8 ? 1 : 2;
     const cada = escala(2, eje) >= 30 ? 2 : 4;
     const estrecho = m.l < 12;
+    // Los pasos intermedios y, siempre, el tope (el eje entero puede ser impar).
+    const valores = [];
+    for (let v = 0; v < eje; v += paso) valores.push(v);
+    valores.push(eje);
     let out = '';
-    for (let v = 0; v <= eje; v += paso) {
+    for (const v of valores) {
       for (const [, signo] of LADOS_PI) {
         const x = centro + signo * (hueco / 2 + escala(v, eje));
         out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
@@ -448,19 +453,27 @@ function graficoComponentes(c, w, h) {
   const V = idx.map((i) => c.vegetativo[i]);
   const S = idx.map((i) => c.migratorio[i]);
 
+  // Eje ajustado a cada municipio (Pedro): paso redondo para unas cuatro
+  // divisiones por lado y tope en el múltiplo justo por encima de la barra más larga.
   const vals = [...V, ...S].filter((v) => v != null && isFinite(v));
-  const tope = topeRedondo(Math.max(...vals.map(Math.abs)) * 1.08);
-  const paso = tope / 2;                        // dos divisiones a cada lado del cero
+  const maximo = Math.max(...vals.map(Math.abs));
+  const paso = pasoRedondo(maximo, 4);
+  const tope = Math.max(paso, Math.ceil(maximo / paso - 1e-9) * paso);
   const py = (v) => m.t + (tope - v) / (2 * tope) * (h - m.t - m.b);
+  // Rótulo en el cero, en los topes y en los pasos intermedios que quepan.
+  const cadaRotulo = (h - m.t - m.b) / (2 * tope / paso) >= fe * 1.6 ? 1 : 2;
   const ancho = (w - m.l - m.r) / A.length;
   const bw = Math.min(ancho * 0.38, P ? 7 : 13);
   // Eje temporal cada dos años (Pedro), también en papel; en pantallas estrechas cada cuatro.
   const cadaAnio = !P && w < 430 ? 4 : 2;
 
   let rejilla = '', ejeY = '';
-  for (let v = -tope; v <= tope + 1e-9; v += paso) {
+  for (let k = -tope / paso; k <= tope / paso; k++) {
+    const v = k * paso;
     rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? C.gris40 : C.rejilla}"/>`;
-    ejeY += `<text x="${m.l - (P ? 5 : 9)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}</text>`;
+    if (k === 0 || Math.abs(v) === tope || (k % cadaRotulo === 0 && tope - Math.abs(v) >= cadaRotulo * paso)) {
+      ejeY += `<text x="${m.l - (P ? 5 : 9)}" y="${(py(v) + fe * .35).toFixed(1)}" text-anchor="end" font-size="${fe}" fill="${C.gris}">${nf(v)}</text>`;
+    }
   }
   let barras = '', ejeX = '';
   A.forEach((a, i) => {
@@ -518,7 +531,7 @@ function tablaOculta(titulo, cabeceras, filas) {
 }
 
 /* ------------------------------------------------------------ cifras clave -- */
-/** Las cuatro celdas: la cifra, lo que es y el pie que la sitúa. */
+/** Las tres celdas: la cifra, lo que es y el pie que la sitúa. */
 function cifrasClave(f) {
   const c = f.cifras, ev = f.evolucion;
   const signo = c.tvma >= 0 ? '+' : '\u2212';   // menos tipográfico, no guion
@@ -533,7 +546,6 @@ function cifrasClave(f) {
   return [
     celda(`${signo}${nf(Math.abs(c.tvma), 1)}`, '%', 'Variación media anual',
       `Serie ${ev.anio_base}\u2013${ev.anio_fin}`),
-    celda(nf(c.edad_media, 1), 'años', 'Edad media'),
     celda(nf(c.pct_mujeres, 1), '%', 'Mujeres', `${nf(c.mujeres)} personas`),
     celda(nf(c.pct_hombres, 1), '%', 'Hombres', `${nf(c.hombres)} personas`),
   ].join('');
@@ -807,13 +819,14 @@ function notaAnomalias(anomalias) {
 /* Las cifras del grupo señalado van en el dibujo, junto a la punta de sus
    barras: la de la barra azul en azul y negrita, la del marco negro en negro,
    con halo blanco. En reposo no hay ninguna. Dos decimales: con uno, dos grupos
-   contiguos podían leerse iguales. */
+   contiguos podían leerse iguales. Van por fuera de la barra; si no caben
+   (barra larga), en dos líneas; y si tampoco, dentro de la barra pegadas a la
+   punta, nunca en la base (Pedro). */
 
 /** Dos decimales, y «< 0,01» cuando hay personas pero el redondeo daría 0,00. */
 const pctFila = (v) => v > 0 && v < 0.005 ? '< 0,01' : nf(v, 2);
 
 function etiquetasFila(P, actual, i, vista, fe) {
-  const estrecho = P.w < 430;   // en un dibujo estrecho los dos valores van en dos líneas
   let out = '';
   for (const [lado, sg, cl] of LADOS_PI) {
     const x0 = P.centro + sg * P.hueco / 2;
@@ -821,15 +834,11 @@ function etiquetasFila(P, actual, i, vista, fe) {
     const punta = Math.max(actual[lado].r[i], actual[lado].n[i]);
     const azul = `${pctFila(vista.relleno[cl][i])}${UNI}%`;
     const negro = `${pctFila(vista.negro[cl][i])}${UNI}%`;
-    // Junto a la punta, por fuera; `colocarEtiquetas` la lleva a la base de la
-    // barra si no cabe dentro del dibujo, con el ancho real del texto.
+    // Junto a la punta, por fuera, en una línea; `colocarEtiquetas` la recoloca con el ancho real del texto.
     const x = (x0 + sg * (punta + 9)).toFixed(1);
-    const comun = `x="${x}" data-sg="${sg}" data-base="${(x0 + sg * 6).toFixed(1)}" text-anchor="${sg < 0 ? 'end' : 'start'}" font-size="${fe}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"`;
-    out += estrecho
-      ? `<text ${comun} y="${(yc - fe * 0.2).toFixed(1)}" font-weight="700" fill="${C.azul}">${azul}`
-        + `<tspan x="${x}" dy="${(fe * 1.1).toFixed(1)}" font-weight="400" fill="${C.negro}">${negro}</tspan></text>`
-      : `<text ${comun} y="${(yc + fe * 0.36).toFixed(1)}" font-weight="700" fill="${C.azul}">${azul}`
-        + `<tspan font-weight="400" fill="${C.negro}"> · ${negro}</tspan></text>`;
+    out += `<text x="${x}" y="${(yc + fe * 0.36).toFixed(1)}" data-sg="${sg}" data-punta="${(x0 + sg * punta).toFixed(1)}" data-fe="${fe}"`
+      + ` text-anchor="${sg < 0 ? 'end' : 'start'}" font-size="${fe}" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"`
+      + ` font-weight="700" fill="${C.azul}">${azul}<tspan data-valor="${negro}" font-weight="400" fill="${C.negro}"> · ${negro}</tspan></text>`;
   }
   return out;
 }
@@ -847,16 +856,31 @@ function marcadoresFila(P, actual, i) {
   return out;
 }
 
-/** Tras escribir las etiquetas en el SVG: la que no cabe entre la punta de la
- *  barra y el borde del dibujo pasa a la base de la barra. */
+/** Pone la cifra en dos líneas (la del marco negro debajo de la de la barra). */
+function apilarEtiqueta(t) {
+  const fe = +t.dataset.fe, x = t.getAttribute('x');
+  const ts = t.querySelector('tspan');
+  ts.textContent = ts.dataset.valor;
+  ts.setAttribute('x', x); ts.setAttribute('dy', (fe * 1.1).toFixed(1));
+  t.setAttribute('y', (+t.getAttribute('y') - fe * 0.56).toFixed(1));
+  t.dataset.apilada = '1';
+}
+
+/** Tras escribir las etiquetas en el SVG, con el ancho real del texto. En un
+ *  dibujo estrecho van siempre en dos líneas. La que no cabe por fuera (puede
+ *  salir hasta `margen` del dibujo, sobre el relleno de la tarjeta) pasa a dos
+ *  líneas y, si tampoco cabe, dentro de la barra pegada a la punta. */
 function colocarEtiquetas(grupo, w) {
+  const margen = w < 430 ? 12 : 20;
   for (const t of grupo.querySelectorAll('text[data-sg]')) {
     const sg = +t.dataset.sg, x = +t.getAttribute('x');
-    const largo = t.getComputedTextLength();
-    const cabe = sg < 0 ? x - largo >= 2 : x + largo <= w - 2;
-    if (cabe) continue;
-    t.setAttribute('x', t.dataset.base);
-    for (const ts of t.querySelectorAll('tspan[x]')) ts.setAttribute('x', t.dataset.base);
+    const cabe = () => { const l = t.getBBox().width; return sg < 0 ? x - l >= -margen : x + l <= w + margen; };
+    if (w < 430) apilarEtiqueta(t);
+    if (cabe()) continue;
+    if (!t.dataset.apilada) { apilarEtiqueta(t); if (cabe()) continue; }
+    const dentro = (+t.dataset.punta - sg * 4).toFixed(1);
+    t.setAttribute('x', dentro); t.setAttribute('text-anchor', sg < 0 ? 'start' : 'end');
+    for (const ts of t.querySelectorAll('tspan[x]')) ts.setAttribute('x', dentro);
   }
 }
 
@@ -1215,7 +1239,6 @@ function abrirPresentacion() {
       <p class="pres-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
      <div class="pres-cifras">
       <div><b>${signo}${nf(Math.abs(c.tvma), 1)}<span>${UNI}%</span></b><i>Variación media anual</i><em>Serie ${ev.anio_base}–${ev.anio_fin}</em></div>
-      <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
       <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
      <img class="pres-logo" src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive">`,
@@ -1352,12 +1375,9 @@ async function iniciar() {
   montarIconos();
   document.getElementById('btn-pdf').addEventListener('click', () => window.print());
   enlacesAbsolutos();
-  // El pie de la hoja impresa lleva la dirección de la guía, para teclearla desde el papel.
-  const pie = document.querySelector('.pie-fuentes-papel a');
-  if (pie) {
-    pie.href = rutaWeb('guia.html');
-    pie.textContent = new URL('guia.html', URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '');
-  }
+  // La placa del papel se clona en cada cruce: con la ruta absoluta no se resuelve contra m/<código>.html.
+  const placa = document.querySelector('.placa-papel img');
+  if (placa) placa.src = rutaWeb('img/logo-canariasconvive.png');
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 

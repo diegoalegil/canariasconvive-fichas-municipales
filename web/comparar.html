@@ -19,26 +19,39 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=83">
+<link rel="stylesheet" href="estilos.css?v=84">
 </head>
 <body>
 
-<header class="barra">
+<header class="barra cmp-barra">
   <div class="barra-int">
     <a class="marca" href="index.html">
       <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive">
       <span>Comparar municipios</span>
     </a>
     <div class="campo">
-      <label for="sel-anadir">Añadir</label>
+      <label class="oculto" for="sel-anadir">Añadir municipio</label>
       <select id="sel-anadir"><option>Cargando…</option></select>
     </div>
+    <!-- Un solo criterio de orden, de mayor a menor: una cifra clave o un índice. -->
     <div class="campo">
-      <label for="sel-orden">Orden</label>
-      <select id="sel-orden">
-        <option value="poblacion">Por habitantes</option>
-        <option value="nombre">Alfabético</option>
-        <option value="eleccion">Como los elegí</option>
+      <label for="sel-orden-cifras">Ordenar por</label>
+      <select id="sel-orden-cifras">
+        <option value="">Cifra clave…</option>
+        <option value="poblacion" selected>Habitantes</option>
+        <option value="tvma">Variación media anual</option>
+        <option value="pct_mujeres">Mujeres</option>
+        <option value="pct_hombres">Hombres</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label class="oculto" for="sel-orden-indices">o por índice geodemográfico</label>
+      <select id="sel-orden-indices">
+        <option value="" selected>Índice…</option>
+        <option value="C10">Envejecimiento</option>
+        <option value="C11">Juventud</option>
+        <option value="C17">Dependencia</option>
+        <option value="C14">Reemplazo laboral</option>
       </select>
     </div>
     <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
@@ -51,8 +64,7 @@
   <section class="cabecera">
     <p class="migas">Fichas demográficas municipales</p>
     <div class="titular"><h1>Comparar municipios</h1></div>
-    <p class="cmp-intro">Hasta tres a la vez, con las mismas secciones de la ficha.
-      Las columnas salen ordenadas por habitantes; el orden se cambia arriba.</p>
+    <p class="cmp-intro">Hasta tres municipios a la vez.</p>
     <div class="cmp-elegidos-caja">
       <div class="cmp-elegidos" id="cmp-elegidos"></div>
       <span class="cmp-cuenta" id="cmp-cuenta"></span>
@@ -74,7 +86,7 @@
 
     <section class="tarjeta destacada">
       <header class="rotulo" data-ico="edad">
-        <div><h2>Estructura por edad</h2><p>Cada pirámide en porcentaje sobre su propia población, y las tres con el mismo eje</p></div>
+        <div><h2>Estructura por edad</h2><p>Pirámides en porcentaje sobre su total poblacional</p></div>
       </header>
       <div class="cuerpo"><div id="cmp-piramides"></div></div>
     </section>
@@ -104,10 +116,10 @@
 
 </main>
 
-<script src="config.js?v=83"></script>
-<script src="comun.js?v=83"></script>
-<script src="iconos.js?v=83"></script>
-<script src="datos-ui.js?v=83"></script>
-<script src="comparar.js?v=83"></script>
+<script src="config.js?v=84"></script>
+<script src="comun.js?v=84"></script>
+<script src="iconos.js?v=84"></script>
+<script src="datos-ui.js?v=84"></script>
+<script src="comparar.js?v=84"></script>
 </body>
 </html>

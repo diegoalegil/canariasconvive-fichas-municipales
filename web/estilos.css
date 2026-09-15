@@ -188,9 +188,9 @@ select {
 .tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
-/* Cuatro celdas: la cifra (en azul, el dato principal), lo que es y el pie. */
+/* Tres celdas: la cifra (en azul, el dato principal), lo que es y el pie. */
 .cifras {
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr);
   border: 1px solid var(--linea); border-radius: var(--r-3); overflow: hidden;
 }
 .cifra {
@@ -226,6 +226,7 @@ select {
 .mapa-pie { margin-top: 10px; }
 .mapa-pie b { display: block; font-size: 17px; font-weight: 700; color: var(--azul); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
 .mapa-pie span { font-size: 12px; color: var(--gris); }
+.mapa-pie > span { display: block; font-size: 12.5px; font-weight: 700; color: var(--negro); }   /* la unidad territorial, destacada (Pedro); va después para ganar */
 .mapa-pie p { margin-top: 5px; }
 .mapa-pie p b { display: inline; font-size: 15px; }
 .mapa-pie p span { font-size: 11.5px; }
@@ -299,6 +300,7 @@ select {
 
 #eje-piramide { transition: opacity .26s ease; }
 #g-piramide .franja { cursor: crosshair; }
+#g-piramide svg, #pres-piramide svg { overflow: visible; }   /* las cifras de la fila señalada pueden salir del dibujo */
 #g-evolucion #cazador-evolucion { cursor: crosshair; }
 
 /* ----------------------------------------------------------- portada ------ */
@@ -510,7 +512,11 @@ select {
 .cmp-col p { font-size: 12px; color: var(--gris); margin: 3px 0 var(--e-3); }
 .cmp-col p b { color: var(--negro); font-weight: 700; font-size: 15px; }
 .cmp-col svg { margin: 0 auto; }
-.cmp-aviso { font-size: 11px; color: var(--gris); line-height: 1.5; margin-top: var(--e-3); text-wrap: pretty; }
+/* Los tres desplegables caben en una fila con la marca: anchos fijos (el nombre elegido se recorta). */
+.cmp-barra .marca { margin-right: 0; }
+.cmp-barra select { width: 175px; min-width: 0; }
+@media (max-width: 1100px) { .cmp-barra .marca span { display: none; } }
+.cmp-barra .btn-liso { margin-left: auto; }
 
 /* Índices: el mismo bloque que la ficha, con Canarias en gris al final. */
 .cmp-indice { margin-bottom: var(--e-6); }
@@ -587,10 +593,6 @@ select {
 /* --------------------------------------------------------- responsive ------ */
 @media (max-width: 940px) {
   .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
-  .cifras { grid-template-columns: repeat(2, 1fr); }
-  .cifra { border-left: 1px solid var(--linea); border-top: 1px solid var(--linea); }
-  .cifra:nth-child(odd) { border-left: 0; }
-  .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
   .mapas, .mapas.dos { grid-template-columns: 1fr; gap: 26px; }
   .tapa-alto, .filtros, .atajos { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
@@ -601,6 +603,11 @@ select {
   .cifra i { font-size: 11.5px; letter-spacing: .04em; }
   .cifra em { font-size: 11.5px; min-height: 16px; }
   .buscador { width: 100%; }
+}
+@media (max-width: 460px) {
+  .cifras { grid-template-columns: 1fr; }
+  .cifra { border-left: 0; border-top: 1px solid var(--linea); padding: var(--e-4) var(--e-2); }
+  .cifra:first-child { border-top: 0; }
 }
 @media (max-width: 620px) {
   .marca span { display: none; }
@@ -648,27 +655,9 @@ select {
   #g-piramide:focus, #g-evolucion:focus { outline: 2px solid var(--azul); outline-offset: 4px; border-radius: var(--r-1); }
 }
 
-/* Fuente de cada gráfico (datos-ui.js); el desplegable solo lo usa la guía. */
+/* Fuente de cada gráfico (datos-ui.js). */
 .fuente-grafico { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--gris); text-wrap: pretty; }
-.datos-detalle { margin-top: 14px; padding-top: 8px; border-top: 1px solid var(--linea); text-align: left; }
-.datos-detalle > summary {
-  display: flex; align-items: center; gap: 7px; width: fit-content; padding: 4px 0;
-  list-style: none; cursor: pointer; color: var(--gris); font-size: 11.5px; font-weight: 500;
-}
-.datos-detalle > summary::-webkit-details-marker { display: none; }
-.datos-detalle > summary::before {
-  content: ''; width: 0; height: 0; border: 4px solid transparent; border-left: 5px solid currentColor;
-  margin-right: -2px; transition: transform .25s ease;
-}
-.datos-detalle[open] > summary::before { transform: rotate(90deg); }
-.datos-detalle > summary:hover, .datos-detalle > summary:focus-visible { color: var(--azul); }
-.datos-contenido { padding-top: 10px; font-size: 12px; color: var(--gris); }
-.datos-contenido a { color: var(--azul); text-underline-offset: 3px; }
-.fuente-dato { margin: 10px 0; }
-.fuente-dato p { margin: 3px 0; line-height: 1.55; text-wrap: pretty; }
-.fuente-dato b { color: var(--negro); }
-.pie-fuentes-papel { display: none; }
-@media (pointer: coarse) { .datos-detalle > summary { min-height: 44px; } }
+.placa-papel { display: none; }   /* la marca del programa solo va en la hoja impresa */
 
 /* ----------------------------------------------------------- impresión ----- */
 /* Ficha de una hoja A4 vertical, dimensionada en milímetros para que quepa entera. */
@@ -696,7 +685,7 @@ body.presentando { overflow: hidden; }
 .pres-hab { margin-top: 40px; }
 .pres-hab b { font-size: 64px; font-weight: 400; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .pres-hab span { font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-left: 16px; }
-.pres-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
+.pres-cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
 .pres-cifras b { display: block; font-size: 72px; font-weight: 600; color: var(--azul); letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
 .pres-cifras b span { font-size: .42em; }
 .pres-cifras i { display: block; font-style: normal; font-size: 20px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gris); margin-top: 16px; }
@@ -738,12 +727,15 @@ body.presentando { overflow: hidden; }
 
 @media print {
   #presentacion { display: none !important; }
-  .fantasma, .datos-detalle, .aviso-carga { display: none !important; }
+  .fantasma, .aviso-carga { display: none !important; }
   /* La fuente de cada gráfico sí se imprime, en el cuerpo más pequeño de la hoja;
-     el camino a la guía va en la esquina de la cabecera. */
-  .fuente-grafico { margin: .6mm 0 0; font-size: 5.5pt; line-height: 1.2; color: var(--gris); }
-  .pie-fuentes-papel { display: block; position: absolute; right: 5mm; bottom: 2.2mm; margin: 0; font-size: 6pt; color: var(--azul-sobre); }
-  .pie-fuentes-papel a { color: inherit; text-decoration: none; }
+     la marca del programa va en una placa blanca en la esquina de la cabecera. */
+  .fuente-grafico { margin: .6mm 0 0; font-size: 6pt; line-height: 1.2; color: var(--gris); }
+  .placa-papel {
+    display: inline-flex; position: absolute; right: 5mm; bottom: 2mm;
+    background: #fff; border-radius: 1mm; padding: 1.2mm 2mm; box-shadow: none;
+  }
+  .placa-papel img { height: 5.5mm; width: auto; display: block; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
@@ -782,46 +774,47 @@ body.presentando { overflow: hidden; }
   .rotulo { padding: 1.6mm 3mm 1mm; border-bottom: 0; gap: 1.6mm; }
   .rotulo .ico { width: 3.4mm; height: 3.4mm; }
   .rotulo h2 { font-size: 8.5pt; }
-  .rotulo p { font-size: 6pt; margin-top: .3mm; }
+  .rotulo p { font-size: 6.5pt; margin-top: .3mm; }
   .cuerpo { padding: 0 3mm 1.2mm; }
   .tarjeta.destacada .rotulo { background: transparent; color: var(--azul); padding: 1.6mm 3mm 1mm; }
   .tarjeta.destacada .rotulo h2 { color: var(--negro); }
   .tarjeta.destacada .rotulo p { color: var(--gris); }
 
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. */
-  .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(4, 1fr); }
+  .cifras { border: 0; border-top: .6mm solid var(--azul); border-bottom: .2mm solid var(--linea); border-radius: 0; grid-template-columns: repeat(3, 1fr); }
   .cifra { padding: 1.8mm 3mm 1.6mm; border-left: 0; border-top: 0; text-align: center; }
   .cifra + .cifra { border-left: .2mm solid var(--linea); }
   .cifra b { font-size: 17pt; color: var(--azul); }
   .cifra b span { font-size: .42em; }
-  .cifra i { font-size: 6.5pt; margin-top: 1.2mm; letter-spacing: .04em; }
-  .cifra em { display: block; font-size: 6pt; margin-top: .8mm; min-height: 0; }
+  .cifra i { font-size: 7pt; margin-top: 1.2mm; letter-spacing: .04em; }
+  .cifra em { display: block; font-size: 6.5pt; margin-top: .8mm; min-height: 0; }
 
   .mapas { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
   .mapas.dos { grid-template-columns: repeat(2, auto); justify-content: center; }
   .mapa-pie { margin-top: 1mm; }
   .mapa-pie b { font-size: 8.5pt; }
   .mapa-pie span { font-size: 6pt; }
+  .mapa-pie > span { font-size: 6.5pt; color: var(--negro); }
   .mapa-pie p { margin-top: .6mm; }
   .mapa-pie p b { font-size: 7.5pt; }
   .mapa-pie p span { font-size: 6pt; }
 
   .leyenda { gap: 3mm; margin-top: 1mm; }
-  .leyenda span { font-size: 6pt; }
+  .leyenda span { font-size: 6.5pt; }
   .llave { width: 2mm; height: 2mm; }
 
   .indice { margin-bottom: 1.6mm; }
   .indice-tit { margin-bottom: 1mm; }
   .indice-tit b { font-size: 7pt; }
-  .indice-tit em { font-size: 6pt; }
-  .peldano span { font-size: 5.5pt; min-height: 0; line-height: 1.2; }
+  .indice-tit em { font-size: 6.5pt; }
+  .peldano span { font-size: 6pt; min-height: 0; line-height: 1.2; }
   .peldano b { font-size: 8pt; margin: .3mm 0 .8mm; }
   .peldano i { height: 1.2mm; }
   .escala { gap: 1.4mm; }
 
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
   .anillo h3 { font-size: 7pt; }
-  .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6pt; }
-  .nota { font-size: 5.5pt; margin-top: 1.4mm; }
+  .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6.5pt; }
+  .nota { font-size: 6pt; margin-top: 1.4mm; }
 }
 

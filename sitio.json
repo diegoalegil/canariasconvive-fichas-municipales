@@ -1,3 +1,7 @@
 {
-  "url_publica": "https://diegoalegil.github.io/canariasconvive-fichas-municipales/"
+  "url_publica": "https://diegoalegil.github.io/canariasconvive-fichas-municipales/",
+  "origenes_iframe": [
+    "https://canariasconvive.com",
+    "https://www.canariasconvive.com"
+  ]
 }
