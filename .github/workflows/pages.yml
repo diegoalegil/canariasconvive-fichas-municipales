@@ -1,7 +1,9 @@
 # Publica la carpeta web/ en GitHub Pages. El sitio es estático: no hay build,
 # solo se sube tal cual lo que generan los scripts de la raíz del repositorio.
-# Antes corre la batería de pruebas (pruebas/): invariantes de los datos,
-# interacciones en Chromium e impresión. Si algo falla, no se publica.
+# Antes corre la batería de pruebas (pruebas/) con los mismos comandos que
+# package.json: pruebas de los datos (la conciliación con el Excel se omite
+# porque el libro no está en el repositorio), interacciones en Chromium e
+# impresión. Si algo falla, no se publica.
 # Las acciones van fijadas por commit (la versión, en el comentario): una
 # etiqueta como v4 puede moverse; un commit, no.
 name: Desplegar en GitHub Pages
@@ -28,13 +30,13 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
-      - name: Invariantes de los datos
-        run: python3 pruebas/invariantes.py
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Pruebas de los datos
+        run: npm run test:datos
       - run: npx playwright install --with-deps chromium
       - name: Interacciones e impresión en Chromium
         run: npm run test:web

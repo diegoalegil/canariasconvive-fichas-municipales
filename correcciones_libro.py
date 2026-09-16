@@ -57,7 +57,7 @@ def cuadra(islas, anio, series_mun, totales_isla, isla_de):
     return True
 
 
-def descuadres(hoja, series_mun, totales_isla, isla_de):
+def descuadres(series_mun, totales_isla, isla_de):
     """[(isla, año, suma municipal, hoja insular)] donde la isla no suma sus
     municipios (con todos los datos presentes)."""
     salida = []

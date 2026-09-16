@@ -9,8 +9,9 @@ cambio —incluidas las anomalías apartadas—, los cuatro índices en los tres
 ámbitos, puestos y pesos, las 42 barras de cada pirámide y el reparto por
 lugar de nacimiento en los 88 municipios; y lo mismo en las siete islas contra
 las hojas «I», donde el origen extranjero se contrasta con la suma de sus
-municipios (el libro trae Lanzarote y Fuerteventura cambiadas en C2I/C22I desde
-2021 y el exportador lo corrige: aquí se cuentan los años corregidos)."""
+municipios (el libro trajo Lanzarote y Fuerteventura cambiadas en C2I/C22I de
+2021 a 2025 hasta que Pedro lo corrigió el 16/9/2026; si volviera a pasar, el
+exportador lo corrige y aquí se cuentan los años corregidos)."""
 import json
 import sys
 from collections import Counter
@@ -62,7 +63,7 @@ SS = {s: series(s) for s in ["C1M", "C1I", "C1R", "C6M", "C6I", "C7M", "C7I", "C
 ISLA_DE = {m: i for i, ms in ISLAS.items() for m in ms}
 for hoja, hoja_i in (("C6M", "C6I"), ("C7M", "C7I")):
     for a, b, anio in cruzar_si_procede(hoja, SS[hoja], SS[hoja_i], ISLA_DE):
-        CUENTA[f"componentes_corregidos_en_el_libro"] += 1
+        CUENTA["componentes_corregidos_en_el_libro"] += 1
 for f in F:
     mun = f["nombre"]
     check(f["poblacion"], SS["C1M"][mun][f["anio"]], f"poblacion:{mun}")

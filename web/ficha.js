@@ -42,14 +42,6 @@ function pasoRedondo(rango, objetivo = 5) {
   return 10 * exp;
 }
 
-/** Menor número redondo ≥ v cuya mitad también es redonda (ejes simétricos). */
-function topeRedondo(v) {
-  if (!(v > 0)) return 1;
-  const exp = Math.pow(10, Math.floor(Math.log10(v)));
-  for (const m of [1, 2, 4, 6, 8, 10]) if (v <= m * exp + 1e-9) return m * exp;
-  return 10 * exp;
-}
-
 /* ---------------------------------------------------------- impresión ----- */
 /* Al imprimir, los gráficos se redibujan a la medida de la hoja (escalar un SVG
    de pantalla deja las letras ilegibles). Caja útil de la A4: 190 mm, retícula

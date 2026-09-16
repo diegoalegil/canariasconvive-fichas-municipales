@@ -139,7 +139,7 @@ def main():
         return EXC_GEO.get(int(cod), equiv.get(_norm(nom_geo)))
 
     rasgos, v_ini, v_fin = [], 0, 0
-    for cod, nom_geo, isla_geo, blob in filas:
+    for cod, nom_geo, _isla_geo, blob in filas:   # la isla sale de territorios.py
         nombre = nombre_excel(cod, nom_geo)
         if nombre is None:
             print(f"  ⚠ sin correspondencia: {nom_geo} ({cod})")

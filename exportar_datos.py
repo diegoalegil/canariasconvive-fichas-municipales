@@ -403,7 +403,7 @@ def conciliar_componentes():
                 series[m] = [por_mun[m].get(x, np.nan) for x in anios]
             print(f"  ⚠ {hoja} {anio}: {a} y {b} vienen cruzados; se corrige en la exportación. "
                   "Hay que arreglarlo en el libro.")
-        malos = descuadres(hoja, por_mun, por_isla, ISLA_DE)
+        malos = descuadres(por_mun, por_isla, ISLA_DE)
         if malos:
             raise SystemExit(f"{hoja}: la suma de los municipios no da la hoja insular en "
                              + "; ".join(f"{i} {a} ({s:.0f} frente a {t:.0f})" for i, a, s, t in malos)
@@ -411,7 +411,7 @@ def conciliar_componentes():
 
 
 # ----------------------------------------------------------------- export ---
-CORRECCIONES_C22I = conciliar_extranjero_islas()   # necesita _por_anio, definida arriba
+conciliar_extranjero_islas()   # corrige SERIE_C22I sobre la marcha; necesita _por_anio, definida arriba
 conciliar_componentes()
 
 (SALIDA / "mun").mkdir(parents=True, exist_ok=True)
@@ -470,12 +470,10 @@ for mun in MUNICIPIOS:
             },
             "isla": {
                 "puesto": PUESTO_ISLA[mun][0], "total": PUESTO_ISLA[mun][1],
-                "ambito": isla,
                 "peso": r2(POB_M[mun] / POB_I[isla] * 100, 2),
             },
             "comarca": {
                 "puesto": PUESTO_COMARCA[mun][0], "total": PUESTO_COMARCA[mun][1],
-                "ambito": comarca,
                 "peso": r2(POB_M[mun] / sum(POB_M[x] for x in COMARCAS[comarca]) * 100, 2),
             },
         },

@@ -152,20 +152,20 @@ que las municipales; la serie de población insular arranca en 2000, no en
 1996. El exportador comprueba que cada isla es la suma de sus municipios
 donde puede serlo: la población coincide en las tres hojas (`C1I`, pirámide y
 suma de `C1M`), y la serie de origen extranjero se contrasta año a año, en
-personas, con la suma de `C22M` por `C1M`. Ahí aparece un error del libro: en
-`C2I` (nacidos fuera de España por isla, de donde sale `C22I`) las columnas
-de Lanzarote y Fuerteventura vienen cambiadas de 2021 a 2025, los años de la
-operación censal; con ellas, la ficha de Lanzarote habría dicho 30,4 % de
-origen extranjero en la barra y 34,4 % en el lugar de nacimiento. El
-exportador detecta el intercambio (el recuento de una isla es el de la otra y
-viceversa), lo corrige, lo avisa al exportar y `conciliar_excel.py` cuenta los
-años corregidos; queda pendiente arreglarlo en el Excel. Cualquier otro
-descuadre detiene la exportación. El mismo contraste en los componentes del
-cambio (`C6M` y `C7M` contra `C6I` y `C7I`, isla por isla y año por año)
-destapó el segundo error del libro: en `C7M` los dos San Bartolomé, el de
-Lanzarote y el de Tirajana, tienen las celdas cruzadas en 2022 y 2023 (la
-suma de cada isla se iba 244 y 235 personas, en sentidos opuestos, y cruzar
-esas dos celdas lo cuadraba exactamente). Pedro confirmó los dos errores el
+personas, con la suma de `C22M` por `C1M`. Ahí apareció el primer error del
+libro: en `C2I` (nacidos fuera de España por isla, de donde sale `C22I`) las
+columnas de Lanzarote y Fuerteventura venían cambiadas de 2021 a 2025, los
+años de la operación censal; con ellas, la ficha de Lanzarote habría dicho
+30,4 % de origen extranjero en la barra y 34,4 % en el lugar de nacimiento.
+El exportador detecta un intercambio así (el recuento de una isla es el de la
+otra y viceversa), lo corrige, lo avisa al exportar y `conciliar_excel.py`
+cuenta los años corregidos. Cualquier otro descuadre detiene la exportación.
+El mismo contraste en los componentes del cambio (`C6M` y `C7M` contra `C6I`
+y `C7I`, isla por isla y año por año) destapó el segundo error del libro: en
+`C7M` los dos San Bartolomé, el de Lanzarote y el de Tirajana, tenían las
+celdas cruzadas en 2022 y 2023 (la suma de cada isla se iba 244 y 235
+personas, en sentidos opuestos, y cruzar esas dos celdas lo cuadraba
+exactamente). Pedro confirmó los dos errores el
 15/9 y el 16/9 pasó el libro corregido (con un tercer arreglo, el total de
 Canarias de `C7R` en 2023, que la web no usa): exportado desde él, no hay
 ningún aviso y los datos son los mismos que ya se habían publicado con las
@@ -218,7 +218,7 @@ la llevan y que no queda ningún manejador en línea, y la batería fallaría
 con cualquier recurso que la política bloquease. Las acciones del workflow
 van fijadas por commit, con la versión en el comentario.
 
-**La ficha no espera a los mapas.** La geometría de los mapas pesa 258 KB y
+**La ficha no espera a los mapas.** La geometría de los mapas pesa 252 KB y
 se pide a la vez que el índice; la ficha se pinta con sus 4 KB en cuanto
 llegan, con un hueco del tamaño de cada mapa y su pie, y los mapas se
 dibujan en cuanto llega la geometría, sin que nada salte. Si falla, la
@@ -470,7 +470,7 @@ npm test
   iframe); las cinco cargan la misma versión de recursos y ningún recurso de
   terceros; ningún texto atribuye los datos al padrón; y una mudanza a una
   URL ficticia no deja rastro del dominio anterior.
-- `pruebas/conciliar_excel.py`: 3.628 comparaciones contra el libro, celda a
+- `pruebas/conciliar_excel.py`: 3.618 comparaciones contra el libro, celda a
   celda —población, series, origen extranjero con el decimal que se muestra,
   componentes con sus anomalías, los cuatro índices en los tres ámbitos,
   puestos y pesos, las 42 barras de cada pirámide y el lugar de nacimiento en
@@ -543,7 +543,8 @@ de WhatsApp y comprobar que la tarjeta es la del municipio.
 
 ## Accesibilidad
 
-Comprobado en 320, 375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin
+Comprobado con el navegador y axe, aparte de la batería automática, en 320,
+375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin
 desbordes horizontales, también con los desplegables abiertos; sin texto por
 debajo de 7,5 px reales; todo el texto pasa el contraste AA (4,5:1, o 3:1 en
 texto grande): el nombre del municipio en el comparador va en negro con una

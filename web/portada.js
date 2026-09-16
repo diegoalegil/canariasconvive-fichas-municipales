@@ -262,7 +262,7 @@ async function iniciar() {
     [nf(INDICE.poblacion_canarias), 'Habitantes'],
     [String(INDICE.municipios.length), 'Municipios'],
     [String(INDICE.islas_resumen.length), 'Islas'],
-    [nf(INDICE.extranjero_canarias, 1) + ' %', 'Origen extranjero'],
+    [pct(INDICE.extranjero_canarias, 1), 'Origen extranjero'],
   ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
 
   montarIslas();

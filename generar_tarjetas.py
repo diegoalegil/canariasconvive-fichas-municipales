@@ -197,6 +197,7 @@ ENVOLTORIO_ISLA = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '{hash}'; base-uri 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{nombre} · Ficha demográfica de la isla · Canarias Convive</title>
 <link rel="canonical" href="{base}/i/{slug}.html">
 <meta property="og:type" content="article">
@@ -222,6 +223,7 @@ ENVOLTORIO = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src '{hash}'; base-uri 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{nombre} · Ficha demográfica · Canarias Convive</title>
 <link rel="canonical" href="{base}/m/{cod}.html">
 <meta property="og:type" content="article">
@@ -269,8 +271,8 @@ def _meta(html, propiedad, valor):
 
 def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
     """Canónica, og:url y og:image de las cinco páginas, la fecha del dato en
-    la descripción de la portada, el enlace de vuelta de 404.html y de
-    enmarcada.html, y web/config.js (URL pública y orígenes que pueden enmarcar
+    la descripción de la portada, el enlace de vuelta (y el icono) de 404.html
+    y de enmarcada.html, y web/config.js (URL pública y orígenes que pueden enmarcar
     la web), con la URL pública dada (sin barra final). Devuelve los ficheros
     tocados."""
     base = base.rstrip("/")
@@ -292,6 +294,7 @@ def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
         if p.exists():
             html = re.sub(r'(<a class="btn" href=")[^"]*(")', lambda m: m.group(1) + base + "/" + m.group(2),
                           p.read_text(encoding="utf-8"))
+            html = re.sub(r'(<link rel="icon" href=")[^"]*(")', lambda m: m.group(1) + base + "/img/icono-32.png" + m.group(2), html)
             p.write_text(html, encoding="utf-8")
             tocados.append(p)
     config = web / "config.js"
