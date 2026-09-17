@@ -310,7 +310,8 @@ def hash_script(codigo):
 
 
 def script_envoltorio(destino):
-    return f"location.replace('{destino}' + location.hash);"
+    # La consulta se conserva: ?marca=obiten llega a la ficha (comun.js).
+    return f"location.replace('{destino}' + (location.search ? '&' + location.search.slice(1) : '') + location.hash);"
 
 
 # La URL pública vive en sitio.json; cambiar de alojamiento es cambiar ese
@@ -318,6 +319,8 @@ def script_envoltorio(destino):
 SITIO = json.loads((AQUI / "sitio.json").read_text(encoding="utf-8"))
 BASE = SITIO["url_publica"].rstrip("/")
 ORIGENES = SITIO.get("origenes_iframe", [])   # los sitios que pueden enmarcar la web (comun.js)
+MARCAS = SITIO.get("marcas", {})              # los programas con los que se puede ver la web (comun.js)
+MARCA_POR_DEFECTO = SITIO.get("marca_por_defecto", next(iter(MARCAS), ""))
 
 PAGINAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html",
            "guia": "guia.html", "dossier": "dossier.html"}
@@ -328,12 +331,14 @@ def _meta(html, propiedad, valor):
     return re.sub(patron, lambda m: m.group(1) + valor + m.group(2), html)
 
 
-def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
+def reescribir_paginas(base, web=WEB, anio=None, origenes=(), marcas=None):
     """Canónica, og:url y og:image de las cinco páginas, la fecha del dato en
     la descripción de la portada, el enlace de vuelta (y el icono) de 404.html
-    y de enmarcada.html, y web/config.js (URL pública y orígenes que pueden enmarcar
-    la web), con la URL pública dada (sin barra final). Devuelve los ficheros
-    tocados."""
+    y de enmarcada.html, y web/config.js (URL pública, orígenes que pueden
+    enmarcar la web y las marcas con que se puede ver), con la URL pública dada
+    (sin barra final). Devuelve los ficheros tocados."""
+    if marcas is None:
+        marcas = MARCAS
     base = base.rstrip("/")
     tocados = []
     for nombre, ruta in PAGINAS.items():
@@ -359,7 +364,9 @@ def reescribir_paginas(base, web=WEB, anio=None, origenes=()):
     config = web / "config.js"
     config.write_text("// Generado por generar_tarjetas.py desde sitio.json. No editar a mano.\n"
                       f"const URL_PUBLICA = {json.dumps(base + '/')};\n"
-                      f"const ORIGENES_IFRAME = {json.dumps(list(origenes))};\n", encoding="utf-8")
+                      f"const ORIGENES_IFRAME = {json.dumps(list(origenes))};\n"
+                      f"const MARCAS = {json.dumps(marcas, ensure_ascii=False)};\n"
+                      f"const MARCA_POR_DEFECTO = {json.dumps(MARCA_POR_DEFECTO)};\n", encoding="utf-8")
     tocados.append(config)
     return tocados
 
@@ -442,7 +449,8 @@ def main():
     print(f"{len(idx['municipios'])} envoltorios en {SALIDA_M}, {len(idx['islas_resumen'])} en {SALIDA_I}, "
           f"{len(idx['provincias'])} en {SALIDA_P} y Canarias en {SALIDA_R}")
     print(f"Tipografía: {familia()[0]}")
-    print(f"URL pública: {BASE}/ (sitio.json) en las cinco páginas, los envoltorios y config.js")
+    print(f"URL pública: {BASE}/ (sitio.json) en las cinco páginas, los envoltorios y config.js; "
+          f"marcas: {', '.join(MARCAS)} (por defecto, {MARCA_POR_DEFECTO})")
 
 
 if __name__ == "__main__":

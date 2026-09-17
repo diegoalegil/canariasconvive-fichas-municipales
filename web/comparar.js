@@ -288,8 +288,8 @@ function pintar(cruzar = false) {
   // ?m=38038,35016, ?i=tenerife,la-palma o ?p=las-palmas; sin nada elegido,
   // ?islas o ?provincias conserva el modo.
   const parametro = TEXTOS[MODO].parametro;
-  history.replaceState(null, '', ELEGIDOS.length ? `?${parametro}=${ELEGIDOS.map(claveDe).join(',')}`
-    : MODO === 'municipios' ? location.pathname : `?${MODO}`);
+  history.replaceState(null, '', conMarca(ELEGIDOS.length ? `?${parametro}=${ELEGIDOS.map(claveDe).join(',')}`
+    : MODO === 'municipios' ? location.pathname : `?${MODO}`));
   if (vacio) { soltar(); return; }
 
   document.getElementById('cmp-cifras').innerHTML = seccionCifras();
@@ -399,7 +399,7 @@ async function iniciar() {
 function ponerModo(modo) {
   MODO = modo;
   const T = TEXTOS[modo];
-  document.title = `${T.titulo} · Canarias Convive`;
+  document.title = tituloPagina(T.titulo);
   document.getElementById('cmp-titulo').textContent = T.titulo;
   document.getElementById('cmp-intro').textContent = T.intro;
   document.getElementById('cmp-vacio').textContent = T.vacio;

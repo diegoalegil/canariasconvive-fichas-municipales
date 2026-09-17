@@ -902,6 +902,73 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   await contexto.close();
 });
 
+test('marca: ?marca=obiten cambia logotipos, títulos, enlaces y papel; sin parámetro o con una marca desconocida, Canarias Convive', async () => {
+  const sitio = await json(path.join(RAIZ, 'sitio.json'));
+  const marca = sitio.marcas.obiten;
+  const { page, contexto, errores } = await abrir('index.html?marca=obiten');
+  await page.waitForSelector('.isla-menu');
+  const estado = () => page.evaluate(() => ({
+    marca: document.documentElement.dataset.marca, titulo: document.title,
+    logo: (document.querySelector('.marca img') || document.querySelector('.tapa-marca .placa img')).getAttribute('src').split('/').pop(),
+    alt: (document.querySelector('.marca img') || document.querySelector('.tapa-marca .placa img')).alt,
+    placa: document.querySelector('.placa-papel img')?.getAttribute('src').split('/').pop(),
+  }));
+  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Fichas demográficas municipales · ${marca.nombre}`, logo: 'logo-obiten.png', alt: marca.nombre, placa: undefined });
+  // Los enlaces llevan la marca al pulsarlos; la ficha la conserva al cambiar de territorio y en «Copiar enlace».
+  await page.locator('#banda-canarias').click();
+  await page.waitForSelector('#fuente-g-origen');
+  assert.ok(page.url().endsWith('/fichas/r/canarias.html?marca=obiten'), page.url());
+  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Canarias · Ficha demográfica · ${marca.nombre}`, logo: 'logo-obiten.png', alt: marca.nombre, placa: 'logo-obiten.png' });
+  await page.selectOption('#sel-municipio', '38038');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
+  await espera(300);
+  assert.ok(page.url().endsWith('/fichas/m/38038.html?marca=obiten'), page.url());
+  // El portapapeles se lee solo en Chromium (WebKit no concede el permiso): en los dos se captura lo que se escribe.
+  await page.evaluate(() => { navigator.clipboard.writeText = (t) => { window.__copiado = t; return Promise.resolve(); }; });
+  await page.locator('#btn-compartir').click();
+  await espera(200);
+  assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}m/38038.html?marca=obiten`);
+  // La presentación y la hoja llevan el logotipo de la marca; en el papel, el año no queda tapado por la placa.
+  await page.locator('#btn-presentar').click();
+  await espera(300);
+  assert.equal(await page.locator('.pres-logo').getAttribute('src').then((s) => s.split('/').pop()), 'logo-obiten.png');
+  await page.keyboard.press('Escape');
+  await espera(200);
+  await page.emulateMedia({ media: 'print' });
+  await espera(200);
+  const cajas = await page.evaluate(() => { const r = (e) => e.getBoundingClientRect().toJSON(); return { placa: r(document.querySelector('.placa-papel')), anio: r(document.getElementById('anio')) }; });
+  assert.ok(cajas.placa.left >= cajas.anio.right, `la placa va a la derecha del año: ${JSON.stringify(cajas)}`);
+  await page.emulateMedia({ media: null });
+  // El comparador desde el botón, con la marca; el sobre m/<código>.html?marca= la pasa a la ficha.
+  await page.locator('#btn-comparar').click();
+  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent.startsWith('1 de 3'));
+  assert.ok(page.url().endsWith('?m=38038&marca=obiten'), page.url());
+  assert.equal(await page.title(), `Comparar municipios · ${marca.nombre}`);
+  await page.goto(base + 'i/tenerife.html?marca=juntas');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('.marca img').getAttribute('alt'), sitio.marcas.juntas.nombre);
+  assert.ok((await page.locator('.marca img').boundingBox()).height > 40, 'el logotipo cuadrado va más alto que el de Canarias Convive');
+  // El dossier: la placa de cada hoja, los pies y la línea de entidades de la portada.
+  await page.goto(base + 'dossier.html?marca=obiten');
+  await page.waitForFunction(() => document.getElementById('d-total').textContent === '101 hojas', null, { timeout: 120000 });
+  assert.equal(await page.locator('.placa-papel img[src$="logo-obiten.png"]').count(), 98);
+  assert.equal(await page.locator('.d-marca').textContent(), marca.entidades);
+  assert.equal(await page.locator('.d-portada-placa img').getAttribute('src').then((s) => s.split('/').pop()), 'logo-obiten.png', 'la portada del dossier lleva el logotipo');
+  assert.equal(await page.locator('.d-pie span').first().textContent(), `${marca.nombre} · Fichas demográficas municipales`);
+  assert.deepEqual(errores, []);
+  await contexto.close();
+  // Otra pestaña sin parámetro, o con una marca que no existe: Canarias Convive.
+  const otra = await abrir('ficha.html?municipio=38038');
+  await otra.page.waitForSelector('#fuente-g-origen');
+  assert.equal(await otra.page.title(), 'Santa Cruz de Tenerife · Fichas municipales · Canarias Convive');
+  assert.ok(otra.page.url().endsWith('/fichas/m/38038.html'), otra.page.url());
+  await otra.page.goto(base + 'ficha.html?municipio=38038&marca=zzz');
+  await otra.page.waitForSelector('#fuente-g-origen');
+  assert.equal(await otra.page.evaluate(() => document.documentElement.dataset.marca + ' ' + document.querySelector('.marca img').getAttribute('src').split('/').pop()), 'canariasconvive logo-canariasconvive-menu.png');
+  assert.deepEqual(otra.errores, []);
+  await otra.contexto.close();
+});
+
 test('portada: si fallan los datos, el buscador se desactiva y el aviso se anuncia', async () => {
   const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   const page = await contexto.newPage();

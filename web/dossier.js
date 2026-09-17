@@ -51,7 +51,7 @@ function hojaFicha(f, pagina) {
       <p class="d-migas">${esc(R.migas)}</p>
       <div class="d-titular"><h2>${esc(f.nombre)}</h2><span class="d-anio">${f.anio}</span></div>
       <p class="d-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p>
-      <span class="placa placa-papel"><img src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive"></span>
+      <span class="placa placa-papel"><img src="${rutaWeb(MARCA.logo)}" alt="${esc(NOMBRE_MARCA)}"></span>
     </header>
 
     <div class="cifras">${cifrasClave(f)}</div>
@@ -109,14 +109,15 @@ function hojaFicha(f, pagina) {
       </section>
     </div>
 
-    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
+    <footer class="d-pie"><span>${esc(NOMBRE_MARCA)} · Fichas demográficas municipales</span><span>${pagina}</span></footer>
   </article>`;
 }
 
 /* --------------------------------------------------------- hojas fijas ---- */
 function hojaPortada() {
   return `<article class="hoja hoja-portada">
-    <div class="d-marca">Gobierno de Canarias · Universidad de La Laguna</div>
+    <span class="placa d-portada-placa"><img src="${rutaWeb(MARCA.logo)}" alt="${esc(NOMBRE_MARCA)}"></span>
+    <div class="d-marca">${esc(MARCA.entidades || NOMBRE_MARCA)}</div>
     <h1>Fichas demográficas<br>municipales de Canarias</h1>
     <p class="d-lede">Una ficha por Canarias, por cada provincia, por cada isla y por cada uno de los 88 municipios
       del archipiélago: estructura de la población, evolución, índices geodemográficos y lugar de nacimiento.</p>
@@ -166,7 +167,7 @@ function hojaGuia(fichas, pagina) {
         ${INDICADORES.map(definicion).join('')}
       </div>
     </div>
-    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
+    <footer class="d-pie"><span>${esc(NOMBRE_MARCA)} · Fichas demográficas municipales</span><span>${pagina}</span></footer>
   </article>`;
 }
 
@@ -184,7 +185,7 @@ function hojaIndice(provincias, paginaCanarias, pagina) {
           ${g.fichas.map((f, i) => `<div><span>${esc(f.nombre)}</span><b>${g.paginaPrimera + i}</b></div>`).join('')}
         </div>`).join('')}`).join('')}
     </div>
-    <footer class="d-pie"><span>Canarias Convive · Fichas demográficas municipales</span><span>${pagina}</span></footer>
+    <footer class="d-pie"><span>${esc(NOMBRE_MARCA)} · Fichas demográficas municipales</span><span>${pagina}</span></footer>
   </article>`;
 }
 

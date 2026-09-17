@@ -29,6 +29,33 @@ territorio, de modo que copiarla de ahí es lo mismo que «Copiar enlace». Por
 eso datos y enlaces se resuelven contra la raíz de la web (`rutaWeb`, en
 `comun.js`) y no contra la dirección visible.
 
+## Tres marcas en una sola web
+
+La web se ve con la marca del programa que la enlaza o la enmarca: Canarias
+Convive por defecto, OBITen con `?marca=obiten` y Juntas en la misma
+dirección con `?marca=juntas` en cualquier dirección de la web
+(`index.html?marca=obiten`, `m/38038.html?marca=juntas`; los sobres pasan el
+parámetro a la ficha). Las tres marcas viven en `sitio.json` (`marcas`: id,
+nombre, logotipo grande y de menú, y la línea de entidades de la portada del
+dossier; `marca_por_defecto`) y llegan a la web en `config.js`. La marca
+cambia el logotipo de la cabecera, de la portada, de la placa del papel y de
+la presentación, el nombre en los títulos de las páginas y en los pies del
+dossier, y la línea de entidades de su portada; el resto es idéntico. Se
+recuerda mientras se navega: los enlaces internos la llevan al pulsarlos,
+«Copiar enlace» la incluye y la sesión la guarda por si algún enlace se
+escapa; sin parámetro ni sesión (otra pestaña, otro sitio que la enmarca) es
+la de por defecto, y una marca desconocida también. Cada marca lleva su
+altura de logotipo (`--alto-logo`, `--alto-placa`… en `estilos.css`, por
+`data-marca` en `<html>`): el de OBITen es apaisado con letra pequeña y el de
+Juntas es cuadrado, y a la altura del de Canarias Convive no se leerían; en
+el papel, una placa más alta se coloca a la derecha del año, no debajo. Las
+tarjetas de vista previa y las etiquetas `og:` son estáticas y van siempre
+con la marca por defecto: si algún día hace falta una vista previa por marca,
+se generan los sobres por marca. Añadir una marca es añadir su entrada en
+`sitio.json` y sus dos PNG en `web/img/`, y ejecutar `generar_tarjetas.py`.
+Las líneas de entidades de OBITen y de Juntas («Cabildo de Tenerife ·
+Universidad de La Laguna») están puestas de oído: hay que confirmarlas.
+
 ## Regenerar los datos
 
 Hacen falta `pandas`, `numpy`, `openpyxl` y, para las tarjetas, `Pillow`
@@ -80,7 +107,7 @@ exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
 generar_tarjetas.py  las 99 tarjetas de vista previa, los envoltorios de web/m/, web/i/, web/p/ y web/r/, y web/config.js
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook; las dos provincias
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
-sitio.json           la URL pública y los orígenes que pueden enmarcar la web, en un solo sitio
+sitio.json           la URL pública, los orígenes que pueden enmarcar la web y las tres marcas, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
 pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
@@ -91,8 +118,8 @@ web/comparar.html    hasta tres municipios en paralelo, tres islas o las dos pro
 web/guia.html        qué mide cada indicador y con qué cuenta se obtiene
 web/dossier.html     las 98 fichas en un documento A4 de 101 hojas
 
-web/config.js        la URL pública y los orígenes del iframe, generados desde sitio.json
-web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque y el aviso al enmarcar
+web/config.js        la URL pública, los orígenes del iframe y las marcas, generados desde sitio.json
+web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque, el aviso al enmarcar y la marca activa
 web/datos-ui.js      la fuente de cada gráfico
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; las fichas de municipio, isla, provincia y Canarias
 web/portada.js       buscador, banda de Canarias, rótulos de provincia, tarjetas de isla con su desplegable y entrada de la portada
@@ -523,7 +550,9 @@ npm test
   `indice.json`, su tarjeta `og` y la URL de `sitio.json` (igual que las
   canónicas y `og:` de las cinco páginas, la descripción de la portada, que
   lleva el año y el arranque de la serie, y `config.js`, con los orígenes del
-  iframe); las cinco cargan la misma versión de recursos y ningún recurso de
+  iframe y las marcas de `sitio.json`, cada una con sus logotipos en
+  `web/img/`; los sobres conservan la consulta al redirigir); las cinco
+  cargan la misma versión de recursos y ningún recurso de
   terceros; ningún texto atribuye los datos al padrón; y una mudanza a una
   URL ficticia no deja rastro del dominio anterior.
 - `pruebas/conciliar_excel.py`: 3.790 comparaciones contra el libro, celda a
@@ -537,7 +566,7 @@ npm test
   `~/Downloads` (o en la ruta que se le pase) y `openpyxl`; si falta
   cualquiera de los dos, se omite avisando. No corre en GitHub porque el
   libro no está en el repositorio.
-- `pruebas/web.test.cjs` (Playwright, diecisiete casos): la última selección
+- `pruebas/web.test.cjs` (Playwright, dieciocho casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -589,7 +618,11 @@ npm test
   abiertas con el ratón; el buscador como combobox con
   `aria-activedescendant`, Escape, la provincia y las islas antes que los
   municipios, «tene» da la isla antes que la provincia y Enter abre la
-  primera); el dossier que reintenta una
+  primera); la marca (`?marca=obiten` cambia logotipos, títulos, la placa,
+  la presentación, los enlaces al pulsarlos, «Copiar enlace», el comparador
+  y el dossier con sus pies y su portada; en el papel la placa no tapa el
+  año; el logotipo cuadrado de Juntas va más alto; sin parámetro o con una
+  marca desconocida, Canarias Convive); el dossier que reintenta una
   petición fallida y se desplaza con teclado en pantallas estrechas; la
   ficha enmarcada en otro origen, que pasa al aviso, y enmarcada en la propia
   web, que se muestra; la guía (los enunciados de Pedro, sin edad media ni
@@ -719,10 +752,9 @@ Plesk: las dos cosas son independientes.
       16/9 (allí sigue el del 7 de agosto). El libro nuevo trae nueve hojas
       más (`C26`–`C32`, pirámides por año y hojas «P»): preguntar a Pedro si
       son las proyecciones a 2036.
-- [ ] Los tres logotipos (Canarias Convive, OBITen y Juntas en la misma
-      dirección), pedidos por Alexis y Pedro el 16/9: faltan los ficheros
-      (SVG o PNG con fondo transparente); irían en la cabecera y en la placa
-      del papel.
+- [ ] Confirmar con Alexis las líneas de entidades de OBITen y de Juntas en
+      la portada del dossier (`sitio.json`), y si quieren vistas previas
+      (tarjetas `og:`) por marca.
 - [ ] Enseñar a Pedro y a Alexis lo hecho tras la llamada del 16/9: las fichas
       de Canarias y de las dos provincias (sumadas desde las islas, con los
       índices por la fórmula del libro), la portada con la banda de Canarias

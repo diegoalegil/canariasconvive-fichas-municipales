@@ -50,6 +50,16 @@ comprobar(url_publica.startswith("https://") and url_publica.endswith("/"), "sit
 config = (WEB / "config.js").read_text(encoding="utf-8")
 comprobar(url_publica in config, "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
 comprobar(all(o in config for o in sitio.get("origenes_iframe", [])), "web/config.js no lleva los orígenes de sitio.json: ejecutar generar_tarjetas.py")
+# Las marcas con que se puede ver la web (?marca=): cada una con nombre y logotipos que existen, y en config.js tal cual.
+marcas = sitio.get("marcas", {})
+comprobar(sitio.get("marca_por_defecto") in marcas, "sitio.json: marca_por_defecto no es una de las marcas")
+for id_marca, m in marcas.items():
+    comprobar(re.fullmatch(r"[a-z]+", id_marca) is not None and m.get("nombre") and m.get("entidades"), f"sitio.json: la marca «{id_marca}» necesita id en minúsculas, nombre y entidades")
+    for clave in ("logo", "menu"):
+        comprobar((WEB / m.get(clave, "")).is_file(), f"sitio.json: falta el logotipo {m.get(clave)} de la marca «{id_marca}»")
+_marcas_config = re.search(r"^const MARCAS = (.*);$", config, re.M)
+comprobar(_marcas_config is not None and json.loads(_marcas_config.group(1)) == marcas, "web/config.js no lleva las marcas de sitio.json: ejecutar generar_tarjetas.py")
+comprobar(f'const MARCA_POR_DEFECTO = {json.dumps(sitio.get("marca_por_defecto"))};' in config, "web/config.js no lleva la marca por defecto de sitio.json")
 
 MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase de la edad media (exportar_datos.py)
 
@@ -68,7 +78,8 @@ def envoltorio_seguro(h):
     if len(scripts) != 1 or not csp:
         return False
     huella = "sha256-" + base64.b64encode(hashlib.sha256(scripts[0].encode("utf-8")).digest()).decode()
-    return f"script-src '{huella}'" in csp.group(1) and "default-src 'none'" in csp.group(1)
+    # El script conserva la consulta (?marca=) al redirigir a la ficha.
+    return f"script-src '{huella}'" in csp.group(1) and "default-src 'none'" in csp.group(1) and "location.search" in scripts[0]
 
 
 municipios = indice["municipios"]

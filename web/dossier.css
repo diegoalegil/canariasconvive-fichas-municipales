@@ -38,7 +38,7 @@
   background: var(--azul); color: #fff; padding: 2.4mm 6mm; margin-bottom: 1.6mm; flex: none;
   position: relative;   /* la dirección de la guía va en su esquina, como en la ficha suelta */
 }
-.d-titular { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; }
+.d-titular { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; padding-right: var(--reserva-placa, 0); }   /* sitio para una placa más alta (estilos.css) */
 .d-migas { font-size: 6.5pt; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--azul-sobre); }
 .d-cab h2 { font-size: 19pt; font-weight: 700; letter-spacing: -.02em; line-height: 1.08; margin-top: 1.4mm; min-width: 0; }
 .d-anio { font-size: 15pt; font-weight: 700; color: var(--azul-sobre); flex: none; }
@@ -48,6 +48,9 @@
 
 /* ----------------------------------------------------------------- portada -- */
 .hoja-portada { background: var(--azul); color: #fff; padding: 22mm 18mm 14mm; }
+/* El logotipo de la marca activa, en una placa blanca sobre la línea de entidades (altura por marca: estilos.css). */
+.d-portada-placa { display: inline-flex; align-self: flex-start; background: #fff; border-radius: 1.5mm; padding: 2mm 3mm; margin-bottom: 7mm; }
+.d-portada-placa img { height: var(--alto-logo-dossier, 9mm); width: auto; display: block; }
 .d-marca { font-size: 8pt; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--azul-sobre); }
 .hoja-portada h1 { font-size: 34pt; font-weight: 700; letter-spacing: -.03em; line-height: 1.08; margin-top: 14mm; }
 .d-lede { font-size: 11pt; line-height: 1.55; color: var(--azul-sobre); margin-top: 8mm; max-width: 130mm; text-wrap: pretty; }

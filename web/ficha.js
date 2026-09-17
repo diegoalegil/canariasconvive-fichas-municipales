@@ -758,7 +758,7 @@ async function cargar(clave) {
     document.getElementById('sel-municipio').value = ENT.seleccion;
     // La dirección visible es la estable, m/<código>.html o i/<isla>.html (la
     // misma que copia «Copiar enlace»); al recargarla, el envoltorio redirige aquí.
-    history.replaceState(null, '', rutaWeb(ENT.ruta) + location.hash);
+    history.replaceState(null, '', conMarca(rutaWeb(ENT.ruta)) + location.hash);
     metadatosFicha(f);
     avisoReposo();
   } catch (error) {
@@ -937,7 +937,7 @@ function rotulosFicha(f, ent) {
       municipios: '',
       indices: 'Las siete islas y Canarias, ordenadas de menor a mayor valor',
       comparar: 'comparar.html?islas',
-      titulo: 'Canarias · Ficha demográfica · Canarias Convive',
+      titulo: 'Canarias · Ficha demográfica',
     };
   }
   if (ent.provincia) {
@@ -948,7 +948,7 @@ function rotulosFicha(f, ent) {
       municipios: `Los ${f.municipios.length} municipios de la provincia y su peso demográfico de mayor a menor`,
       indices: 'Sus islas, la provincia y Canarias, ordenadas de menor a mayor valor',
       comparar: `comparar.html?p=${f.slug}`,
-      titulo: `${f.nombre} · Ficha de la provincia · Canarias Convive`,
+      titulo: `${f.nombre} · Ficha de la provincia`,
     };
   }
   return ent.isla ? {
@@ -958,7 +958,7 @@ function rotulosFicha(f, ent) {
     municipios: '',
     indices: 'Las siete islas y Canarias, ordenadas de menor a mayor valor',
     comparar: `comparar.html?i=${f.slug}`,
-    titulo: `${f.nombre} · Ficha de la isla · Canarias Convive`,
+    titulo: `${f.nombre} · Ficha de la isla`,
   } : {
     migas: [f.isla, comarcaDe(f)].filter(Boolean).join(' · '),
     entorno: ['El municipio en su entorno', 'Su puesto por población y el peso que tiene en cada ámbito'],
@@ -966,7 +966,7 @@ function rotulosFicha(f, ent) {
     municipios: '',
     indices: 'Los tres ámbitos, ordenados de menor a mayor valor',
     comparar: `comparar.html?m=${f.codmun}`,
-    titulo: `${f.nombre} · Fichas municipales · Canarias Convive`,
+    titulo: `${f.nombre} · Fichas municipales`,
   };
 }
 
@@ -975,7 +975,7 @@ function pintar(f) {
   ENT = entidad(f);
   const el = (id) => document.getElementById(id);
   const R = rotulosFicha(f, ENT);
-  document.title = R.titulo;
+  document.title = tituloPagina(R.titulo);
 
   el('migas').textContent = R.migas;
   el('btn-comparar').href = rutaWeb(R.comparar);   // el comparador abre con esta ficha
@@ -1302,7 +1302,7 @@ function conectarCompartir() {
   const original = rotulo.textContent;
   b.addEventListener('click', async () => {
     if (!FICHA) return;
-    const url = new URL(ENT.ruta, URL_PUBLICA_SITIO).href;
+    const url = conMarca(new URL(ENT.ruta, URL_PUBLICA_SITIO).href);
     try {
       await navigator.clipboard.writeText(url);
       rotulo.textContent = 'Enlace copiado';
@@ -1547,7 +1547,7 @@ function abrirPresentacion() {
       <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
       <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
-     <img class="pres-logo" src="${rutaWeb('img/logo-canariasconvive.png')}" alt="Canarias Convive">`,
+     <img class="pres-logo" src="${rutaWeb(MARCA.logo)}" alt="${esc(NOMBRE_MARCA)}">`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
      <p class="pres-fuente">${esc(textoFuente('evolucion'))}</p>`,
@@ -1683,7 +1683,7 @@ async function iniciar() {
   enlacesAbsolutos();
   // La placa del papel se clona en cada cruce: con la ruta absoluta no se resuelve contra m/<código>.html.
   const placa = document.querySelector('.placa-papel img');
-  if (placa) placa.src = rutaWeb('img/logo-canariasconvive.png');
+  if (placa) placa.src = rutaWeb(MARCA.logo);
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
