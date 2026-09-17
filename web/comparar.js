@@ -1,5 +1,6 @@
-/* Comparador de hasta tres municipios, o de hasta tres islas: municipios con
-   municipios e islas con islas, nunca mezclados. Comparar no es clasificar: no
+/* Comparador de hasta tres municipios, de hasta tres islas o de las dos
+   provincias: municipios con municipios, islas con islas y provincias con
+   provincias, nunca mezclados. Comparar no es clasificar: no
    hay puestos ni umbrales, el color distingue columnas (nunca valores) y va
    pegado al territorio, y Canarias queda en gris como referencia. Lo que
    describe un reparto va en porcentaje sobre el propio total; los recuentos,
@@ -13,13 +14,18 @@ const GRIS_REF = '#9AA0A6';
 let INDICE = null;
 let ELEGIDOS = [];         // fichas completas, en el orden en que se añadieron
 let ORDEN = 'poblacion';   // criterio de orden: una cifra clave o un índice
-let MODO = 'municipios';   // 'municipios' o 'islas'
+let MODO = 'municipios';   // 'municipios', 'islas' o 'provincias'
+// Sube con cada cambio de modo: una petición lanzada en un modo anterior no
+// cuenta al llegar, aunque se haya vuelto al mismo modo mientras tanto (si
+// contara, las dos provincias entrarían dos veces).
+let GENERACION = 0;
 
-/** La serie propia de un bloque: «municipio» en las fichas municipales, «isla» en las insulares. */
-const propia = (bloque) => bloque.municipio ?? bloque.isla;
-/** La clave de una ficha: código INE del municipio o slug de la isla. */
-const claveDe = (f) => f.tipo === 'isla' ? f.slug : String(f.codmun);
-const rutaDatos = (clave) => MODO === 'islas' ? `datos/isla/${clave}.json` : `datos/mun/${clave}.json`;
+/** La serie propia de un bloque: «municipio», «isla» o «provincia» según la ficha. */
+const propia = (bloque) => bloque.municipio ?? bloque.isla ?? bloque.provincia;
+/** La clave de una ficha: código INE del municipio o identificador de la isla o de la provincia. */
+const claveDe = (f) => f.tipo === 'municipio' ? String(f.codmun) : f.slug;
+const CARPETAS = { municipios: 'mun', islas: 'isla', provincias: 'provincia' };
+const rutaDatos = (clave) => `datos/${CARPETAS[MODO]}/${clave}.json`;
 
 // Los rótulos que cambian con el modo.
 const TEXTOS = {
@@ -36,6 +42,13 @@ const TEXTOS = {
     anadir: 'Añadir isla', ninguno: 'Ninguna isla elegida todavía', fallo: 'No se ha podido añadir la isla.',
     nacimiento: 'Cada barra suma el 100 % de su isla', extranjero: 'Porcentaje sobre el total de habitantes de cada isla',
     tabla: 'Cifras clave por isla', parametro: 'i',
+  },
+  provincias: {
+    titulo: 'Comparar provincias', intro: 'Las dos provincias, una junto a otra.',
+    vacio: 'Elige una provincia en el desplegable de arriba para empezar.',
+    anadir: 'Añadir provincia', ninguno: 'Ninguna provincia elegida todavía', fallo: 'No se ha podido añadir la provincia.',
+    nacimiento: 'Cada barra suma el 100 % de su provincia', extranjero: 'Porcentaje sobre el total de habitantes de cada provincia',
+    tabla: 'Cifras clave por provincia', parametro: 'p',
   },
 };
 
@@ -158,7 +171,7 @@ function seccionCifras() {
   return `<table class="cmp-tabla" role="table">
     <caption class="oculto">${TEXTOS[MODO].tabla}</caption>
     <thead role="rowgroup"><tr role="row"><th class="cmp-cab" scope="col" role="columnheader">Indicador</th>
-    ${municipios.map((f) => `<th class="cmp-cab" scope="col" role="columnheader"><b>${esc(f.nombre)}</b><span>${esc(f.tipo === 'isla' ? 'Isla' : f.isla)}</span><i class="marca-municipio" style="background:${tono(f)}"></i></th>`).join('')}
+    ${municipios.map((f) => `<th class="cmp-cab" scope="col" role="columnheader"><b>${esc(f.nombre)}</b><span>${esc(f.tipo === 'isla' ? 'Isla' : f.tipo === 'provincia' ? 'Provincia' : f.isla)}</span><i class="marca-municipio" style="background:${tono(f)}"></i></th>`).join('')}
     </tr></thead><tbody role="rowgroup">
     ${filas.map(([rot, uni, fn], i) => `<tr role="row">
       <th class="cmp-rot" scope="row" role="rowheader" id="cmp-fila-${i}"><b>${rot}</b><span>${uni}</span></th>
@@ -272,10 +285,11 @@ function pintar(cruzar = false) {
   document.getElementById('cmp-vacio').hidden = !vacio;
   document.getElementById('cmp-resultado').hidden = vacio;
   pintarElegidos();
-  // ?m=38038,35016 o ?i=tenerife,la-palma; sin nada elegido, ?islas conserva el modo.
+  // ?m=38038,35016, ?i=tenerife,la-palma o ?p=las-palmas; sin nada elegido,
+  // ?islas o ?provincias conserva el modo.
   const parametro = TEXTOS[MODO].parametro;
   history.replaceState(null, '', ELEGIDOS.length ? `?${parametro}=${ELEGIDOS.map(claveDe).join(',')}`
-    : MODO === 'islas' ? '?islas' : location.pathname);
+    : MODO === 'municipios' ? location.pathname : `?${MODO}`);
   if (vacio) { soltar(); return; }
 
   document.getElementById('cmp-cifras').innerHTML = seccionCifras();
@@ -303,22 +317,23 @@ function pintarElegidos() {
 }
 
 async function anadir(clave) {
-  const codigo = String(clave), modo = MODO;
-  if (ELEGIDOS.length + PENDIENTES.size >= MAXIMO || PENDIENTES.has(codigo)
-      || ELEGIDOS.some((f) => claveDe(f) === codigo)) return;
+  const codigo = String(clave), generacion = GENERACION;
+  const repetido = () => ELEGIDOS.some((f) => claveDe(f) === codigo);
+  if (ELEGIDOS.length + PENDIENTES.size >= MAXIMO || PENDIENTES.has(codigo) || repetido()) return;
   PENDIENTES.add(codigo); reservarColor(codigo);
   ELECCION.set(codigo, ++secuenciaEleccion);
   pintarElegidos();
   avisoCarga('estado-comparador');
   try {
     const f = await leerJSON(rutaDatos(codigo));
-    if (modo !== MODO) return;   // se cambió de modo mientras cargaba: ya no cuenta
+    if (generacion !== GENERACION) return;   // se cambió de modo mientras cargaba: ya no cuenta
+    if (repetido() || ELEGIDOS.length >= MAXIMO) return;
     ELEGIDOS.push(f);
     ELEGIDOS.sort((a, b) => ELECCION.get(claveDe(a)) - ELECCION.get(claveDe(b)));
     PENDIENTES.delete(codigo);
     pintar(true);
   } catch (error) {
-    if (modo !== MODO) return;
+    if (generacion !== GENERACION) return;
     avisoCarga('estado-comparador', TEXTOS[MODO].fallo, () => anadir(codigo));
     if (!ELEGIDOS.length) pintar();
   } finally {
@@ -368,9 +383,12 @@ async function iniciar() {
     b.addEventListener('click', () => cambiarModo(b.dataset.modo)));
 
   const params = new URLSearchParams(location.search);
-  const islas = params.has('i') || params.has('islas');
-  ponerModo(islas ? 'islas' : 'municipios');
-  const pedidos = islas
+  const modo = params.has('p') || params.has('provincias') ? 'provincias' : params.has('i') || params.has('islas') ? 'islas' : 'municipios';
+  ponerModo(modo);
+  const pedidos = modo === 'provincias'
+    // Sin provincias pedidas van las dos: comparar por provincia es compararlas.
+    ? (params.get('p') || INDICE.provincias.map((p) => p.slug).join(',')).split(',').filter((c) => INDICE.provincias.some((x) => x.slug === c))
+    : modo === 'islas'
     ? (params.get('i') || '').split(',').filter((c) => INDICE.islas_resumen.some((x) => x.slug === c))
     : (params.get('m') || '').split(',').filter((c) => INDICE.municipios.some((m) => String(m.codmun) === c));
   for (const c of pedidos.slice(0, MAXIMO)) await anadir(c);
@@ -390,7 +408,9 @@ function ponerModo(modo) {
   document.getElementById('sub-extranjero').textContent = T.extranjero;
   document.querySelectorAll('.cmp-modo .vista').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === modo)));
   const sel = document.getElementById('sel-anadir');
-  sel.innerHTML = `<option value="">${T.anadir}…</option>` + (modo === 'islas'
+  sel.innerHTML = `<option value="">${T.anadir}…</option>` + (modo === 'provincias'
+    ? INDICE.provincias.map((p) => `<option value="${p.slug}">${esc(p.nombre)}</option>`).join('')
+    : modo === 'islas'
     ? INDICE.islas_resumen.map((i) => `<option value="${i.slug}">${esc(i.nombre)}</option>`).join('')
     : Object.entries(INDICE.islas).map(([isla, muns]) =>
         `<optgroup label="${esc(isla)}">` + muns.map((n) => {
@@ -399,13 +419,16 @@ function ponerModo(modo) {
         }).join('') + '</optgroup>').join(''));
 }
 
-/** Cambiar de modo vacía la comparación: municipios con municipios, islas con islas. */
+/** Cambiar de modo vacía la comparación: municipios con municipios, islas con
+ *  islas, provincias con provincias (y estas entran las dos de golpe). */
 function cambiarModo(modo) {
   if (modo === MODO) return;
+  GENERACION++;
   ELEGIDOS = []; PENDIENTES.clear(); COLORES.clear(); ELECCION.clear();
   avisoCarga('estado-comparador');
   ponerModo(modo);
   pintar(true);
+  if (modo === 'provincias') INDICE.provincias.forEach((p) => anadir(p.slug));
 }
 
 iniciar().catch((e) => {

@@ -26,6 +26,12 @@ ISLAS = {
                  "Fuencaliente de La Palma", "Los Llanos de Aridane", "El Paso", "Tazacorte"],
     "El Hierro": ["Frontera", "Valverde", "El Pinar de El Hierro"],
 }
+# Las dos provincias, con sus islas de oeste a este (el mismo orden que ORDEN_ISLAS
+# en exportar_datos.py). No están en el cuaderno: la división es la oficial.
+PROVINCIAS = {
+    "Santa Cruz de Tenerife": ["El Hierro", "La Palma", "La Gomera", "Tenerife"],
+    "Las Palmas": ["Gran Canaria", "Fuerteventura", "Lanzarote"],
+}
 COMARCAS = {
     "Lanzarote - Este": ["Arrecife", "San Bartolomé", "Tías"],
     "Lanzarote - Norte": ["Haría", "Teguise"],

@@ -90,3 +90,9 @@
   #dossier { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .hoja { flex: none; }
 }
+
+/* Índice: Canarias y cada provincia encabezan sus grupos, en la misma columna que sus islas. */
+.d-indice-canarias h3, .d-indice-provincia h3 { font-size: 9pt; }
+.d-indice-canarias, .d-indice-provincia { margin-bottom: 2.5mm; }
+.d-indice-provincia { padding-top: 1.5mm; border-top: 1px solid var(--linea); }
+.d-indice-provincia.siguiente { break-before: column; border-top: 0; padding-top: 0; }   /* la segunda provincia abre columna */

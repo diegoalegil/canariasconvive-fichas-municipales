@@ -220,9 +220,13 @@ select {
 .mapas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 /* En El Hierro la comarca es la isla: dos mapas centrados, del mismo tamaño. */
 .mapas.dos { grid-template-columns: repeat(2, auto); justify-content: center; }
-/* La ficha de una isla: la isla en Canarias y, debajo, la isla con sus municipios. */
+/* Por encima del municipio: el territorio en Canarias y, debajo, él solo con sus municipios. */
 .mapas.isla { grid-template-columns: 1fr; gap: 26px; }
-.mapas.isla path[data-codmun] { transition: fill .15s; cursor: default; }
+.mapas.isla path { transition: fill .15s; cursor: default; }
+/* Las dos provincias bajo el mapa de Canarias, con el tono que llevan en él. */
+#g-provincias:not(:empty) { margin-top: 18px; }
+/* La provincia: sus islas con los términos municipales junto a la lista de municipios. */
+.mapa-y-lista { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 26px; align-items: start; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
 /* Hueco del mapa mientras llega la geometría: mismo tamaño, sin salto. */
@@ -307,6 +311,7 @@ select {
   font-size: 11px; font-variant-numeric: tabular-nums;
 }
 .lista-mun b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.lista-mun .tono { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
 .lista-mun span {
   font-size: 11px; color: var(--negro); font-variant-numeric: tabular-nums; min-width: 42px; text-align: right;
 }
@@ -318,6 +323,7 @@ select {
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
+.anillos.uno { grid-template-columns: minmax(200px, 320px); justify-content: center; }
 .anillo { text-align: center; }
 .anillo h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
 .anillo svg { margin: 0 auto; }
@@ -440,11 +446,41 @@ select {
 .isla-menu .desplegable { height: 292px; }
 
 /* ------------------------------------------------------- archipiélago ------ */
-/* Siete tarjetas iguales, una por isla con su silueta; cada una despliega la
-   lista de fichas de la isla: la isla entera primero y, debajo, sus municipios. */
+/* La banda de Canarias entera; debajo, el rótulo de cada provincia sobre sus
+   islas y siete tarjetas iguales, una por isla con su silueta; cada una
+   despliega la lista de fichas de la isla: la isla entera primero y, debajo,
+   sus municipios. Es una sola retícula de siete columnas: los rótulos van en
+   la primera fila (cuatro y tres columnas) y las tarjetas en la segunda, así
+   miden exactamente lo mismo. */
 .archipielago { padding: 22px var(--e-7) 26px; border-bottom: 1px solid var(--linea); }
+.canarias-banda {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 12px; padding: 10px 16px;
+  color: var(--negro); text-decoration: none; background: var(--fondo);
+  border: 1px solid var(--linea); border-radius: var(--r-3); transition: border-color .2s, box-shadow .2s;
+}
+.canarias-banda:hover { border-color: var(--azul); box-shadow: var(--s-2); }
+.canarias-silueta svg { display: block; width: 120px; height: 40px; }
+.canarias-silueta path { fill: var(--azul-claro); stroke: var(--azul-claro); stroke-width: .6; transition: fill .2s, stroke .2s; }
+.canarias-banda:hover .canarias-silueta path { fill: var(--azul); stroke: var(--azul); }
+.canarias-banda b { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.canarias-banda > span { font-size: 12.5px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.canarias-banda em, .provincia-cab .galon { margin-left: auto; }
+.canarias-banda em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--azul); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.canarias-banda .galon, .provincia-cab .galon { transform: rotate(-90deg); }
 .islas-tarjetas { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
-.isla-menu { position: relative; min-width: 0; }
+.provincia-cab {
+  grid-row: 1; display: flex; align-items: baseline; gap: 10px; min-width: 0; padding: 7px 12px;
+  color: var(--negro); text-decoration: none; background: var(--caja); border-radius: var(--r-2);
+  border: 1px solid transparent; transition: border-color .2s;
+}
+.provincia-cab:hover { border-color: var(--azul); }
+.provincia-cab:hover b { color: var(--azul); }
+.provincia-cab b { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.provincia-cab > span { font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.provincia-cab .galon { align-self: center; color: var(--gris); flex: none; }
+.provincia-cab:nth-child(1) { grid-column: 1 / span 4; }
+.provincia-cab:nth-child(2) { grid-column: 5 / span 3; }
+.isla-menu { position: relative; min-width: 0; grid-row: 2; }
 .isla-tarjeta {
   font: inherit; cursor: pointer; width: 100%; height: 100%; aspect-ratio: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
@@ -645,6 +681,8 @@ select {
 .tapa .tapa-texto { --t: 100ms; --d: 280ms; --y: 6px; }
 .tapa .tapa-datos > div { --t: calc(160ms + var(--n) * 40ms); --d: 260ms; --y: 4px; }
 .tapa .buscador   { --t: 220ms; --d: 280ms; --y: 4px; }
+.tapa .canarias-banda { --t: 240ms; --d: 260ms; --y: 4px; }
+.tapa .provincia-cab { --t: calc(260ms + var(--n) * 30ms); --d: 240ms; --y: 3px; }
 .tapa .isla-menu  { --t: calc(280ms + var(--n) * 30ms); --d: 240ms; --y: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -660,9 +698,14 @@ select {
   .cifra:nth-child(odd) { border-left: 0; }
   .cifra:nth-child(1), .cifra:nth-child(2) { border-top: 0; }
   .mapas, .mapas.dos { grid-template-columns: 1fr; gap: 26px; }
+  .mapa-y-lista { grid-template-columns: 1fr; }
   .tapa-alto, .filtros, .atajos, .archipielago { padding-inline: var(--e-5); }
   .tapa-datos { gap: var(--e-5); }
+  /* Cuatro columnas: cada provincia abre su fila. */
   .islas-tarjetas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .provincia-cab:nth-child(1), .provincia-cab:nth-child(2) { grid-column: 1 / -1; }
+  .provincia-cab:nth-child(2) { grid-row: 3; }
+  .isla-menu:nth-child(n+7) { grid-row: 4; }
 }
 @media (max-width: 700px) {
   .lista-mun { columns: 1; }
@@ -693,8 +736,15 @@ select {
   .envoltorio { padding-inline: 14px; }
   .portada { padding-inline: 14px; }
   .tapa-alto, .filtros, .atajos, .archipielago { padding-inline: 18px; }
-  /* En el móvil las tarjetas van en una columna, apaisadas. */
+  /* En el móvil las tarjetas van en una columna, apaisadas, cada provincia con las suyas debajo. */
   .islas-tarjetas { grid-template-columns: 1fr; gap: 8px; }
+  .provincia-cab:nth-child(1), .provincia-cab:nth-child(2), .isla-menu, .isla-menu:nth-child(n+7) { grid-row: auto; grid-column: auto; }
+  .provincia-cab:nth-child(1) { order: 0; }
+  .isla-menu { order: 1; }
+  .provincia-cab:nth-child(2) { order: 2; margin-top: 6px; }
+  .isla-menu:nth-child(n+7) { order: 3; }
+  .canarias-banda { flex-wrap: wrap; gap: 6px 12px; }
+  .canarias-silueta { display: none; }
   .isla-tarjeta { aspect-ratio: auto; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 8px 12px; }
   .isla-silueta svg { width: 56px; height: 38px; }
   .isla-nombre { margin-top: 0; text-align: left; }
@@ -877,6 +927,14 @@ body.presentando { overflow: hidden; }
      cuerpo más pequeño de la hoja y sin la columna del peso, que no cabe. */
   .tarjeta.entorno-isla { grid-column: span 3; }
   .tarjeta.municipios-isla { grid-column: span 9; }
+  /* La lista de municipios de la provincia no va en la hoja: el índice del dossier la tiene. */
+  .tarjeta.municipios-provincia { display: none; }
+  /* Canarias: las dos provincias debajo del mapa piden una tarjeta algo más ancha. */
+  .tarjeta.entorno-canarias { grid-column: span 4; }
+  .tarjeta.municipios-canarias { grid-column: span 8; }
+  #g-provincias:not(:empty) { margin-top: 1.5mm; }
+  .lista-mun .tono { width: 1.6mm; height: 1.6mm; margin-right: .8mm; }
+  .anillos.uno { grid-template-columns: 1fr; justify-items: center; }
   .indices-isla { columns: 2; column-gap: 3mm; }
   .indice-isla { break-inside: avoid; margin-bottom: 1mm; }
   .indice-isla .escalera { gap: .3mm; }

@@ -177,16 +177,22 @@ function avisoCarga(id, mensaje = '', reintentar) {
 
 /** Canónica y og: de la ficha en pantalla, sobre la URL pública de sitio.json
  *  (config.js). Para los rastreadores, que no ejecutan JS, están las mismas
- *  etiquetas en los envoltorios estáticos m/<código>.html e i/<isla>.html. */
+ *  etiquetas en los envoltorios estáticos m/<código>.html, i/<isla>.html,
+ *  p/<provincia>.html y r/canarias.html. */
 const URL_PUBLICA_SITIO = typeof URL_PUBLICA !== 'undefined' ? URL_PUBLICA : new URL('.', location.href).href;
 function metadatosFicha(f) {
-  const isla = f.tipo === 'isla';
-  const url = new URL(isla ? `i/${f.slug}.html` : `m/${f.codmun}.html`, URL_PUBLICA_SITIO).href;
+  // La misma tarjeta que escribe generar_tarjetas.py en los envoltorios.
+  const carpeta = { municipio: 'm', isla: 'i', provincia: 'p', canarias: 'r' }[f.tipo];
+  const url = new URL(`${carpeta}/${f.tipo === 'municipio' ? f.codmun : f.slug}.html`, URL_PUBLICA_SITIO).href;
+  const de = { isla: ' de la isla', provincia: ' de la provincia' }[f.tipo] || '';
+  const contiene = f.tipo === 'isla' ? ` en ${f.municipios.length} municipios`
+    : f.tipo === 'provincia' ? ` en ${f.islas.length} islas y ${f.municipios.length} municipios`
+    : f.tipo === 'canarias' ? ` en ${f.islas.length} islas y ${f.islas.reduce((s, i) => s + i.municipios, 0)} municipios` : '';
   const valores = {
-    'og:title': `${f.nombre} · Ficha demográfica${isla ? ' de la isla' : ''}`,
+    'og:title': `${f.nombre} · Ficha demográfica${de}`,
     'og:url': url,
-    'og:image': new URL(`og/${isla ? f.slug : f.codmun}.png`, URL_PUBLICA_SITIO).href,
-    'og:description': `${nf(f.poblacion)} habitantes${isla ? ` en ${f.municipios.length} municipios` : ''}. `
+    'og:image': new URL(`og/${f.tipo === 'municipio' ? f.codmun : f.slug}.png`, URL_PUBLICA_SITIO).href,
+    'og:description': `${nf(f.poblacion)} habitantes${contiene}. `
       + `Estructura de la población, evolución e índices. Población a 1 de enero de ${f.anio}.`,
   };
   for (const [clave, valor] of Object.entries(valores)) {

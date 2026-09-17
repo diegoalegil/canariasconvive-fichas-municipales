@@ -9,7 +9,7 @@
    de cada isla (sus municipios, los índices de las siete y el mismo
    desplegable para pasar de la isla al municipio), el comparador de islas,
    la portada con una tarjeta por isla, las 88 fichas y las 7 de isla en una
-   A4 y el dossier de 98 hojas, la ficha que pinta sin esperar a los mapas,
+   A4 y el dossier de 101 hojas, la ficha que pinta sin esperar a los mapas,
    los índices con teclado y el alto que la página enmarcada dice al marco.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
@@ -415,6 +415,96 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   await contexto.close();
 });
 
+test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias e islas, y el paso entre ámbitos', async () => {
+  const sitio = await json(path.join(RAIZ, 'sitio.json'));
+  // Canarias entra por su envoltorio r/canarias.html.
+  const { page, contexto, errores } = await abrir('r/canarias.html');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#nombre').textContent(), 'Canarias');
+  assert.ok(page.url().endsWith('/fichas/r/canarias.html'), page.url());
+  assert.equal(await page.locator('#sel-municipio').inputValue(), 'canarias');
+  assert.equal(await page.locator('#migas').textContent(), '2 provincias · 7 islas · 88 municipios');
+  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'r/canarias.html');
+  const envoltorio = await fs.readFile(path.join(WEB, 'r/canarias.html'), 'utf8');
+  assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), /<meta property="og:description" content="([^"]*)">/.exec(envoltorio)[1]);
+  assert.equal(await page.locator('#sub-evolucion').textContent(), `Habitantes, 1971–${indice.anio}`, 'la serie regional arranca en 1971');
+  // La propia es la referencia: la pirámide va sin marco negro, el origen extranjero sin la línea de Canarias y un solo anillo.
+  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Canarias', 'Canarias: Según origen']);
+  assert.equal(await page.locator('#leyenda-piramide .llave').count(), 2, 'la leyenda de la pirámide no lleva marco');
+  assert.equal(await page.locator('#g-piramide path[stroke="#1A1A1A"]:not([d=""])').count(), 0, 'sin marco negro');
+  assert.equal(await page.locator('#g-extranjero polyline').count(), 0, 'sin línea de referencia');
+  assert.equal(await page.locator('#leyenda-extranjero').textContent(), '');
+  assert.deepEqual(await page.locator('#g-extranjero table thead th').allTextContents(), ['Año', 'Canarias'], 'la tabla oculta no repite la columna');
+  assert.equal(await page.locator('#g-origen .anillo').count(), 1);
+  await page.locator('#g-piramide').focus(); await page.keyboard.press('ArrowUp'); await espera(150);
+  assert.match(await page.locator('#lectura-piramide').textContent(), /^0 a 4 años\. Hombres: [\d,]+\u00a0%; Mujeres: [\d,]+\u00a0%\.$/, 'la lectura no nombra el marco');
+  assert.equal(await page.locator('#marcas-activas rect').count(), 0, 'sin marcadores del marco');
+  await page.locator('.vista').nth(1).click(); await espera(900);
+  assert.equal(await page.locator('#leyenda-piramide .llave').count(), 3, 'según origen sí lleva el marco de extranjeros');
+  await page.keyboard.press('Escape');
+  // Sus provincias (con el tono del mapa) y sus islas, de mayor a menor, con enlace a su ficha.
+  assert.equal(await page.locator('#tit-entorno').textContent(), 'Sus provincias');
+  assert.equal(await page.locator('#tit-municipios').textContent(), 'Sus islas');
+  assert.equal(await page.locator('#sub-municipios').textContent(), 'Las siete islas y su peso demográfico de mayor a menor');
+  const provincias = await page.locator('#g-provincias li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, l.querySelector('.tono').style.background, l.querySelector('span').textContent]));
+  assert.deepEqual(provincias.map((p) => p[0]), [base + 'p/las-palmas.html', base + 'p/santa-cruz-de-tenerife.html']);
+  assert.deepEqual(provincias.map((p) => p[1]), ['rgb(24, 95, 165)', 'rgb(133, 183, 235)']);
+  const islas = await page.locator('#g-municipios li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, parseInt(l.querySelector('b').textContent.replace(/\./g, ''), 10)]));
+  assert.equal(islas.length, 7);
+  assert.ok(islas.every((f, i) => !i || f[1] <= islas[i - 1][1]), 'de mayor a menor');
+  assert.equal(islas[0][0], base + 'i/tenerife.html');
+  await page.waitForSelector('#mapas path');
+  assert.equal(await page.locator('#mapas figure').count(), 1);
+  assert.equal(await page.locator('.mapa-pie b').first().textContent(), '2');
+  assert.equal(await page.locator('#mapas path[data-provincia="Las Palmas"]').first().getAttribute('fill'), '#185FA5', 'cada provincia va de su tono');
+  await page.locator('#g-municipios li[data-isla="El Hierro"]').hover();
+  assert.equal(await page.locator('#mapas path[data-isla="El Hierro"]').first().getAttribute('fill'), '#185FA5', 'señalar una isla la destaca en el archipiélago');
+  await page.mouse.move(5, 5); await espera(100);
+  assert.equal(await page.locator('#mapas path[data-isla="El Hierro"]').first().getAttribute('fill'), '#85B7EB', 'y al salir recupera el tono de su provincia');
+  // Índices: las siete islas y Canarias, y Canarias es la propia.
+  const escalera = await page.locator('.indice-isla').first().locator('.tramo').evaluateAll((ts) => ts.map((t) => [t.querySelector('span').textContent, t.classList.contains('propia')]));
+  assert.equal(escalera.length, 8);
+  assert.deepEqual(escalera.filter((e) => e[1]).map((e) => e[0]), ['Canarias']);
+  assert.equal(await page.locator('.fuente-grafico').count(), 8);
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de Canarias, 1971–${indice.anio}.`);
+  for (const ancho of [375, 1280]) {
+    await page.setViewportSize({ width: ancho, height: 900 });
+    await espera(400);
+    await sinDesborde(page, `ficha de Canarias a ${ancho}`);
+  }
+  // A la provincia: sus islas, sus 54 municipios con su mapa, «Provincia» en la escalera y el peso sin puesto.
+  await page.selectOption('#sel-municipio', 'provincia:santa-cruz-de-tenerife');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
+  await espera(800);
+  assert.ok(page.url().endsWith('/fichas/p/santa-cruz-de-tenerife.html'), page.url());
+  assert.equal(await page.locator('#migas').textContent(), 'Canarias · 4 islas · 54 municipios');
+  assert.deepEqual(await page.locator('.vista').allTextContents(), ['Provincia y Canarias', 'Provincia: Según origen']);
+  assert.equal(await page.locator('#leyenda-piramide .llave').count(), 3, 'la provincia sí lleva el marco de Canarias');
+  assert.equal(await page.locator('#sub-municipios').textContent(), 'Las 4 islas de la provincia y su peso demográfico de mayor a menor');
+  assert.equal(await page.locator('#g-municipios li').count(), 4);
+  assert.equal(await page.locator('#sub-municipios-provincia').textContent(), 'Los 54 municipios de la provincia y su peso demográfico de mayor a menor');
+  assert.equal(await page.locator('#g-municipios-provincia li').count(), 54);
+  assert.equal(await page.locator('#mapa-provincia path[data-codmun]').count(), 54, 'sus islas con los términos municipales, junto a la lista');
+  await page.locator('#g-municipios-provincia li[data-codmun="38001"]').hover();
+  assert.equal(await page.locator('#mapa-provincia path[data-codmun="38001"]').getAttribute('fill'), '#185FA5');
+  assert.match(await page.locator('.mapa-pie').first().textContent().then((x) => x.replace(/\s+/g, ' ').trim()), /^\d+,\d\d % de la población de Canarias$/, 'solo el peso: entre dos provincias no hay puesto');
+  const tramos = await page.locator('.indice-isla').first().locator('.tramo').evaluateAll((ts) => ts.map((t) => [t.querySelector('span').textContent, t.classList.contains('propia')]));
+  assert.equal(tramos.length, 6, 'sus cuatro islas, la provincia y Canarias');
+  assert.deepEqual(tramos.filter((e) => e[1]).map((e) => e[0]), ['Provincia']);
+  assert.equal(await page.locator('.fuente-grafico').count(), 9, 'nueve fuentes: las dos listas llevan la suya');
+  assert.equal(await page.locator('#btn-comparar').evaluate((a) => a.href), base + 'comparar.html?p=santa-cruz-de-tenerife');
+  // Y de la provincia a un municipio: la ficha vuelve a la forma municipal.
+  await page.selectOption('#sel-municipio', '38001');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Adeje');
+  await espera(700);
+  assert.equal(await page.locator('#sec-municipios-provincia').isHidden(), true);
+  assert.equal(await page.locator('#g-provincias').textContent(), '');
+  assert.equal(await page.locator('#mapas figure').count(), 3);
+  assert.equal(await page.locator('#leyenda-piramide .llave').count(), 3);
+  assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
 test('ficha: pinta sin esperar a los mapas, los índices se recorren con teclado y las filas de la pirámide miden 24 px', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
   // La geometría tarda: la ficha entera está pintada, con un hueco del tamaño de cada mapa y su pie.
@@ -659,8 +749,36 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   assert.equal(await page.locator('#cmp-cuenta').textContent(), '0 de 3');
   assert.ok(page.url().endsWith('?islas'), `${page.url()}: sin nada elegido, la dirección conserva el modo`);
   assert.match(await page.locator('#cmp-vacio').textContent(), /Elige una isla/);
-  assert.deepEqual(errores, []);
+  // A provincias: entran las dos de golpe (comparar por provincia es compararlas).
+  await page.locator('.cmp-modo [data-modo="provincias"]').click();
+  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
+  await espera(900);
+  assert.equal(await page.locator('#cmp-titulo').textContent(), 'Comparar provincias');
+  assert.ok(page.url().endsWith('?p=santa-cruz-de-tenerife,las-palmas'), page.url());
+  assert.deepEqual(await page.locator('.cmp-cab span').allTextContents(), ['Provincia', 'Provincia']);
+  assert.deepEqual(await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas', 'Santa Cruz de Tenerife'], 'de mayor a menor población');
+  assert.equal(await page.locator('#sel-anadir option').count(), 3, 'las dos provincias y el rótulo');
+  assert.equal(await page.locator('#cmp-indices .peldano').count(), 4 * 3, 'dos provincias y Canarias en cada índice');
+  await sinDesborde(page, 'comparador de provincias');
   await contexto.close();
+  // ?p=<una> deja una sola; ?provincias, las dos.
+  const otra = await abrir('comparar.html?p=las-palmas');
+  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '1 de 3');
+  assert.deepEqual(await otra.page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas']);
+  await otra.page.goto(base + 'comparar.html?provincias');
+  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
+  // Cambiar de modo y volver antes de que lleguen las provincias no las duplica ni pasa del máximo.
+  await retrasar(otra.page, '**/datos/provincia/*.json', 700);
+  for (const modo of ['islas', 'provincias', 'islas', 'provincias']) {
+    await otra.page.locator(`.cmp-modo [data-modo="${modo}"]`).click();
+    await espera(120);
+  }
+  await espera(2500);
+  assert.deepEqual(await otra.page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas', 'Santa Cruz de Tenerife'], 'ir y volver de modo no duplica las provincias');
+  assert.equal(await otra.page.locator('#cmp-cuenta').textContent(), '2 de 3');
+  assert.ok(otra.page.url().endsWith('?p=santa-cruz-de-tenerife,las-palmas'), otra.page.url());
+  assert.deepEqual(errores.concat(otra.errores), []);
+  await otra.contexto.close();
 });
 
 test('comparador: el fallo de la carga inicial se ve y se puede reintentar', async () => {
@@ -680,6 +798,14 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   const { page, contexto, errores } = await abrir('index.html', { ancho: 375, alto: 812 });
   await page.waitForSelector('.isla-menu');
   assert.deepEqual(await page.locator('.isla-nombre').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
+  // Canarias entera arriba y el rótulo de cada provincia sobre sus islas, los tres con enlace a su ficha.
+  assert.equal(await page.locator('#banda-canarias').getAttribute('href'), 'ficha.html?canarias');
+  assert.match(await page.locator('#banda-canarias').textContent(), /Canarias[\d.]+ habitantes/);
+  assert.deepEqual(await page.locator('.provincia-cab').evaluateAll((as) => as.map((a) => [a.querySelector('b').textContent, a.getAttribute('href')])),
+    [['Santa Cruz de Tenerife', 'ficha.html?provincia=santa-cruz-de-tenerife'], ['Las Palmas', 'ficha.html?provincia=las-palmas']]);
+  // En una columna, cada provincia va justo encima de sus islas.
+  const orden = await page.locator('#islas > *').evaluateAll((es) => es.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map((e) => e.querySelector('b, .isla-nombre').textContent));
+  assert.deepEqual(orden, ['Santa Cruz de Tenerife', 'El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Las Palmas', 'Gran Canaria', 'Fuerteventura', 'Lanzarote']);
   for (const ancho of [320, 375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 812 });
     await espera(200);
@@ -695,6 +821,12 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
     const cajas = await page.locator('.isla-tarjeta').evaluateAll((cs) => cs.map((c) => { const r = c.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }));
     assert.equal(new Set(cajas.map((c) => `${c[1]}×${c[2]}`)).size, 1, `a ${ancho} las tarjetas no miden lo mismo: ${JSON.stringify(cajas)}`);
     if (ancho === 1280) assert.equal(new Set(cajas.map((c) => c[0])).size, 1, 'a 1280 las siete tarjetas en una fila');
+    if (ancho === 1280) {
+      const cabs = await page.locator('.provincia-cab').evaluateAll((as) => as.map((a) => { const r = a.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.left), Math.round(r.right)]; }));
+      const tarjetas = await page.locator('.isla-tarjeta').evaluateAll((cs) => cs.map((c) => Math.round(c.getBoundingClientRect().left)));
+      assert.ok(cabs[0][0] === cabs[1][0] && cabs[0][0] < cajas[0][0] && cabs[0][1] === tarjetas[0] && cabs[0][2] < tarjetas[4] && cabs[1][1] === tarjetas[4],
+        `a 1280 los rótulos van en una fila, cada uno sobre sus islas: ${JSON.stringify([cabs, tarjetas])}`);
+    }
   }
   assert.deepEqual([...new Set(await page.locator('.isla-menu .desplegable').evaluateAll((ds) => ds.map((d) => { d.hidden = false; const h = d.getBoundingClientRect().height; d.hidden = true; return h; })))], [292], 'desplegables del mismo alto');
   // Bajo el título no hay nada; las cuatro cifras van a la derecha del título.
@@ -747,7 +879,12 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   await page.fill('#buscar', 'zzzz');
   assert.equal(await page.locator('#resultados [role="option"][aria-disabled="true"]').count(), 1, 'sin resultados, una opción inactiva lo dice');
   await page.fill('#buscar', 'la ');
-  assert.deepEqual(await page.locator('#resultados a').evaluateAll((as) => as.slice(0, 2).map((a) => a.textContent)), ['La GomeraToda la isla', 'La PalmaToda la isla'], 'las islas, antes que los municipios');
+  assert.deepEqual(await page.locator('#resultados a').evaluateAll((as) => as.slice(0, 3).map((a) => a.textContent)), ['Las PalmasToda la provincia', 'La GomeraToda la isla', 'La PalmaToda la isla'], 'la provincia y las islas, antes que los municipios');
+  await page.fill('#buscar', 'santa cruz'); await espera(250);
+  assert.deepEqual(await page.locator('#resultados a').evaluateAll((as) => as.slice(0, 2).map((a) => [a.textContent, a.getAttribute('href')])),
+    [['Santa Cruz de TenerifeToda la provincia', 'ficha.html?provincia=santa-cruz-de-tenerife'], ['Santa Cruz de La PalmaLa Palma', 'ficha.html?municipio=38037']], 'la provincia, antes que los municipios');
+  await page.fill('#buscar', 'canarias'); await espera(250);
+  assert.deepEqual(await page.locator('#resultados a').evaluateAll((as) => as.slice(0, 1).map((a) => [a.textContent, a.getAttribute('href'), a.id])), [['CanariasTodo el archipiélago', 'ficha.html?canarias', 'res-canarias']]);
   await page.fill('#buscar', '');
   await page.locator('#buscar').focus();
   assert.notEqual(await page.locator('.buscador').evaluate((e) => getComputedStyle(e).outlineStyle), 'none');
@@ -784,7 +921,7 @@ test('dossier: una petición fallida se reintenta, el aviso es una región de es
   await page.route('**/datos/mun/38024.json', (r) => { if (!fallada++) r.abort(); else r.continue(); });
   assert.match(await fs.readFile(path.join(WEB, 'dossier.html'), 'utf8'), /id="d-aviso" role="status" aria-live="polite"/);
   await page.goto(base + 'dossier.html');
-  await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 180000 });
+  await page.waitForFunction(() => document.getElementById('d-total').textContent === '101 hojas', null, { timeout: 180000 });
   assert.equal(fallada, 2, 'la ficha que falló se volvió a pedir');
   assert.equal(await page.locator('#dossier').getAttribute('tabindex'), null, 'a 1280 la hoja cabe y no hace falta enfocar el contenedor');
   await page.setViewportSize({ width: 375, height: 812 });
@@ -851,7 +988,7 @@ test('guía: los enunciados de Pedro, sin edad media ni desplegables de fuente',
   await contexto.close();
 });
 
-test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98 páginas con su barra', { timeout: 360000, ...SOLO_CHROMIUM }, async () => {
+test('papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias caben en una A4 y el dossier tiene 101 páginas con su barra', { timeout: 360000, ...SOLO_CHROMIUM }, async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
   await page.waitForSelector('#fuente-g-origen');   // navegar con el índice en vuelo dejaba un «Failed to fetch»
   for (const m of indice.municipios) {
@@ -861,13 +998,22 @@ test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     assert.equal(paginasPDF(pdf), 1, `A4 de ${m.nombre}`);
   }
-  for (const i of indice.islas_resumen) {
-    await page.goto(base + `ficha.html?isla=${i.slug}`);
+  for (const [u, n] of [...indice.islas_resumen.map((i) => [`ficha.html?isla=${i.slug}`, `la isla de ${i.nombre}`]),
+                        ...indice.provincias.map((p) => [`ficha.html?provincia=${p.slug}`, `la provincia de ${p.nombre}`]), ['ficha.html?canarias', 'Canarias']]) {
+    await page.goto(base + u);
     await page.waitForSelector('#fuente-g-origen');
     await page.evaluate(() => document.fonts.ready);
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
-    assert.equal(paginasPDF(pdf), 1, `A4 de la isla de ${i.nombre}`);
+    assert.equal(paginasPDF(pdf), 1, `A4 de ${n}`);
   }
+  // En la hoja de la provincia no va la lista de municipios (el índice del dossier la tiene); sí la de sus islas.
+  await page.goto(base + 'ficha.html?provincia=las-palmas');
+  await page.waitForSelector('#fuente-g-origen');
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('#sec-municipios-provincia').isVisible(), false);
+  assert.equal(await page.locator('#g-municipios li:visible').count(), 3);
+  assert.equal(await page.locator('.fuente-grafico:visible').count(), 8);
+  await page.emulateMedia({ media: null });
   await page.goto(base + 'ficha.html?municipio=38048');
   await page.waitForSelector('#fuente-g-origen');
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
@@ -884,7 +1030,7 @@ test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98
   const caja = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/.exec(a4.toString('latin1'));
   assert.ok(caja && Math.abs(caja[1] / 72 * 25.4 - 210) < 1 && Math.abs(caja[2] / 72 * 25.4 - 297) < 1, `la hoja es una A4 (${caja && caja.slice(1).join(' × ')} pt)`);
   await page.goto(base + 'dossier.html');
-  await page.waitForFunction(() => document.getElementById('d-total').textContent === '98 hojas', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.getElementById('d-total').textContent === '101 hojas', null, { timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);
   assert.ok(await page.locator('#d-barra').isVisible(), 'la barra del dossier se ve');
   const guiaDossier = await page.locator('.hoja-texto').first().textContent();
@@ -896,18 +1042,21 @@ test('papel: las 88 fichas y las 7 de isla caben en una A4 y el dossier tiene 98
   assert.ok(!guiaDossier.includes('adrón'), 'la guía del dossier no atribuye los datos al padrón');
   assert.ok(!guiaDossier.includes('mueven mucho'), 'la guía del dossier no orienta la lectura');
   assert.equal(await page.locator('.hoja-ficha .mapas.dos').count(), 3, 'las tres hojas de El Hierro llevan dos mapas');
-  assert.equal(await page.locator('.hoja-isla').count(), 7, 'la ficha de cada isla abre su grupo');
-  assert.equal(await page.locator('.hoja-ficha').first().evaluate((h) => h.classList.contains('hoja-isla') && h.querySelector('.d-migas').textContent), 'Canarias · 3 municipios', 'la primera hoja es la de la isla de El Hierro');
-  assert.deepEqual(await page.locator('.hoja-isla').first().locator('.lista-mun span').allTextContents().then((t) => t.map((x) => x.replace(/\s/g, ''))), ['44,2%', '38,8%', '17,0%'], 'la lista de la isla lleva el peso de cada municipio, también en papel');
+  assert.equal(await page.locator('.hoja-isla').count(), 10, 'Canarias, las dos provincias y cada isla abren su grupo');
+  assert.deepEqual(await page.locator('.hoja-ficha').evaluateAll((hs) => hs.slice(0, 3).map((h) => h.querySelector('.d-migas').textContent)),
+    ['2 provincias · 7 islas · 88 municipios', 'Canarias · 4 islas · 54 municipios', 'Canarias · 3 municipios'], 'Canarias, la provincia occidental y El Hierro abren el dossier');
+  assert.equal(await page.locator('.hoja-ficha').first().locator('path[stroke="#1A1A1A"]:not([d=""])').count(), 0, 'la pirámide de Canarias va sin marco también en el dossier');
+  assert.deepEqual(await page.locator('.hoja-ficha').nth(1).locator('.lista-mun span').allTextContents().then((t) => t.map((x) => x.replace(/\s/g, ''))), ['88,9%', '7,9%', '2,1%', '1,1%'], 'la hoja de la provincia lista sus islas con su peso');
+  assert.deepEqual(await page.locator('.hoja-isla').nth(2).locator('.lista-mun span').allTextContents().then((t) => t.map((x) => x.replace(/\s/g, ''))), ['44,2%', '38,8%', '17,0%'], 'la lista de la isla lleva el peso de cada municipio, también en papel');
   assert.equal(await page.locator('.hoja-ficha:not(.hoja-isla) .d-migas').first().textContent(), 'El Hierro', 'la primera hoja municipal es de El Hierro, sin comarca repetida');
-  assert.match(await page.locator('.hoja-texto').nth(1).textContent(), /El Hierro la isla · 4/, 'el índice lleva la hoja de la ficha de cada isla');
+  assert.match(await page.locator('.hoja-texto').nth(1).textContent(), /Canarias toda la comunidad · 4.*Santa Cruz de Tenerife la provincia · 5.*El Hierro la isla · 6.*Las Palmas la provincia · 64/s, 'el índice lleva la hoja de Canarias, de cada provincia y de cada isla');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
-  assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7 + 7 * 8, 'cada gráfico del dossier lleva su fuente (ocho en cada isla)');
-  assert.equal(await page.locator('.hoja-ficha .d-cab .placa-papel:visible').count(), 95, 'cada hoja del dossier lleva la marca del programa en la cabecera');
+  assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7 + 10 * 8, 'cada gráfico del dossier lleva su fuente (ocho por encima del municipio)');
+  assert.equal(await page.locator('.hoja-ficha .d-cab .placa-papel:visible').count(), 98, 'cada hoja del dossier lleva la marca del programa en la cabecera');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });
-  assert.equal(paginasPDF(dossier), 98);
+  assert.equal(paginasPDF(dossier), 101);
   assert.deepEqual(errores, []);
   await contexto.close();
 });

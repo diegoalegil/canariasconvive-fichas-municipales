@@ -20,7 +20,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=92">
+<link rel="stylesheet" href="estilos.css?v=93">
 </head>
 <body>
 
@@ -31,7 +31,7 @@
       <span>Fichas demográficas municipales</span>
     </a>
     <div class="campo">
-      <label for="sel-municipio">Municipio o isla</label>
+      <label for="sel-municipio">Territorio</label>
       <select id="sel-municipio"><option>Cargando…</option></select>
     </div>
     <a class="btn btn-liso" href="guia.html" data-ico="dependencia" aria-label="Cómo se lee"><span>Cómo se lee</span></a>
@@ -89,22 +89,36 @@
       </div>
     </section>
 
-    <!-- En la ficha de una isla esta tarjeta ocupa un tercio («La isla en Canarias») y la siguiente, sus municipios. -->
+    <!-- Por encima del municipio (isla, provincia, Canarias) esta tarjeta ocupa un tercio
+         («La isla en Canarias», «Sus provincias»…) y la siguiente lista lo que contiene:
+         los municipios de la isla o las islas de la provincia y de Canarias. -->
     <section class="tarjeta" id="sec-entorno">
       <header class="rotulo" data-ico="territorio">
         <div><h2 id="tit-entorno">El municipio en su entorno</h2><p id="sub-entorno">Su puesto por población y el peso que tiene en cada ámbito</p></div>
       </header>
       <div class="cuerpo">
         <div class="mapas" id="mapas"></div>
+        <div id="g-provincias"></div>
       </div>
     </section>
 
     <section class="tarjeta dos-tercios municipios-isla" id="sec-municipios" hidden>
       <header class="rotulo" data-ico="poblacion">
-        <div><h2>Sus municipios</h2><p id="sub-municipios"></p></div>
+        <div><h2 id="tit-municipios">Sus municipios</h2><p id="sub-municipios"></p></div>
       </header>
       <div class="cuerpo">
         <div id="g-municipios"></div>
+      </div>
+    </section>
+
+    <!-- Solo en la provincia: sus municipios, a todo lo ancho. -->
+    <section class="tarjeta municipios-provincia" id="sec-municipios-provincia" hidden>
+      <header class="rotulo" data-ico="poblacion">
+        <div><h2>Sus municipios</h2><p id="sub-municipios-provincia"></p></div>
+      </header>
+      <div class="cuerpo mapa-y-lista">
+        <div class="mapas isla" id="mapa-provincia"></div>
+        <div id="g-municipios-provincia"></div>
       </div>
     </section>
 
@@ -159,10 +173,10 @@
 
 </main>
 
-<script src="config.js?v=92"></script>
-<script src="comun.js?v=92"></script>
-<script src="iconos.js?v=92"></script>
-<script src="datos-ui.js?v=92"></script>
-<script src="ficha.js?v=92"></script>
+<script src="config.js?v=93"></script>
+<script src="comun.js?v=93"></script>
+<script src="iconos.js?v=93"></script>
+<script src="datos-ui.js?v=93"></script>
+<script src="ficha.js?v=93"></script>
 </body>
 </html>

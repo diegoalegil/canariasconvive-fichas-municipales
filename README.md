@@ -1,8 +1,8 @@
 # Fichas municipales · Canarias Convive — versión web
 
 Las 88 fichas demográficas municipales de Canarias, y una ficha por cada una
-de las siete islas, como página web interactiva, para colgar en
-canariasconvive.com. Los datos y la metodología son los del trabajo de
+de las siete islas, por cada una de las dos provincias y por Canarias entera,
+como página web interactiva, para colgar en canariasconvive.com. Los datos y la metodología son los del trabajo de
 **Pedro Delgado** (`FICHAS_MUNICIPALES.ipynb` y `BASE_DATOS_CANCON.xlsx`),
 que sigue siendo la fuente de verdad: los cuatro índices se leen ya
 calculados del Excel; la variación media anual y los puestos se calculan en
@@ -14,13 +14,16 @@ el exportador.
 python3 -m http.server 8140 --directory web
 ```
 
-Y se abre `http://localhost:8140`. La raíz es la portada: el buscador y una
-tarjeta por isla, que despliega primero la ficha de la isla entera y debajo
-la de cada municipio. La ficha vive en `ficha.html` y admite un municipio por código INE,
-`ficha.html?municipio=38038`, o una isla, `ficha.html?isla=tenerife` (un
-enlace antiguo del tipo `index.html?municipio=38038` redirige solo). La
-dirección estable de cada ficha es `m/38038.html` o `i/tenerife.html`: un
-envoltorio con las etiquetas de vista previa que redirige a la ficha, y la
+Y se abre `http://localhost:8140`. La raíz es la portada: el buscador, la
+banda de Canarias entera y, bajo el rótulo de su provincia, una tarjeta por
+isla, que despliega primero la ficha de la isla entera y debajo la de cada
+municipio. La ficha vive en `ficha.html` y admite un municipio por código
+INE, `ficha.html?municipio=38038`, una isla, `ficha.html?isla=tenerife`, una
+provincia, `ficha.html?provincia=las-palmas`, o Canarias,
+`ficha.html?canarias` (un enlace antiguo del tipo `index.html?municipio=38038`
+redirige solo). La dirección estable de cada ficha es `m/38038.html`,
+`i/tenerife.html`, `p/las-palmas.html` o `r/canarias.html`: un envoltorio con
+las etiquetas de vista previa que redirige a la ficha, y la
 que la ficha deja en la barra del navegador al cargar y al cambiar de
 territorio, de modo que copiarla de ahí es lo mismo que «Copiar enlace». Por
 eso datos y enlaces se resuelven contra la raíz de la web (`rutaWeb`, en
@@ -33,9 +36,9 @@ Hacen falta `pandas`, `numpy`, `openpyxl` y, para las tarjetas, `Pillow`
 estos scripts no: la geometría se lee del GeoPackage con `sqlite3`.
 
 ```bash
-python3 exportar_datos.py    # Excel      -> web/datos/mun/<codINE>.json, web/datos/isla/<isla>.json + indice.json
+python3 exportar_datos.py    # Excel      -> web/datos/mun/<codINE>.json, isla/<isla>.json, provincia/<provincia>.json, canarias.json + indice.json
 python3 exportar_geo.py      # GeoPackage -> web/datos/geo/municipios.json
-python3 generar_tarjetas.py  # tarjetas og/, envoltorios m/ e i/, y web/config.js
+python3 generar_tarjetas.py  # tarjetas og/, envoltorios m/, i/, p/ y r/, y web/config.js
 npm test                     # antes de publicar (ver Verificación)
 ```
 
@@ -44,17 +47,19 @@ principio de cada script. **Los tres van juntos**: las tarjetas, los
 envoltorios y la descripción de la portada llevan escritos la población y el
 año, y si se regeneran los datos sin regenerarlos se quedan viejos
 (`pruebas/invariantes.py` lo detecta). `exportar_datos.py` escribe además en
-`indice.json` el orden de las islas, de oeste a este, que heredan la portada,
-los selectores y el dossier (`islas` e `islas_resumen`, con la población y el
-número de municipios de cada una), y el último dato regional de origen
-extranjero, que usa la portada.
+`indice.json` el orden de las islas y de las provincias, de oeste a este, que
+heredan la portada, los selectores y el dossier (`islas`, `islas_resumen` y
+`provincias`, con la población y el número de municipios de cada una), y el
+último dato regional de origen extranjero, que usa la portada.
 Se detiene, en vez de avisar y seguir, si un municipio del Excel no encaja
 con el GeoPackage (saldría sin código INE), si un valor de los componentes
 del cambio supera el umbral de anomalía en un municipio o año que no esté en
 `ANOMALIAS_CONOCIDAS`, si la población de una isla no coincide en `C1I`, en
-su pirámide y en la suma de sus municipios, o si su serie de origen
-extranjero (`C22I`) no es la suma de la de sus municipios: un dato así hay que
-mirarlo, no etiquetarlo a ciegas. La única excepción que corrige por sí
+su pirámide y en la suma de sus municipios, si su serie de origen extranjero
+(`C22I`) no es la suma de la de sus municipios, si Canarias no es la suma de
+las islas o si las fórmulas de los índices no reproducen las hojas de las
+islas y de Canarias (con ellas se calculan los índices provinciales): un dato
+así hay que mirarlo, no etiquetarlo a ciegas. La única excepción que corrige por sí
 mismo, avisando, es la de dos islas con las columnas cambiadas (ver Los
 datos).
 
@@ -70,27 +75,27 @@ que no queda ninguna referencia al dominio anterior.
 ## Qué hay
 
 ```
-exportar_datos.py    Excel -> 88 JSON municipales y 7 insulares (unos 4 KB cada uno) + indice.json
+exportar_datos.py    Excel -> 88 JSON municipales, 7 insulares, 2 provinciales y el de Canarias (unos 4 KB cada uno) + indice.json
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
-generar_tarjetas.py  las 96 tarjetas de vista previa, los envoltorios de web/m/ y web/i/, y web/config.js
-territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook
+generar_tarjetas.py  las 99 tarjetas de vista previa, los envoltorios de web/m/, web/i/, web/p/ y web/r/, y web/config.js
+territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook; las dos provincias
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública y los orígenes que pueden enmarcar la web, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
 pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
-web/index.html       portada: buscador y una tarjeta por isla, con sus municipios
-web/ficha.html       la ficha municipal y la ficha de isla
-web/comparar.html    hasta tres municipios en paralelo, o tres islas
+web/index.html       portada: buscador, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
+web/ficha.html       la ficha municipal, la de isla, la de provincia y la de Canarias
+web/comparar.html    hasta tres municipios en paralelo, tres islas o las dos provincias
 web/guia.html        qué mide cada indicador y con qué cuenta se obtiene
-web/dossier.html     las 95 fichas en un documento A4 de 98 hojas
+web/dossier.html     las 98 fichas en un documento A4 de 101 hojas
 
 web/config.js        la URL pública y los orígenes del iframe, generados desde sitio.json
 web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque y el aviso al enmarcar
 web/datos-ui.js      la fuente de cada gráfico
-web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; la ficha municipal y la de isla
-web/portada.js       buscador, tarjetas de isla con su desplegable y entrada de la portada
+web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; las fichas de municipio, isla, provincia y Canarias
+web/portada.js       buscador, banda de Canarias, rótulos de provincia, tarjetas de isla con su desplegable y entrada de la portada
 web/comparar.js      el comparador
 web/guia.js          la guía
 web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
@@ -175,6 +180,20 @@ siga con el error: si ya cuadra, no se toca nada; si no cuadra ni con ellas,
 la exportación se detiene. `conciliar_excel.py` aplica las mismas al leer el
 libro y cuenta las celdas corregidas, e `invariantes.py` comprueba en los
 JSON que cada isla suma sus municipios.
+
+**Canarias sale de las hojas «R»** (`C1R` desde 1971, `C6R`, `C7R`, `C22R`,
+`C23R`, `C24R`, `C25R` y los índices), con los mismos lectores; el exportador
+comprueba que la población coincide en `C1R`, en la pirámide y en la suma de
+las siete islas. **Las dos provincias no tienen hojas** y se suman desde sus
+islas (`PROVINCIAS`, en `territorios.py`): población, pirámides, componentes
+y lugar de nacimiento son sumas exactas; la serie de origen extranjero se
+suma en personas (`C22I` por `C1I`) sobre la población conjunta; y los cuatro
+índices se calculan sobre la pirámide sumada con las fórmulas del libro
+(`indices_de_piramide`), que reproducen exactamente las hojas `C10`–`C17` de
+las siete islas y de Canarias: el exportador lo comprueba antes de usarlas y
+se detiene si dejaran de coincidir. `conciliar_excel.py` contrasta Canarias
+con las hojas «R» y cada provincia con la suma de sus islas, e
+`invariantes.py` recalcula los índices provinciales desde su pirámide.
 
 **Particularidades que resuelve el exportador:**
 
@@ -339,16 +358,40 @@ desplegable de la barra es uno solo para todo: cada isla abre su grupo con
 municipio y del municipio a la isla sin cambiar de página; la pirámide se
 transforma entre unas y otras.
 
-**La portada son las siete islas.** Una tarjeta por isla, las siete iguales
-y en una fila (en el móvil, apaisadas en una columna), cada una con su
-silueta dibujada con los mismos límites municipales fundidos (`portada.js`),
-su nombre y cuántos municipios tiene. La tarjeta despliega la lista de fichas
-de esa isla: la isla entera primero, en azul, y debajo cada municipio por
-orden alfabético; los siete desplegables miden lo mismo, como pidió Pedro
-para las listas de isla, y el de las tarjetas del extremo se alinea a la
-derecha para no salirse de la tapa. La opción señalada va en claro con una
-marca azul, para que el azul pleno sea solo el de la isla entera. El buscador
-encuentra islas y municipios, las islas primero. Se probó antes un mapa
+**Las fichas de provincia y de Canarias siguen el mismo patrón**
+(`ficha.html?provincia=las-palmas`, `ficha.html?canarias`; el desplegable
+abre con «Canarias · todo el archipiélago» y las dos provincias). La
+provincia lleva «La provincia en Canarias» (sus islas destacadas en el
+archipiélago y su peso; sin puesto, porque entre dos no hay clasificación),
+«Sus islas» («Las 4 islas de la provincia y su peso demográfico de mayor a
+menor») y, a todo lo ancho, «Sus municipios» («Los 54 municipios de la
+provincia…», con el mapa de sus islas y sus términos al lado: señalar uno lo
+destaca); en la escalera de índices van sus islas, «Provincia» (como
+«Municipio» e «Isla» en el bloque municipal: «Santa Cruz de Tenerife» no
+cabe) y Canarias. Canarias lleva «Sus provincias» (el archipiélago con cada
+provincia de un tono y las dos debajo, con el mismo tono) y «Sus islas», y en
+ella la serie propia es la referencia: la pirámide va sin marco negro (la
+pestaña se llama «Canarias»), el gráfico de origen extranjero sin la línea
+de Canarias y el lugar de nacimiento con un solo anillo; la evolución arranca
+en 1971.
+
+**La portada son Canarias, las dos provincias y las siete islas.** Arriba,
+la banda de Canarias entera (silueta del archipiélago, habitantes y «Ver la
+ficha»); debajo, el rótulo de cada provincia, con sus islas y sus habitantes,
+sobre sus tarjetas: una por isla, las siete iguales y en una fila (en el
+móvil, apaisadas en una columna, cada provincia con las suyas debajo), cada
+una con su silueta dibujada con los mismos límites municipales fundidos
+(`portada.js`), su nombre y cuántos municipios tiene. Es una sola retícula
+de siete columnas, con los rótulos en la primera fila (cuatro y tres
+columnas) y las tarjetas en la segunda, así miden exactamente lo mismo. La
+tarjeta despliega la lista de fichas de esa isla: la isla entera primero, en
+azul, y debajo cada municipio por orden alfabético; los siete desplegables
+miden lo mismo, como pidió Pedro para las listas de isla, y el de las
+tarjetas del extremo se alinea a la derecha para no salirse de la tapa. La
+opción señalada va en claro con una marca azul, para que el azul pleno sea
+solo el de la isla entera. El buscador encuentra Canarias, provincias, islas
+y municipios: los que empiezan por lo tecleado antes que los que solo lo
+contienen y, a igualdad, del ámbito mayor al menor. Se probó antes un mapa
 grande del archipiélago con pestañas y un panel; Diego prefirió las
 tarjetas, más limpias y del mismo tamaño.
 
@@ -380,15 +423,18 @@ de nacimiento cada cifra va del tono de su tramo de la barra, que es lo que
 pidió Pedro (el tono más claro, #B5D4F4, no llega al contraste AA sobre
 blanco; queda dicho). Los anillos de origen extranjero van de un solo azul,
 porque es una sola magnitud, y de mayor a menor. Con el mismo código se
-comparan hasta tres islas (`comparar.html?i=tenerife,gran-canaria`): un
-conmutador en la cabecera pasa de municipios a islas y vacía la
-comparación, porque municipios e islas no se mezclan nunca.
+comparan hasta tres islas (`comparar.html?i=tenerife,gran-canaria`) o las
+dos provincias (`comparar.html?provincias`, que las carga las dos de golpe;
+`?p=las-palmas` deja una): un conmutador en la cabecera pasa de municipios a
+islas o a provincias y vacía la comparación, porque los ámbitos no se mezclan
+nunca.
 
-**Un solo orden de islas**, de oeste a este, que fija `exportar_datos.py` en
-`indice.json` y heredan la portada, los selectores de la ficha y del
-comparador, y el dossier; dentro de cada isla, los municipios por orden
-alfabético. Las islas se identifican por su nombre en minúsculas y con guion
-(`gran-canaria`), en direcciones, ficheros y desplegables.
+**Un solo orden de islas y de provincias**, de oeste a este, que fija
+`exportar_datos.py` en `indice.json` y heredan la portada, los selectores de
+la ficha y del comparador, y el dossier; dentro de cada isla, los municipios
+por orden alfabético. Islas y provincias se identifican por su nombre en
+minúsculas y con guion (`gran-canaria`, `santa-cruz-de-tenerife`), en
+direcciones, ficheros y desplegables.
 
 **La última selección manda.** Cada carga de municipio aborta la anterior y,
 si aun así llegara, solo pinta la vigente. Si falla, el selector vuelve al
@@ -430,16 +476,22 @@ tarjeta del mapa cede sitio a la lista de municipios (3/9 de la retícula en
 vez de 4/8) y lleva solo el mapa de Canarias, la lista va en cuatro columnas
 para Tenerife y Gran Canaria (tres o dos para las demás) con sus tres
 cifras, y los índices van a dos columnas dentro de su tarjeta. Las siete
-miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt.
+miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt. La de
+Canarias mide 270,2 mm (la tarjeta de sus provincias es algo más ancha, 4/8,
+para que el nombre de Santa Cruz de Tenerife quepa en una línea) y las dos de
+provincia, 271,5: en el papel la provincia lista sus islas, no sus
+municipios, que ya están en el índice del dossier.
 
-El dossier (`dossier.html`) compone las 98 hojas —portada, guía de uso,
-índice y, por cada isla, su ficha seguida de una hoja por municipio— con las
-reglas de impresión de `estilos.css`, que copia en caliente, y los mismos
-gráficos que la ficha, con la misma placa en la cabecera de cada hoja. La
-ficha de la isla hace de portada de su grupo, y el índice lleva la hoja de
-cada isla y de cada municipio. Las hojas de isla miden 292,6 mm de 297. Las
-95 fichas se piden a la vez y lo que falle se vuelve a pedir hasta dos veces
-antes de dar el error.
+El dossier (`dossier.html`) compone las 101 hojas —portada, guía de uso,
+índice, Canarias y, por cada provincia, su ficha seguida de las de sus islas,
+cada una con una hoja por municipio— con las reglas de impresión de
+`estilos.css`, que copia en caliente, y los mismos gráficos que la ficha, con
+la misma placa en la cabecera de cada hoja. La ficha de la provincia y la de
+la isla hacen de portada de su grupo, y el índice lleva la hoja de Canarias,
+de cada provincia, de cada isla y de cada municipio (la segunda provincia
+abre columna). Las hojas de isla miden 292,6 mm de 297; la de Canarias,
+286,0; las de provincia, 286,3. Las 98 fichas se piden a la vez y lo que
+falle se vuelve a pedir hasta dos veces antes de dar el error.
 
 ## Verificación
 
@@ -458,7 +510,11 @@ npm test
   que da su pirámide; las siete islas con su ficha, su pirámide igual a su
   población e igual a la suma de sus municipios, su lista de municipios de
   mayor a menor, los índices de las siete, el origen extranjero conciliado
-  con el lugar de nacimiento y su envoltorio `i/` con tarjeta; la TVMA es la
+  con el lugar de nacimiento y su envoltorio `i/` con tarjeta; las dos
+  provincias y Canarias suman sus islas, sus índices son los de la fórmula
+  del libro sobre su pirámide, sus componentes la suma de los de sus islas,
+  su lista de islas de mayor a menor, y sus envoltorios `p/` y `r/` con
+  tarjeta; la TVMA es la
   de la serie sin redondeo intermedio; el último dato de origen extranjero se
   muestra igual que el del lugar de nacimiento y el regional es el de
   `indice.json`; los repartos suman cien; los cuatro índices están en los
@@ -470,17 +526,18 @@ npm test
   iframe); las cinco cargan la misma versión de recursos y ningún recurso de
   terceros; ningún texto atribuye los datos al padrón; y una mudanza a una
   URL ficticia no deja rastro del dominio anterior.
-- `pruebas/conciliar_excel.py`: 3.618 comparaciones contra el libro, celda a
+- `pruebas/conciliar_excel.py`: 3.790 comparaciones contra el libro, celda a
   celda —población, series, origen extranjero con el decimal que se muestra,
   componentes con sus anomalías, los cuatro índices en los tres ámbitos,
   puestos y pesos, las 42 barras de cada pirámide y el lugar de nacimiento en
-  los 88 municipios, y lo mismo en las siete islas contra las hojas «I», con
+  los 88 municipios; lo mismo en las siete islas contra las hojas «I», con
   el origen extranjero contrastado con la suma de sus municipios y los años
-  que el libro trae cambiados contados aparte—. Necesita el Excel en
+  que el libro trae cambiados contados aparte; Canarias contra las hojas «R»;
+  y cada provincia contra la suma de sus islas—. Necesita el Excel en
   `~/Downloads` (o en la ruta que se le pase) y `openpyxl`; si falta
   cualquiera de los dos, se omite avisando. No corre en GitHub porque el
   libro no está en el repositorio.
-- `pruebas/web.test.cjs` (Playwright, dieciséis casos): la última selección
+- `pruebas/web.test.cjs` (Playwright, diecisiete casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -501,7 +558,15 @@ npm test
   señalar uno lo destaca en el mapa, la escalera de las siete islas y
   Canarias de menor a mayor con la isla en azul, ocho fuentes, la
   presentación con la escalera, sin desbordes a 375 y 1280, y el paso de la
-  isla al municipio y a otra isla con el mismo desplegable); los rótulos de
+  isla al municipio y a otra isla con el mismo desplegable); las fichas de
+  Canarias y de provincia (se entra por `r/canarias.html`, la serie desde
+  1971, la pirámide sin marco y sin marcadores ni lectura del marco, el
+  origen extranjero sin línea ni leyenda y un solo anillo, las dos provincias
+  con su tono y las siete islas de mayor a menor, cada provincia de su tono
+  en el mapa y la isla señalada destacada, Canarias como propia en la
+  escalera; la provincia con sus 4 islas, sus 54 municipios con el mapa de
+  sus términos, el peso sin puesto, «Provincia» en la escalera, nueve
+  fuentes y el enlace al comparador; y la vuelta a la forma municipal); los rótulos de
   evolución, componentes y origen extranjero sin pisarse a 320, 375 y 414
   px; la presentación modal, que atrapa y devuelve el foco y deja el fondo
   oculto al lector de pantalla; el cruce sin fantasmas; el comparador con
@@ -512,23 +577,29 @@ npm test
   anillos de un solo azul y ordenados, y el foco a salvo al quitar con
   teclado; el comparador de islas (islas con islas, ordenadas también por
   edad media, y cambiar de modo vacía la comparación y cambia el desplegable
-  y los rótulos); el fallo de carga
+  y los rótulos; a provincias entran las dos de golpe, `?p=` deja una y
+  `?provincias` las dos); el fallo de carga
   inicial visible en el comparador y en la portada (buscador desactivado);
-  la portada (siete tarjetas del mismo tamaño, en una fila a 1280, que
+  la portada (la banda de Canarias y el rótulo de cada provincia, con enlace
+  a su ficha, en una fila sobre sus islas a 1280 y cada uno sobre las suyas
+  en una columna; siete tarjetas del mismo tamaño, en una fila a 1280, que
   abren dentro de la pantalla a 320, 375 y 1280 y sin desbordes, siete
   desplegables del mismo alto que empiezan por la isla entera en otro color
   y siguen con sus 31 municipios, Inicio, Fin, Escape y el foco, también
   abiertas con el ratón; el buscador como combobox con
-  `aria-activedescendant`, Escape, las islas antes que los municipios y
-  Enter abre la primera); el dossier que reintenta una
+  `aria-activedescendant`, Escape, la provincia y las islas antes que los
+  municipios, «tene» da la isla antes que la provincia y Enter abre la
+  primera); el dossier que reintenta una
   petición fallida y se desplaza con teclado en pantallas estrechas; la
   ficha enmarcada en otro origen, que pasa al aviso, y enmarcada en la propia
   web, que se muestra; la guía (los enunciados de Pedro, sin edad media ni
-  desplegables, exponente y anclas); y el papel: las 88 fichas y las 7 de
-  isla en una A4 con cuatro cifras clave y la placa del programa en la
-  cabecera, y el dossier de 98 páginas con su barra, la ficha de cada isla
-  abriendo su grupo con la hoja de cada municipio, la placa en cada hoja y
-  sin hojas desbordadas.
+  desplegables, exponente y anclas); y el papel: las 88 fichas, las 7 de
+  isla, las 2 de provincia y la de Canarias en una A4 con cuatro cifras
+  clave y la placa del programa en la cabecera (la provincia sin su lista de
+  municipios y con la de islas), y el dossier de 101 páginas con su barra,
+  Canarias, cada provincia y cada isla abriendo su grupo con la hoja de cada
+  municipio en el índice, la pirámide de Canarias sin marco, la placa en
+  cada hoja y sin hojas desbordadas.
 
 En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` pasa
 los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo
@@ -624,13 +695,39 @@ Al mudar la web a su alojamiento definitivo, cambiar `sitio.json` (la URL y
 los orígenes que pueden enmarcarla), ejecutar `generar_tarjetas.py` y
 cambiar el origen en los dos sitios del fragmento de arriba.
 
+**Sin GitHub, dentro del propio alojamiento.** La web es estática: no
+necesita servidor de aplicaciones ni base de datos, así que puede vivir en
+una carpeta del Plesk de canariasconvive.com (por ejemplo
+`httpdocs/fichas/`, que sería `https://canariasconvive.com/fichas/`) subida
+por el gestor de archivos o por SFTP, sin GitHub ni intermediarios. El
+procedimiento es el mismo: cambiar `sitio.json` a esa URL, ejecutar
+`generar_tarjetas.py`, pasar la batería en local y copiar `web/` entera.
+Lo que se pierde sin GitHub es la publicación automática con las pruebas
+delante: cada actualización de datos es exportar, probar y volver a copiar
+la carpeta a mano. Meter el código «dentro» de WordPress (en una página con
+el editor, o como plugin) no compensa: son cinco páginas, catorce scripts y
+hojas de estilo y doscientos ficheros de datos que WordPress y Divi
+reescribirían o servirían mal; la carpeta aparte y, si se quiere dentro de
+una página del sitio, el `<iframe>` de arriba es la integración limpia.
+Como repositorio, el código puede seguir en GitHub (en una cuenta de equipo
+de la empresa, con la misma acción de pruebas) aunque el alojamiento sea el
+Plesk: las dos cosas son independientes.
+
 ## Pendiente
 
 - [ ] Subir a la carpeta compartida `DATOS_CANCON` el libro corregido del
       16/9 (allí sigue el del 7 de agosto). El libro nuevo trae nueve hojas
       más (`C26`–`C32`, pirámides por año y hojas «P»): preguntar a Pedro si
       son las proyecciones a 2036.
-- [ ] Enseñar a Pedro lo que no ha visto desde la v=79: la portada con las
+- [ ] Los tres logotipos (Canarias Convive, OBITen y Juntas en la misma
+      dirección), pedidos por Alexis y Pedro el 16/9: faltan los ficheros
+      (SVG o PNG con fondo transparente); irían en la cabecera y en la placa
+      del papel.
+- [ ] Enseñar a Pedro y a Alexis lo hecho tras la llamada del 16/9: las fichas
+      de Canarias y de las dos provincias (sumadas desde las islas, con los
+      índices por la fórmula del libro), la portada con la banda de Canarias
+      y los rótulos de provincia, el comparador de provincias y el dossier
+      de 101 hojas; y lo que no han visto desde la v=79: la portada con las
       tarjetas, la ficha de isla (títulos «La isla en Canarias», «Sus
       municipios», «Las siete islas y Canarias, ordenadas de menor a mayor
       valor») y el comparador
@@ -641,9 +738,10 @@ cambiar el origen en los dos sitios del fragmento de arriba.
       que no pidió, se quedan.
 - [ ] Proyecciones de pirámides hasta 2036, para integrarlas como una vista más.
 - [ ] Decidir si hay selector de año o solo el último.
-- [ ] Decidir alojamiento: GitHub Pages o carpeta en el Plesk de Canarias
-      Convive, y sacar el repositorio de una cuenta personal. Al mudarlo,
-      seguir «Incrustar en Canarias Convive».
+- [ ] Decidir alojamiento: GitHub Pages (en una cuenta de equipo de la
+      empresa, posibilidad que salió el 16/9) o carpeta en el Plesk de
+      Canarias Convive sin GitHub, y sacar el repositorio de una cuenta
+      personal. Al mudarlo, seguir «Incrustar en Canarias Convive».
 - [ ] Tras publicar, probar la vista previa de un enlace `m/<código>.html`
       en WhatsApp (las etiquetas están comprobadas tal como las lee un
       rastreador; falta verlo en un chat).

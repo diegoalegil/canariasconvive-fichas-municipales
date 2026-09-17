@@ -1,10 +1,13 @@
 # Exportación del libro BASE_DATOS_CANCON.xlsx a JSON para la web, con las
 # funciones de lectura del cuaderno FICHAS_MUNICIPALES.ipynb. Los cuatro índices
-# se leen ya calculados del Excel; la TVMA y los puestos se calculan aquí.
+# se leen ya calculados del Excel (en las provincias, que no tienen hojas, se
+# calculan con las fórmulas del libro); la TVMA y los puestos se calculan aquí.
 #
-#  Salida:  web/datos/indice.json       · municipios e islas
-#           web/datos/mun/<codmun>.json · una ficha por municipio
-#           web/datos/isla/<slug>.json  · una ficha por isla, con las hojas «I»
+#  Salida:  web/datos/indice.json           · municipios, islas y provincias
+#           web/datos/mun/<codmun>.json     · una ficha por municipio
+#           web/datos/isla/<slug>.json      · una ficha por isla, con las hojas «I»
+#           web/datos/provincia/<slug>.json · una ficha por provincia, sumando sus islas
+#           web/datos/canarias.json         · la ficha de Canarias, con las hojas «R»
 import json
 import math
 import sqlite3
@@ -14,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from correcciones_libro import cruzar_si_procede, descuadres
-from territorios import ISLAS, COMARCAS, EXC_GEO
+from territorios import ISLAS, COMARCAS, PROVINCIAS, EXC_GEO
 
 RUTA = Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
 RUTA_GEO = Path.home() / "Downloads" / "MUNICIPIOS.gpkg"
@@ -142,6 +145,7 @@ NR, SR, _, DR = preparar("C23R")               # pirámide total, Canarias
 NMX, SMX, _, DMX = preparar("C24M")            # pirámide origen extranjero, mun.
 NI, SI, _, DI = preparar("C23I")               # pirámide total, islas
 NIX, SIX, _, DIX = preparar("C24I")            # pirámide origen extranjero, islas
+NRX, SRX, _, DRX = preparar("C24R")            # pirámide origen extranjero, Canarias
 
 MUNICIPIOS = list(dict.fromkeys(NM.tolist()))
 
@@ -190,6 +194,12 @@ ANIOS_C22I, SERIE_C22I = serie_completa("C22I")
 ORIGEN_M = reparto_origen("C25M")
 ORIGEN_R = reparto_origen("C25R")
 ORIGEN_I = reparto_origen("C25I")
+ORIGEN_I_ABS = reparto_origen("C25I", absolutos=True)   # en personas, para sumar las provincias
+
+# Canarias, de las hojas «R»: la serie de población arranca en 1971.
+ANIOS_C1R, SERIE_C1R = serie_completa("C1R")
+ANIOS_C6R, SERIE_C6R = serie_completa("C6R")
+ANIOS_C7R, SERIE_C7R = serie_completa("C7R")
 
 
 def _agregado_extranjero(isla, anio):
@@ -532,53 +542,95 @@ ORDEN_ISLAS = ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria",
 assert set(ORDEN_ISLAS) == set(ISLAS), "ORDEN_ISLAS no coincide con las islas de territorios.py"
 
 
-# ----------------------------------------------------------- islas ---------
-# Una ficha por isla con las hojas «I», la misma forma que la municipal salvo
-# lo que no tiene sentido para una isla: en vez de comarca y tres mapas, el
-# puesto entre las siete y sus municipios por población; en los índices, el
-# valor de las siete islas para ordenarlas. La clave de la propia serie es
-# «isla» donde la municipal dice «municipio».
-def slug_isla(nombre):
-    """Identificador de la isla en direcciones y ficheros: «gran-canaria»."""
+# ------------------------------------------------------ fichas agregadas ----
+# Isla, provincia y Canarias comparten la forma: la misma ficha que la municipal
+# salvo lo que no tiene sentido por encima del municipio (en vez de comarca y
+# tres mapas, su sitio en Canarias y la lista de lo que contiene; en los índices,
+# el valor de las islas para ordenarlas). La clave de la serie propia es el tipo
+# («isla», «provincia»; en Canarias la propia y la referencia son la misma,
+# «canarias»). Las islas salen de las hojas «I» y Canarias de las «R». Las dos
+# provincias no tienen hojas: se suman desde sus islas. Población, pirámides,
+# componentes y lugar de nacimiento son sumas exactas; el origen extranjero se
+# suma en personas; los cuatro índices se calculan sobre la pirámide sumada con
+# las fórmulas del libro, que reproducen exactamente sus hojas para las siete
+# islas y Canarias (se comprueba abajo antes de usarlas).
+def slug_de(nombre):
+    """Identificador en direcciones y ficheros: «gran-canaria», «las-palmas»."""
     return _norm(nombre).replace(" ", "-")
 
 
-(SALIDA / "isla").mkdir(parents=True, exist_ok=True)
-fichas_islas = []
-for isla in ORDEN_ISLAS:
-    h, m = piramide(NI, SI, DI, isla)
-    hx, mx = piramide(NIX, SIX, DIX, isla)
-    if h is None or hx is None:
+def indices_de_piramide(h, m):
+    """Los cuatro índices con las fórmulas del libro (guia.js) sobre los grupos
+    quinquenales: 0-14 (tres grupos), 15-64 (diez), 65 y más, 15-19 y 60-64."""
+    t = h + m
+    p0, p15, p65 = t[:3].sum(), t[3:13].sum(), t[13:].sum()
+    return {"C10": p65 / p0, "C11": p0 / p15 * 100, "C17": (p0 + p65) / p15 * 100, "C14": t[3] / t[12] * 100}
+
+
+def indice_del_libro(cod, nivel, nombre):
+    return r2(DATOS_IND[cod][nivel].get(nombre, np.nan) * INDICES[cod][1], INDICES[cod][2])
+
+
+PIR_I = {isla: piramide(NI, SI, DI, isla) for isla in ISLAS}
+PIRX_I = {isla: piramide(NIX, SIX, DIX, isla) for isla in ISLAS}
+for isla, (h, m) in PIR_I.items():
+    if h is None or PIRX_I[isla][0] is None:
         raise SystemExit(f"{isla}: sin pirámide en C23I o C24I")
-    pob_pir = h.sum() + m.sum()
-    suyos = sorted((f for f in fichas if f["isla"] == isla), key=lambda f: -f["poblacion"])
-    suma_mun = sum(f["poblacion"] for f in suyos)
-    # La isla tiene que ser la suma de sus municipios en las tres hojas; si el
-    # ISTAC las publicara desacompasadas, la ficha mentiría: mejor detenerse.
-    if not (int(POB_I[isla]) == int(pob_pir) == suma_mun):
-        raise SystemExit(f"{isla}: C1I {POB_I[isla]:.0f}, pirámide {pob_pir:.0f} y suma de municipios {suma_mun} no coinciden")
+for cod in INDICES:
+    if ANIO_IND[cod] != ANIO_POB:
+        raise SystemExit(f"{cod}: el índice es de {ANIO_IND[cod]} y la pirámide de {ANIO_POB}; "
+                         "las provincias no se pueden calcular sobre la pirámide sumada.")
+for nombre, (h, m) in [*PIR_I.items(), ("Canarias", (H_CAN, M_CAN))]:
+    nivel = "R" if nombre == "Canarias" else "I"
+    for cod, v in indices_de_piramide(h, m).items():
+        if r2(v, INDICES[cod][2]) != indice_del_libro(cod, nivel, nombre):
+            raise SystemExit(f"{nombre} {cod}: la fórmula da {v:.3f} y el libro {indice_del_libro(cod, nivel, nombre)}; "
+                             "sin fórmula fiable no se calculan los índices provinciales.")
 
-    x1, y1 = _sin_nulos(ANIOS_C1I, SERIE_C1I[isla])
+def sumar_por_anio(mapas):
+    """Suma varias series {año: valor} en los años en que todas tienen dato."""
+    comunes = sorted(set.intersection(*(set(s) for s in mapas)))
+    return comunes, [sum(s[a] for s in mapas) for a in comunes]
+
+
+def extranjero_sumado(islas):
+    """Serie de origen extranjero de varias islas juntas: personas (C22I por
+    C1I) sobre la población conjunta, año a año."""
+    pobs = {i: _por_anio(ANIOS_C1I, SERIE_C1I[i]) for i in islas}
+    pcts = {i: _por_anio(ANIOS_C22I, SERIE_C22I[i]) for i in islas}
+    anios = sorted(set.intersection(*(set(pobs[i]) & set(pcts[i]) for i in islas)))
+    return anios, [sum(pcts[i][a] * pobs[i][a] for i in islas) / sum(pobs[i][a] for i in islas) for a in anios]
+
+
+def ficha_agregada(tipo, nombre, poblacion, serie_pob, serie_ext, h, m, hx, mx,
+                   vegetativo, migratorio, origen, indices_propios, islas_indices, contenido):
+    """La ficha de una isla, una provincia o Canarias. `serie_*`, `vegetativo` y
+    `migratorio` son (años, valores); `origen`, el reparto en porcentaje;
+    `indices_propios`, {código: valor ya en su unidad}; `islas_indices`, las
+    islas que van en la escalera de los índices; `contenido`, lo que la ficha
+    lista (rankings, municipios, islas, provincias)."""
+    x1, y1 = _sin_nulos(*serie_pob)
     var, a0, a1 = variacion(x1, y1)
-
-    ficha = {
-        "tipo": "isla",
-        "slug": slug_isla(isla),
-        "nombre": isla,
+    pob_pir = h.sum() + m.sum()
+    if not (int(poblacion) == int(pob_pir)):
+        raise SystemExit(f"{nombre}: población {poblacion:.0f} y pirámide {pob_pir:.0f} no coinciden")
+    es_canarias = tipo == "canarias"
+    propio = (lambda valor: {} if es_canarias else {tipo: valor})
+    return {
+        "tipo": tipo,
+        "slug": slug_de(nombre),
+        "nombre": nombre,
         "anio": ANIO_POB,
-        "poblacion": int(POB_I[isla]),
+        "poblacion": int(poblacion),
 
         "evolucion": {
-            **serie_json(ANIOS_C1I, SERIE_C1I[isla], 0),
+            **serie_json(*serie_pob, 0),
             "variacion_acumulada": r2(var, 1),
             "anio_base": a0,
             "anio_fin": a1,
         },
 
-        "extranjero": combinar({
-            "isla": (ANIOS_C22I, SERIE_C22I[isla]),
-            "canarias": (ANIOS_C22, SERIE_C22_R["Canarias"]),
-        }, None),
+        "extranjero": combinar({**propio(serie_ext), "canarias": (ANIOS_C22, SERIE_C22_R["Canarias"])}, None),
 
         "cifras": {
             "tvma": tvma(x1, y1),
@@ -589,19 +641,7 @@ for isla in ORDEN_ISLAS:
             "pct_mujeres": r2(m.sum() / pob_pir * 100, 1),
         },
 
-        "rankings": {
-            "canarias": {
-                "puesto": PUESTO_ISLAS[isla], "total": len(ISLAS),
-                "peso": r2(POB_I[isla] / POB_CANARIAS * 100, 2),
-            },
-        },
-
-        # Sus municipios de mayor a menor población, con el peso en la isla (el
-        # mismo que lleva cada ficha municipal en rankings.isla.peso).
-        "municipios": [{
-            "codmun": f["codmun"], "nombre": f["nombre"], "poblacion": f["poblacion"],
-            "peso": r2(f["poblacion"] / POB_I[isla] * 100, 2),
-        } for f in suyos],
+        **contenido,
 
         "piramide": {
             "edades": EDADES,
@@ -618,31 +658,124 @@ for isla in ORDEN_ISLAS:
                 "etiqueta": INDICES[cod][0],
                 "anio": ANIO_IND[cod],
                 "unidad": INDICES[cod][3],
-                "isla": r2(DATOS_IND[cod]["I"].get(isla, np.nan) * INDICES[cod][1], INDICES[cod][2]),
-                "canarias": r2(DATOS_IND[cod]["R"].get("Canarias", np.nan) * INDICES[cod][1],
-                               INDICES[cod][2]),
-                "islas": {otra: r2(DATOS_IND[cod]["I"].get(otra, np.nan) * INDICES[cod][1], INDICES[cod][2])
-                          for otra in ORDEN_ISLAS},
+                **propio(r2(indices_propios[cod], INDICES[cod][2])),
+                "canarias": indice_del_libro(cod, "R", "Canarias"),
+                "islas": {isla: indice_del_libro(cod, "I", isla) for isla in islas_indices},
             }
             for cod in INDICES
         },
 
         "componentes": depurar_componentes(combinar({
-            "vegetativo": (ANIOS_C6I, SERIE_C6I[isla]),
-            "migratorio": (ANIOS_C7I, SERIE_C7I[isla]),
-        }, 0), int(POB_I[isla]), isla),
+            "vegetativo": vegetativo,
+            "migratorio": migratorio,
+        }, 0), int(poblacion), nombre),
 
         "origen": {
             "categorias": CAT_ORIGEN,
-            "isla": [r2(v, 1) for v in ORIGEN_I[isla]],
+            **propio([r2(v, 1) for v in origen]),
             "canarias": [r2(v, 1) for v in ORIGEN_R["Canarias"]],
         },
     }
-    with open(SALIDA / "isla" / f"{ficha['slug']}.json", "w", encoding="utf-8") as fh:
+
+
+def escribir_agregada(ficha, carpeta=None):
+    destino = SALIDA / carpeta / f"{ficha['slug']}.json" if carpeta else SALIDA / f"{ficha['slug']}.json"
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    with open(destino, "w", encoding="utf-8") as fh:
         json.dump(ficha, fh, ensure_ascii=False, separators=(",", ":"))
+    todas_las_fichas.append(ficha)
+
+
+def resumen_municipios(fichas_mun, total):
+    """De mayor a menor población, con el peso en el ámbito (`total`)."""
+    return [{"codmun": f["codmun"], "nombre": f["nombre"], "poblacion": f["poblacion"],
+             "peso": r2(f["poblacion"] / total * 100, 2)}
+            for f in sorted(fichas_mun, key=lambda f: -f["poblacion"])]
+
+
+# ----------------------------------------------------------- islas ---------
+fichas_islas = []
+for isla in ORDEN_ISLAS:
+    h, m = PIR_I[isla]
+    suyos = [f for f in fichas if f["isla"] == isla]
+    suma_mun = sum(f["poblacion"] for f in suyos)
+    # La isla tiene que ser la suma de sus municipios en las tres hojas; si el
+    # ISTAC las publicara desacompasadas, la ficha mentiría: mejor detenerse.
+    if not (int(POB_I[isla]) == int(h.sum() + m.sum()) == suma_mun):
+        raise SystemExit(f"{isla}: C1I {POB_I[isla]:.0f}, pirámide {h.sum() + m.sum():.0f} y suma de municipios {suma_mun} no coinciden")
+    ficha = ficha_agregada(
+        "isla", isla, POB_I[isla],
+        (ANIOS_C1I, SERIE_C1I[isla]), (ANIOS_C22I, SERIE_C22I[isla]),
+        h, m, *PIRX_I[isla],
+        (ANIOS_C6I, SERIE_C6I[isla]), (ANIOS_C7I, SERIE_C7I[isla]),
+        ORIGEN_I[isla], indices_de_piramide(h, m), ORDEN_ISLAS,
+        {
+            "rankings": {"canarias": {"puesto": PUESTO_ISLAS[isla], "total": len(ISLAS),
+                                      "peso": r2(POB_I[isla] / POB_CANARIAS * 100, 2)}},
+            # Sus municipios de mayor a menor población, con el peso en la isla (el
+            # mismo que lleva cada ficha municipal en rankings.isla.peso).
+            "municipios": resumen_municipios(suyos, POB_I[isla]),
+        })
+    escribir_agregada(ficha, "isla")
     fichas_islas.append({"slug": ficha["slug"], "nombre": isla, "poblacion": ficha["poblacion"],
                          "municipios": len(suyos)})
-    todas_las_fichas.append(ficha)
+
+# ------------------------------------------------------- provincias --------
+ORDEN_PROVINCIAS = list(PROVINCIAS)   # de oeste a este, como las islas
+fichas_provincias = []
+for prov in ORDEN_PROVINCIAS:
+    islas = PROVINCIAS[prov]
+    pob = sum(POB_I[i] for i in islas)
+    suyos = [f for f in fichas if ISLA_DE[f["nombre"]] in islas]
+    if int(pob) != sum(f["poblacion"] for f in suyos):
+        raise SystemExit(f"{prov}: las islas suman {pob:.0f} y los municipios {sum(f['poblacion'] for f in suyos)}")
+    h = sum(PIR_I[i][0] for i in islas)
+    m = sum(PIR_I[i][1] for i in islas)
+    hx = sum(PIRX_I[i][0] for i in islas)
+    mx = sum(PIRX_I[i][1] for i in islas)
+    origen_abs = [sum(ORIGEN_I_ABS[i][k] for i in islas) for k in range(3)]
+    ficha = ficha_agregada(
+        "provincia", prov, pob,
+        sumar_por_anio([_por_anio(ANIOS_C1I, SERIE_C1I[i]) for i in islas]), extranjero_sumado(islas),
+        h, m, hx, mx,
+        sumar_por_anio([_por_anio(ANIOS_C6I, SERIE_C6I[i]) for i in islas]),
+        sumar_por_anio([_por_anio(ANIOS_C7I, SERIE_C7I[i]) for i in islas]),
+        [v / sum(origen_abs) * 100 for v in origen_abs], indices_de_piramide(h, m), islas,
+        {
+            # Sin puesto: entre dos provincias no hay clasificación que valga, solo el peso.
+            "rankings": {"canarias": {"peso": r2(pob / POB_CANARIAS * 100, 2)}},
+            "islas": [{"slug": slug_de(i), "nombre": i, "poblacion": int(POB_I[i]),
+                       "peso": r2(POB_I[i] / pob * 100, 2), "municipios": len(ISLAS[i])}
+                      for i in sorted(islas, key=POB_I.get, reverse=True)],
+            "municipios": resumen_municipios(suyos, pob),
+        })
+    escribir_agregada(ficha, "provincia")
+    fichas_provincias.append({"slug": ficha["slug"], "nombre": prov, "poblacion": ficha["poblacion"],
+                              "islas": [slug_de(i) for i in islas], "municipios": len(suyos)})
+
+# --------------------------------------------------------- Canarias --------
+if int(POB_CANARIAS) != int(sum(POB_I.values())) or int(POB_CANARIAS) != int(POB_PIR_CAN):
+    raise SystemExit(f"Canarias: C1R {POB_CANARIAS:.0f}, islas {sum(POB_I.values()):.0f} y pirámide {POB_PIR_CAN:.0f} no coinciden")
+HX_CAN, MX_CAN = piramide(NRX, SRX, DRX, "Canarias")
+if HX_CAN is None:
+    raise SystemExit("Canarias: sin pirámide de origen extranjero en C24R")
+ficha_canarias = ficha_agregada(
+    "canarias", "Canarias", POB_CANARIAS,
+    (ANIOS_C1R, SERIE_C1R["Canarias"]), (ANIOS_C22, SERIE_C22_R["Canarias"]),
+    H_CAN, M_CAN, HX_CAN, MX_CAN,
+    (ANIOS_C6R, SERIE_C6R["Canarias"]), (ANIOS_C7R, SERIE_C7R["Canarias"]),
+    ORIGEN_R["Canarias"], indices_de_piramide(H_CAN, M_CAN), ORDEN_ISLAS,
+    {
+        "provincias": [{"slug": p["slug"], "nombre": p["nombre"], "poblacion": p["poblacion"],
+                        "peso": r2(p["poblacion"] / POB_CANARIAS * 100, 2),
+                        "islas": len(p["islas"]), "municipios": p["municipios"]}
+                       for p in sorted(fichas_provincias, key=lambda p: -p["poblacion"])],
+        "islas": [{"slug": slug_de(i), "nombre": i, "poblacion": int(POB_I[i]),
+                   "peso": r2(POB_I[i] / POB_CANARIAS * 100, 2), "municipios": len(ISLAS[i]),
+                   "provincia": next(p for p, islas in PROVINCIAS.items() if i in islas)}
+                  for i in sorted(ISLAS, key=POB_I.get, reverse=True)],
+    })
+escribir_agregada(ficha_canarias)
 
 # El último dato regional de origen extranjero, para la portada (sin redondear).
 _ext_canarias = [v for v in SERIE_C22_R["Canarias"] if isinstance(v, (int, float)) and np.isfinite(v)][-1]
@@ -655,6 +788,8 @@ indice = {
     "islas": {i: sorted(ISLAS[i], key=_norm) for i in ORDEN_ISLAS},
     # Las siete islas de oeste a este, con lo que necesita la portada.
     "islas_resumen": fichas_islas,
+    # Las dos provincias, de oeste a este, con los identificadores de sus islas.
+    "provincias": fichas_provincias,
 }
 with open(SALIDA / "indice.json", "w", encoding="utf-8") as fh:
     json.dump(indice, fh, ensure_ascii=False, separators=(",", ":"))
@@ -672,7 +807,7 @@ def _modal(H, M):
     return max(max(H), max(M)) / tot * 100 if tot else 0.0
 
 _ejes = {"canarias": [], "municipio": []}
-for f in todas_las_fichas:   # las 88 municipales y las 7 insulares
+for f in todas_las_fichas:   # las 88 municipales, las 7 insulares, las 2 provinciales y Canarias
     pi = f["piramide"]
     _ejes["canarias"].append((_eje_automatico(max(_modal(pi["hombres"], pi["mujeres"]),
                                                   max(pi["canarias_hombres"] + pi["canarias_mujeres"]))), f["nombre"]))
@@ -695,5 +830,6 @@ for _clave, _lista in _ejes.items():
             + "\n".join(f"  {n}: {e} %" for e, n in _raros))
 
 _peso = sum(p.stat().st_size for p in (SALIDA / "mun").glob("*.json"))
-print(f"\n{len(fichas)} fichas escritas en {SALIDA/'mun'} y {len(fichas_islas)} en {SALIDA/'isla'}")
+print(f"\n{len(fichas)} fichas escritas en {SALIDA/'mun'}, {len(fichas_islas)} en {SALIDA/'isla'}, "
+      f"{len(fichas_provincias)} en {SALIDA/'provincia'} y Canarias en {SALIDA/'canarias.json'}")
 print(f"Peso total: {_peso/1024:.0f} KB  ·  media {_peso/len(fichas)/1024:.1f} KB por ficha")

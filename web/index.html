@@ -6,12 +6,12 @@
 <link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fichas demográficas municipales · Canarias Convive</title>
-<meta name="description" content="Una ficha por cada isla y cada uno de los 88 municipios: estructura de la población, evolución desde 1996, lugar de nacimiento e índices. Población a 1 de enero de 2025.">
+<meta name="description" content="Una ficha por Canarias, cada provincia, cada isla y cada uno de los 88 municipios: estructura de la población, evolución desde 1996, lugar de nacimiento e índices. Población a 1 de enero de 2025.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Canarias Convive">
 <meta property="og:locale" content="es_ES">
 <meta property="og:title" content="Fichas demográficas municipales de Canarias">
-<meta property="og:description" content="Una ficha por cada isla y cada uno de los 88 municipios: estructura de la población, evolución desde 1996, lugar de nacimiento e índices. Población a 1 de enero de 2025.">
+<meta property="og:description" content="Una ficha por Canarias, cada provincia, cada isla y cada uno de los 88 municipios: estructura de la población, evolución desde 1996, lugar de nacimiento e índices. Población a 1 de enero de 2025.">
 <meta property="og:image" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/og/portada.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -20,7 +20,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=92">
+<link rel="stylesheet" href="estilos.css?v=93">
 </head>
 <body>
 
@@ -34,7 +34,7 @@
       </div>
       <div class="tapa-cuerpo">
         <div class="tapa-texto ent">
-          <h1>Una ficha por cada isla y cada municipio de Canarias</h1>
+          <h1>Una ficha por cada municipio, cada isla, cada provincia y toda Canarias</h1>
         </div>
         <div class="tapa-datos" id="tapa-datos"></div>
       </div>
@@ -43,24 +43,26 @@
     <div class="filtros">
       <div id="estado-portada" class="aviso-carga" role="status" aria-live="polite" hidden></div>
       <div class="buscador ent" data-ico="buscar">
-        <label class="oculto" for="buscar">Buscar isla o municipio por nombre</label>
-        <input type="search" id="buscar" placeholder="Buscar isla o municipio por nombre"
+        <label class="oculto" for="buscar">Buscar municipio, isla o provincia por nombre</label>
+        <input type="search" id="buscar" placeholder="Buscar municipio, isla o provincia por nombre"
                autocomplete="off" role="combobox" aria-expanded="false"
                aria-controls="resultados" aria-autocomplete="list">
         <div class="desplegable" id="resultados" role="listbox"
-             aria-label="Islas y municipios encontrados" hidden></div>
+             aria-label="Territorios encontrados" hidden></div>
       </div>
     </div>
 
-    <!-- Una tarjeta por isla; cada una despliega la ficha de la isla entera y, debajo, la de cada municipio. -->
-    <section class="archipielago" aria-label="Elegir una isla">
+    <!-- Canarias entera; después, bajo el rótulo de su provincia, una tarjeta por isla:
+         cada una despliega la ficha de la isla entera y, debajo, la de cada municipio. -->
+    <section class="archipielago" aria-label="Elegir un territorio">
+      <a class="canarias-banda ent" id="banda-canarias" href="ficha.html?canarias"></a>
       <div class="islas-tarjetas" id="islas"></div>
     </section>
 
     <div class="atajos">
       <a class="btn btn-liso" href="guia.html" data-ico="dependencia">Cómo se lee</a>
       <a class="btn btn-liso" href="comparar.html" data-ico="relevo">Comparar</a>
-      <a class="btn btn-liso" href="dossier.html" data-ico="descargar">Dossier de las 95 fichas</a>
+      <a class="btn btn-liso" href="dossier.html" data-ico="descargar">Dossier de las 98 fichas</a>
     </div>
 
   </div>
@@ -69,9 +71,9 @@
 <!-- Sin JavaScript la clase «espera» no se retiraría nunca: aquí se anula (y si un
      script no llega a cargar, comun.js la retira). -->
 <noscript><style>.tapa.espera .ent { opacity: 1; }</style></noscript>
-<script src="config.js?v=92"></script>
-<script src="comun.js?v=92"></script>
-<script src="iconos.js?v=92"></script>
-<script src="portada.js?v=92"></script>
+<script src="config.js?v=93"></script>
+<script src="comun.js?v=93"></script>
+<script src="iconos.js?v=93"></script>
+<script src="portada.js?v=93"></script>
 </body>
 </html>

@@ -7,9 +7,10 @@ de evolución, variación acumulada, TVMA (sin redondeo intermedio), series de
 origen extranjero (el valor y el decimal que se muestra), componentes del
 cambio —incluidas las anomalías apartadas—, los cuatro índices en los tres
 ámbitos, puestos y pesos, las 42 barras de cada pirámide y el reparto por
-lugar de nacimiento en los 88 municipios; y lo mismo en las siete islas contra
+lugar de nacimiento en los 88 municipios; lo mismo en las siete islas contra
 las hojas «I», donde el origen extranjero se contrasta con la suma de sus
-municipios (el libro trajo Lanzarote y Fuerteventura cambiadas en C2I/C22I de
+municipios, y en Canarias contra las «R»; las dos provincias, que no tienen
+hojas, se contrastan con la suma de sus islas (el libro trajo Lanzarote y Fuerteventura cambiadas en C2I/C22I de
 2021 a 2025 hasta que Pedro lo corrigió el 16/9/2026; si volviera a pasar, el
 exportador lo corrige y aquí se cuentan los años corregidos)."""
 import json
@@ -21,7 +22,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 from correcciones_libro import cruzar_si_procede  # noqa: E402
-from territorios import ISLAS  # noqa: E402
+from territorios import ISLAS, PROVINCIAS  # noqa: E402
 RUTA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Downloads" / "BASE_DATOS_CANCON.xlsx"
 if not RUTA.exists():
     print(f"omitida · no está el libro en {RUTA}")
@@ -159,6 +160,75 @@ for f in FI:
     col = filas[0].index(isla)
     vals = filas[2][col:col + 3]
     check(f["origen"]["isla"], [round(v / sum(vals) * 100, 1) for v in vals], f"isla_origen:{isla}")
+
+# ---- Canarias: las hojas «R», celda a celda --------------------------------
+FC = json.loads((RAIZ / "web/datos/canarias.json").read_text(encoding="utf-8"))
+SS.update({s: series(s) for s in ["C6R", "C7R"]})
+check(FC["poblacion"], SS["C1R"]["Canarias"][FC["anio"]], "canarias_poblacion")
+ev = FC["evolucion"]
+check(dict(zip(ev["anios"], ev["valores"])), SS["C1R"]["Canarias"], "canarias_evolucion")
+base, fin = SS["C1R"]["Canarias"][ev["anio_base"]], SS["C1R"]["Canarias"][ev["anio_fin"]]
+check(ev["variacion_acumulada"], round(100 * (fin / base - 1), 1), "canarias_variacion")
+check(abs(FC["cifras"]["tvma"] - 100 * ((fin / base) ** (1 / (ev["anio_fin"] - ev["anio_base"])) - 1)) < 1e-9, True, "canarias_tvma")
+check({a: v for a, v in zip(FC["extranjero"]["anios"], FC["extranjero"]["canarias"]) if v is not None}, SS["C22R"]["Canarias"], "canarias_extranjero")
+for k, s in [("vegetativo", "C6R"), ("migratorio", "C7R")]:
+    check({a: v for a, v in zip(FC["componentes"]["anios"], FC["componentes"][k]) if v is not None}, SS[s]["Canarias"], f"canarias_componentes:{k}")
+for c, idx in FC["indices"].items():
+    factor, dec = (100 if c == "C11" else 1), (2 if c == "C10" else 1)
+    check(idx["canarias"], round(SS[c + "R"]["Canarias"][idx["anio"]] * factor, dec), f"canarias_indices:{c}")
+    for otra, v in idx["islas"].items():
+        check(v, round(SS[c + "I"][otra][idx["anio"]] * factor, dec), f"canarias_indices_islas:{c}:{otra}")
+for campo, hoja in [("", "C23R"), ("extranjera_", "C24R")]:
+    filas = list(W[hoja].values)
+    for k, d in [("hombres", 0), ("mujeres", 1)]:
+        check(FC["piramide"][campo + k], [r[2 + d] for r in filas[2:23]], f"canarias_piramide:{campo}{k}")
+vals = list(W["C25R"].values)[2][1:4]
+check(FC["origen"]["canarias"], [round(v / sum(vals) * 100, 1) for v in vals], "canarias_origen")
+check([i["nombre"] for i in FC["islas"]], [g["nombre"] for g in sorted(FI, key=lambda g: -g["poblacion"])], "canarias_islas")
+for i in FC["islas"]:
+    check(i["peso"], round(i["poblacion"] / FC["poblacion"] * 100, 2), f"canarias_isla_peso:{i['nombre']}")
+
+# ---- provincias: no tienen hojas; cada una es la suma de sus islas ----------
+FP = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((RAIZ / "web/datos/provincia").glob("*.json"))]
+for f in FP:
+    prov = f["nombre"]
+    suyas = [g for g in FI if g["nombre"] in PROVINCIAS[prov]]
+    nombres = [g["nombre"] for g in suyas]
+    check(f["poblacion"], sum(SS["C1I"][i][f["anio"]] for i in nombres), f"provincia_poblacion:{prov}")
+    ev = f["evolucion"]
+    anios = sorted(set.intersection(*(set(SS["C1I"][i]) for i in nombres)))
+    check(dict(zip(ev["anios"], ev["valores"])), {a: sum(SS["C1I"][i][a] for i in nombres) for a in anios}, f"provincia_evolucion:{prov}")
+    ex = {a: v for a, v in zip(f["extranjero"]["anios"], f["extranjero"]["provincia"]) if v is not None}
+    for a, v in ex.items():
+        # En personas: cada isla con su serie ya conciliada (la de su ficha) por su población.
+        pares = [(dict(zip(g["extranjero"]["anios"], g["extranjero"]["isla"])).get(a), SS["C1I"][g["nombre"]].get(a)) for g in suyas]
+        if any(p is None or q is None for p, q in pares):
+            continue
+        check(abs(v - sum(p * q / 100 for p, q in pares) / sum(q for _, q in pares) * 100) < 1e-6, True, f"provincia_extranjero:{prov}:{a}")
+    for k, s in [("vegetativo", "C6I"), ("migratorio", "C7I")]:
+        exportado = {a: v for a, v in zip(f["componentes"]["anios"], f["componentes"][k]) if v is not None}
+        comunes = sorted(set.intersection(*(set(SS[s][i]) for i in nombres)))
+        check(exportado, {a: sum(SS[s][i][a] for i in nombres) for a in comunes}, f"provincia_componentes:{prov}:{k}")
+    for campo, hoja in [("", "C23I"), ("extranjera_", "C24I")]:
+        filas = list(W[hoja].values)
+        for k, d in [("hombres", 0), ("mujeres", 1)]:
+            suma = [sum(r[filas[0].index(i) + d] for i in nombres) for r in filas[2:23]]
+            check(f["piramide"][campo + k], suma, f"provincia_piramide:{prov}:{campo}{k}")
+    filas = list(W["C25I"].values)
+    vals = [sum(filas[2][filas[0].index(i) + j] for i in nombres) for j in range(3)]
+    check(f["origen"]["provincia"], [round(v / sum(vals) * 100, 1) for v in vals], f"provincia_origen:{prov}")
+    # Los índices, con las fórmulas del libro sobre la pirámide sumada (invariantes.py
+    # comprueba la fórmula; aquí, que Canarias y sus islas son las de las hojas).
+    for c, idx in f["indices"].items():
+        factor, dec = (100 if c == "C11" else 1), (2 if c == "C10" else 1)
+        check(idx["canarias"], round(SS[c + "R"]["Canarias"][idx["anio"]] * factor, dec), f"provincia_indices_canarias:{prov}:{c}")
+        check(sorted(idx["islas"]), sorted(nombres), f"provincia_indices_islas:{prov}:{c}")
+        for otra, v in idx["islas"].items():
+            check(v, round(SS[c + "I"][otra][idx["anio"]] * factor, dec), f"provincia_indices_islas:{prov}:{c}:{otra}")
+    check(f["rankings"]["canarias"]["peso"], round(f["poblacion"] / SS["C1R"]["Canarias"][f["anio"]] * 100, 2), f"provincia_peso:{prov}")
+    check([i["nombre"] for i in f["islas"]], [g["nombre"] for g in sorted(suyas, key=lambda g: -g["poblacion"])], f"provincia_islas:{prov}")
+    suyos = [g for g in F if g["isla"] in nombres]
+    check([m["codmun"] for m in f["municipios"]], [g["codmun"] for g in sorted(suyos, key=lambda g: -g["poblacion"])], f"provincia_municipios:{prov}")
 
 total = sum(CUENTA.values())
 if ERR:

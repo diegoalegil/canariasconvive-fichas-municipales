@@ -7,7 +7,9 @@
 const FUENTES_GRAFICOS = {
   evolucion: 'ISTAC. Cifras oficiales de población de los municipios, 1996–2025.',
   evolucion_isla: 'ISTAC. Cifras oficiales de población de las islas, 2000–2025.',
+  evolucion_canarias: 'ISTAC. Cifras oficiales de población de Canarias, 1971–2025.',
   municipios: 'ISTAC. Cifras oficiales de población de los municipios, 2025.',
+  islas: 'ISTAC. Cifras oficiales de población de las islas, 2025.',
   extranjero: 'ISTAC. Población según lugar de nacimiento, 2000–2025.',
   mapas: 'GRAFCAN, límites municipales; ISTAC, cifras de población 2025.',
   piramide: 'ISTAC. Población según sexo y grupos de edad, 2025.',
@@ -28,12 +30,17 @@ function ponerFuente(elemento, id, clave) {
   if (p.textContent !== texto) p.textContent = texto;
 }
 
-/** Las siete tarjetas con gráfico de la ficha (ocho en la de una isla, con la
- *  lista de sus municipios); la pirámide sigue a su pestaña. Las cifras clave
- *  no llevan fuente: no son un gráfico. */
-function fuentesFicha(vistaPiramide = 0, isla = false) {
-  [['g-evolucion', isla ? 'evolucion_isla' : 'evolucion'], ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
-   ['g-municipios', isla ? 'municipios' : null],
+/** Las siete tarjetas con gráfico de la ficha (ocho por encima del municipio,
+ *  con la lista de lo que contiene; nueve en la provincia, que lista también
+ *  sus municipios); la pirámide sigue a su pestaña. Las cifras clave no
+ *  llevan fuente: no son un gráfico. `ent` es la entidad de la ficha
+ *  (`entidad`, ficha.js); las provincias se suman desde las islas. */
+function fuentesFicha(vistaPiramide = 0, ent = null) {
+  const agregada = !!ent?.agregada;
+  [['g-evolucion', ent?.canarias ? 'evolucion_canarias' : agregada ? 'evolucion_isla' : 'evolucion'],
+   ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
+   ['g-municipios', ent?.isla ? 'municipios' : agregada ? 'islas' : null],
+   ['g-municipios-provincia', ent?.provincia ? 'municipios' : null],
    ['g-piramide', vistaPiramide === 1 ? 'piramide_nacimiento' : 'piramide'],
    ['g-indices', 'indices'], ['g-componentes', 'componentes'], ['g-origen', 'nacimiento'],
   ].forEach(([id, clave]) => {

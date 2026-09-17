@@ -3,8 +3,9 @@
 cualquier sitio, también en GitHub Actions antes de publicar.
 
 Comprueba lo que no puede fallar sin que la ficha mienta: que hay 88
-municipios y 7 islas, que cada pirámide suma su población, las 88 suman
-Canarias y cada isla suma sus municipios, que
+municipios, 7 islas y 2 provincias, que cada pirámide suma su población, las
+88 suman Canarias, cada isla suma sus municipios y cada provincia (y Canarias)
+sus islas, que los índices provinciales son los de la fórmula del libro, que
 la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
 por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 ámbitos, que cada fuente de gráfico lleva el año de referencia, que los 88
@@ -189,6 +190,91 @@ for i in islas_resumen:
                   f"i/{i['slug']}.html: la población o el año no son los de indice.json: ejecutar generar_tarjetas.py")
         comprobar((WEB / f"og/{i['slug']}.png").exists(), f"falta la tarjeta og/{i['slug']}.png")
         comprobar(envoltorio_seguro(h), f"i/{i['slug']}.html: la política de contenido no lleva la huella de su script")
+# Las dos provincias y Canarias: cada una suma sus islas, la pirámide su población,
+# los índices salen de la pirámide con las fórmulas del libro (las mismas que
+# reproducen las hojas de islas y Canarias) y su envoltorio lleva la tarjeta og.
+def indices_de(p):
+    t = [h + m for h, m in zip(p["hombres"], p["mujeres"])]
+    p0, p15, p65 = sum(t[:3]), sum(t[3:13]), sum(t[13:])
+    return {"C10": round(p65 / p0, 2), "C11": round(p0 / p15 * 100, 1),
+            "C17": round((p0 + p65) / p15 * 100, 1), "C14": round(t[3] / t[12] * 100, 1)}
+
+
+def comprobar_ambito(f, quien, clave, islas_suyas, envoltorio, consulta, contiene):
+    p = f["piramide"]
+    comprobar(sum(p["hombres"]) + sum(p["mujeres"]) == f["poblacion"], f"{quien}: la pirámide no suma su población")
+    comprobar(sum(i["poblacion"] for i in islas_suyas) == f["poblacion"], f"{quien}: sus islas no suman su población")
+    comprobar([i["nombre"] for i in f["islas"]] == [i["nombre"] for i in sorted(islas_suyas, key=lambda i: -i["poblacion"])]
+              and all(abs(i["peso"] - i["poblacion"] / f["poblacion"] * 100) < 0.006 for i in f["islas"]),
+              f"{quien}: la lista de islas no es la suya de mayor a menor con su peso")
+    for cod_ind, esperado in indices_de(p).items():
+        ind = f["indices"].get(cod_ind, {})
+        comprobar(ind.get(clave) == esperado and isinstance(ind.get("canarias"), (int, float))
+                  and set(ind.get("islas", {})) == {i["nombre"] for i in islas_suyas},
+                  f"{quien}: índice {cod_ind} = {ind.get(clave)}; la pirámide da {esperado}, o faltan Canarias o sus islas")
+    ultimo = next((v for v in reversed(f["extranjero"][clave]) if v is not None), None)
+    comprobar(ultimo is not None and mostrado(ultimo) == mostrado(f["origen"][clave][2]),
+              f"{quien}: origen extranjero {ultimo} en la serie y {f['origen'][clave][2]} en el lugar de nacimiento")
+    comprobar(abs(sum(f["origen"][clave]) - 100) <= 0.15, f"{quien}: el lugar de nacimiento es {f['origen'][clave]}")
+    comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
+              f"{quien}: edad media {f['cifras'].get('edad_media')} y la pirámide da {edad_de(p):.3f}")
+    # Los componentes son la suma de los de sus islas en cada año con todos los datos.
+    suyas = [json.loads((WEB / f"datos/isla/{i['slug']}.json").read_text(encoding="utf-8"))["componentes"] for i in islas_suyas]
+    for cl in ("vegetativo", "migratorio"):
+        for j, anio in enumerate(f["componentes"]["anios"]):
+            v = f["componentes"][cl][j]
+            partes = [c[cl][c["anios"].index(anio)] if anio in c["anios"] else None for c in suyas]
+            if v is None or any(x is None for x in partes):
+                continue
+            comprobar(abs(sum(partes) - v) <= 0.5, f"{quien} {anio}: {cl} {v:.0f} y sus islas suman {sum(partes):.0f}")
+    comprobar(envoltorio.exists(), f"falta el envoltorio {envoltorio.relative_to(WEB)}")
+    if envoltorio.exists():
+        h = envoltorio.read_text(encoding="utf-8")
+        ruta = envoltorio.relative_to(WEB).as_posix()
+        comprobar(f'content="{url_publica}{ruta}"' in h and f"ficha.html?{consulta}" in h, f"{ruta}: og:url o redirección incorrectos")
+        hab = format(f["poblacion"], ",").replace(",", ".")
+        comprobar(f'content="{hab} habitantes en {contiene}.' in h and f"1 de enero de {indice['anio']}." in h,
+                  f"{ruta}: la población, lo que contiene o el año no son los de los datos: ejecutar generar_tarjetas.py")
+        comprobar((WEB / f"og/{f['slug']}.png").exists(), f"falta la tarjeta og/{f['slug']}.png")
+        comprobar(envoltorio_seguro(h), f"{ruta}: la política de contenido no lleva la huella de su script")
+
+
+provincias = indice.get("provincias", [])
+comprobar([p["nombre"] for p in provincias] == ["Santa Cruz de Tenerife", "Las Palmas"]
+          and [len(p["islas"]) for p in provincias] == [4, 3] and sum(p["municipios"] for p in provincias) == 88,
+          f"indice.json: provincias incompletas o desordenadas: {[(p.get('nombre'), p.get('islas')) for p in provincias]}")
+for pr in provincias:
+    ruta = WEB / f"datos/provincia/{pr['slug']}.json"
+    comprobar(ruta.exists(), f"falta {ruta.name}")
+    if not ruta.exists():
+        continue
+    f = json.loads(ruta.read_text(encoding="utf-8"))
+    comprobar(f.get("tipo") == "provincia" and f.get("slug") == pr["slug"] and f["nombre"] == pr["nombre"] and f["poblacion"] == pr["poblacion"],
+              f"{pr['nombre']}: la ficha de provincia no lleva tipo, slug, nombre y población")
+    suyas = [i for i in islas_resumen if i["slug"] in pr["islas"]]
+    comprobar(f["rankings"]["canarias"].get("puesto") is None and abs(f["rankings"]["canarias"]["peso"] - f["poblacion"] / indice["poblacion_canarias"] * 100) < 0.006,
+              f"{pr['nombre']}: el peso en Canarias no cuadra, o lleva puesto (entre dos no hay clasificación)")
+    suyos = [m for m in municipios if m["isla"] in {i["nombre"] for i in suyas}]
+    comprobar([m["codmun"] for m in f["municipios"]] == [m["codmun"] for m in sorted(suyos, key=lambda m: -m["poblacion"])] and pr["municipios"] == len(suyos),
+              f"{pr['nombre']}: la lista de municipios no es la suya de mayor a menor")
+    comprobar_ambito(f, pr["nombre"], "provincia", suyas, WEB / f"p/{pr['slug']}.html", f"provincia={pr['slug']}",
+                     f"{len(suyas)} islas y {len(suyos)} municipios")
+
+ruta = WEB / "datos/canarias.json"
+comprobar(ruta.exists(), "falta datos/canarias.json")
+if ruta.exists():
+    f = json.loads(ruta.read_text(encoding="utf-8"))
+    comprobar(f.get("tipo") == "canarias" and f.get("slug") == "canarias" and f["poblacion"] == indice["poblacion_canarias"],
+              "Canarias: la ficha no lleva tipo, slug y la población de indice.json")
+    comprobar([p["nombre"] for p in f["provincias"]] == [p["nombre"] for p in sorted(provincias, key=lambda p: -p["poblacion"])]
+              and all(abs(p["peso"] - p["poblacion"] / f["poblacion"] * 100) < 0.006 for p in f["provincias"]),
+              "Canarias: la lista de provincias no va de mayor a menor con su peso")
+    comprobar(all("municipio" not in b and "isla" not in b and "provincia" not in b for b in (f["extranjero"], f["origen"]))
+              and f["evolucion"]["anios"][0] == 1971,
+              "Canarias: la serie propia tiene que ser «canarias» (sin otra clave) y la evolución arrancar en 1971 (C1R)")
+    comprobar_ambito(f, "Canarias", "canarias", islas_resumen, WEB / "r/canarias.html", "canarias",
+                     f"{len(islas_resumen)} islas y {len(municipios)} municipios")
+
 # La geometría lleva los mismos 88 municipios, con el mismo código INE.
 geo = json.loads((WEB / "datos/geo/municipios.json").read_text(encoding="utf-8"))
 codigos_geo = [ft["properties"]["codmun"] for ft in geo["features"]]
@@ -205,7 +291,7 @@ ui = (WEB / "datos-ui.js").read_text(encoding="utf-8")
 bloque = re.search(r"const FUENTES_GRAFICOS = \{(.*?)\n\};", ui, re.S)
 graficos = dict(re.findall(r"^\s+(\w+): '([^']*)',$", bloque.group(1), re.M)) if bloque else {}
 anio_ref = str(indice["anio"])
-for clave in ("evolucion", "evolucion_isla", "municipios", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
+for clave in ("evolucion", "evolucion_isla", "evolucion_canarias", "municipios", "islas", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
     texto = graficos.get(clave, "")
     comprobar(texto.startswith("ISTAC. ") or texto.startswith("GRAFCAN, "), f"fuente del gráfico «{clave}»: falta o no empieza por el organismo")
     comprobar(texto.endswith("."), f"fuente del gráfico «{clave}»: sin punto final")
@@ -270,4 +356,4 @@ if fallos:
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios y {len(islas_resumen)} islas, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")
+print(f"ok · 88 municipios, {len(islas_resumen)} islas, {len(provincias)} provincias y Canarias, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

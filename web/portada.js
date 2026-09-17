@@ -1,14 +1,19 @@
-/* Portada: una tarjeta por isla, con su silueta, que despliega la lista de
-   fichas de esa isla: primero la isla entera y, debajo, cada municipio. El
-   buscador encuentra islas y municipios. El orden de las islas es el de
-   indice.json (de oeste a este, lo fija exportar_datos.py). Los siete
-   desplegables miden lo mismo (`.isla-menu .desplegable` en estilos.css). */
+/* Portada: la banda de Canarias entera, el rótulo de cada provincia y, bajo
+   él, una tarjeta por isla con su silueta, que despliega la lista de fichas de
+   esa isla: primero la isla entera y, debajo, cada municipio. El buscador
+   encuentra Canarias, provincias, islas y municipios. El orden de provincias e
+   islas es el de indice.json (de oeste a este, lo fija exportar_datos.py). Los
+   siete desplegables miden lo mismo (`.isla-menu .desplegable` en estilos.css). */
 
 let INDICE = null, GEO = null;
 let abierto = null;          // { disparador, lista } del desplegable visible
 
 /* ------------------------------------------------------------- enlaces --- */
-const enlaceFicha = (x) => x.slug ? `ficha.html?isla=${x.slug}` : `ficha.html?municipio=${x.codmun}`;
+const enlaceFicha = (x) => x.tipo === 'canarias' ? 'ficha.html?canarias'
+  : x.tipo === 'provincia' ? `ficha.html?provincia=${x.slug}`
+  : x.slug ? `ficha.html?isla=${x.slug}` : `ficha.html?municipio=${x.codmun}`;
+/** Lo que dice la opción del buscador debajo del nombre. */
+const quEs = (x) => x.tipo === 'canarias' ? 'Todo el archipiélago' : x.tipo === 'provincia' ? 'Toda la provincia' : x.slug ? 'Toda la isla' : esc(x.isla);
 const municipiosDe = (isla) => INDICE.municipios
   .filter((m) => m.isla === isla.nombre)
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
@@ -19,9 +24,9 @@ const municipiosDe = (isla) => INDICE.municipios
  *  isla» si la opción es una isla. */
 function opcion(x, conIsla, prefijo = '') {
   return `<a role="option" tabindex="-1" href="${enlaceFicha(x)}"`
-    + (prefijo ? ` id="${prefijo}-${x.slug || x.codmun}" aria-selected="false"` : '') + '>'
+    + (prefijo ? ` id="${prefijo}-${x.slug || x.codmun || x.tipo}" aria-selected="false"` : '') + '>'
     + `<span>${esc(x.nombre)}</span>`
-    + (conIsla ? `<em>${x.slug ? 'Toda la isla' : esc(x.isla)}</em>` : '')
+    + (conIsla ? `<em>${quEs(x)}</em>` : '')
     + '</a>';
 }
 
@@ -129,7 +134,10 @@ function teclas(e, disparador, lista, alAbrir, mueve) {
 /* ------------------------------------------------------------- por isla --- */
 /** La silueta de la isla: sus términos municipales fundidos en un trazado. */
 function siluetaIsla(isla, w, h) {
-  const suyos = GEO.features.filter((f) => f.properties.isla === isla.nombre);
+  return silueta(GEO.features.filter((f) => f.properties.isla === isla.nombre), w, h);
+}
+/** La silueta de unos rasgos del mapa (una isla, el archipiélago), fundidos en un trazado. */
+function silueta(suyos, w, h) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const f of suyos) {
     const [a, b, c, d] = f.properties.bbox;
@@ -145,7 +153,16 @@ function siluetaIsla(isla, w, h) {
 
 function montarIslas() {
   const cont = document.getElementById('islas');
-  cont.innerHTML = INDICE.islas_resumen.map((isla, n) => `
+  // Canarias entera, arriba; el rótulo de cada provincia lleva a su ficha y
+  // encabeza sus islas (el orden de indice.json las deja contiguas).
+  const banda = document.getElementById('banda-canarias');
+  banda.innerHTML = `<span class="canarias-silueta">${silueta(GEO.features, 120, 40)}</span>`
+    + `<b>Canarias</b><span>${nf(INDICE.poblacion_canarias)} habitantes · toda la comunidad autónoma</span>`
+    + `<em>Ver la ficha ${icono('desplegar', 14, 'ico galon')}</em>`;
+  cont.innerHTML = INDICE.provincias.map((p, n) => `
+    <a class="provincia-cab ent" style="--n:${n}" href="${enlaceFicha({ tipo: 'provincia', slug: p.slug })}">
+      <b>${esc(p.nombre)}</b><span>${p.islas.length} islas · ${nf(p.poblacion)} habitantes</span>${icono('desplegar', 14, 'ico galon')}
+    </a>`).join('') + INDICE.islas_resumen.map((isla, n) => `
     <div class="isla-menu ent" style="--n:${n}">
       <button class="isla-tarjeta" type="button" aria-haspopup="listbox"
               aria-expanded="false" aria-controls="isla-${isla.slug}">
@@ -184,10 +201,17 @@ function montarBuscador() {
       return a.nombre.localeCompare(b.nombre, 'es');
     };
     const coincide = (x) => plano(x.nombre).includes(q);
-    const hallados = [...INDICE.islas_resumen.filter(coincide).sort(orden), ...INDICE.municipios.filter(coincide).sort(orden)];
+    // Los que empiezan por lo tecleado van antes que los que solo lo contienen;
+    // dentro de cada grupo, Canarias y las provincias antes que las islas, y
+    // las islas antes que los municipios («tene» da Tenerife, la isla, antes
+    // que Santa Cruz de Tenerife, la provincia).
+    const ambitos = [{ tipo: 'canarias', nombre: 'Canarias' }, ...INDICE.provincias.map((p) => ({ tipo: 'provincia', slug: p.slug, nombre: p.nombre }))];
+    const grupos = [ambitos, INDICE.islas_resumen, INDICE.municipios].map((g) => g.filter(coincide).sort(orden));
+    const empieza = (x) => plano(x.nombre).startsWith(q);
+    const hallados = [...grupos.flatMap((g) => g.filter(empieza)), ...grupos.flatMap((g) => g.filter((x) => !empieza(x)))];
     lista.innerHTML = hallados.length
       ? hallados.map((x) => opcion(x, true, 'res')).join('')
-      : '<div role="option" aria-disabled="true" class="vacio">Ninguna isla ni municipio se llama así.</div>';
+      : '<div role="option" aria-disabled="true" class="vacio">Ningún territorio se llama así.</div>';
     abrir(campo, lista);
   };
 
