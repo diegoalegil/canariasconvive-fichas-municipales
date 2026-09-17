@@ -292,7 +292,15 @@ azul de 3 px arriba y el título a la izquierda, que es donde empieza la
 lectura. Solo una por pantalla —la pirámide, la destacada— lleva cabecera azul
 plena; si la llevaran todas, la página sería una escalera de bloques azules.
 Espaciados de base 4, cuatro radios y dos sombras, siempre tintadas en azul y
-nunca en negro puro.
+nunca en negro puro. Las tarjetas de una misma fila miden lo mismo (la más
+alta manda) y el cuerpo ocupa lo que queda bajo el rótulo: los gráficos de
+evolución, origen extranjero y componentes se redibujan más altos hasta
+llenar su tarjeta (`igualarGraficos`, como mucho dos tercios más), los cuatro
+índices se reparten a lo alto de la suya, que mide lo que la pirámide, y una
+lista corta (los tres municipios de El Hierro, las islas de una provincia) va
+centrada; la pirámide manda en su fila y no se toca. En el papel y en el
+dossier, lo mismo, y las hojas miden igual que antes porque la fila ya la
+marcaba la tarjeta más alta.
 
 **Iconografía propia.** Quince iconos sobre retícula de 24, trazo 1,5 uniforme
 y monocromo, en `iconos.js`. Ninguno usa banderas ni siluetas humanas: al

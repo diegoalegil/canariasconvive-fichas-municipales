@@ -455,7 +455,7 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.equal(islas[0][0], base + 'i/tenerife.html');
   await page.waitForSelector('#mapas path');
   assert.equal(await page.locator('#mapas figure').count(), 1);
-  assert.equal(await page.locator('.mapa-pie b').first().textContent(), '2');
+  assert.equal(await page.locator('#mapas .mapa-pie').count(), 0, 'sin pie: la lista de provincias va debajo');
   assert.equal(await page.locator('#mapas path[data-provincia="Las Palmas"]').first().getAttribute('fill'), '#185FA5', 'cada provincia va de su tono');
   await page.locator('#g-municipios li[data-isla="El Hierro"]').hover();
   assert.equal(await page.locator('#mapas path[data-isla="El Hierro"]').first().getAttribute('fill'), '#185FA5', 'señalar una isla la destaca en el archipiélago');

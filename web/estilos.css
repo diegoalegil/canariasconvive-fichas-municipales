@@ -145,19 +145,26 @@ select {
 .habitantes span { font-size: 14px; color: var(--gris); }
 
 /* ------------------------------------------------------------ rejilla ------ */
-/* align-items:start: cada tarjeta mide lo que mide su contenido. */
-.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); align-items: start; }
+/* Las tarjetas de una fila miden lo mismo (la más alta manda); dentro, el
+   cuerpo ocupa lo que queda bajo el rótulo, y los gráficos que pueden crecer
+   lo llenan (`igualarGraficos`, ficha.js). */
+.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--e-4); }
 
 /* ----------------------------------------------- tarjeta: rótulo A --------- */
 /* Filete superior de 3 px y título a la izquierda. */
 .tarjeta {
   grid-column: span 12;
+  display: flex; flex-direction: column;
   background: var(--fondo);
   border: 1px solid var(--linea); border-top: 3px solid var(--azul);
   border-radius: 0 0 var(--r-3) var(--r-3);
   box-shadow: var(--s-1);
   overflow: hidden;
 }
+.tarjeta > .cuerpo { flex: 1; }
+/* Los índices se reparten a lo alto de su tarjeta, que mide lo que la pirámide; la fuente queda al pie. */
+.tarjeta.indices > .cuerpo { display: flex; flex-direction: column; justify-content: space-between; }
+.tarjeta.indices #g-indices { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
 .tarjeta.mitad { grid-column: span 6; }
 .tarjeta.tercio { grid-column: span 4; }
 .tarjeta.dos-tercios { grid-column: span 8; }
@@ -231,8 +238,11 @@ select {
 .mapas.isla path { transition: fill .15s; cursor: default; }
 /* Las dos provincias bajo el mapa de Canarias, con el tono que llevan en él. */
 #g-provincias:not(:empty) { margin-top: 18px; }
-/* La provincia: sus islas con los términos municipales junto a la lista de municipios. */
-.mapa-y-lista { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 26px; align-items: start; }
+/* La provincia: sus islas con los términos municipales junto a la lista de municipios, el mapa centrado a lo alto de la lista. */
+.mapa-y-lista { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 26px; align-items: center; }
+/* Una lista corta (El Hierro, las islas de una provincia) va centrada a lo alto de su tarjeta, que mide lo que la del mapa;
+   en el comparador, lo mismo con las barras del lugar de nacimiento junto a los anillos. */
+.tarjeta.municipios-isla > .cuerpo, .cuerpo:has(> #cmp-nacimiento) { display: flex; flex-direction: column; justify-content: center; }
 .mapa { text-align: center; }
 .mapa svg { margin: 0 auto; }
 /* Hueco del mapa mientras llega la geometría: mismo tamaño, sin salto. */
@@ -328,7 +338,7 @@ select {
   box-shadow: none !important; animation: none !important; }
 
 /* ------------------------------------------------ lugar de nacimiento ------ */
-.anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
+.anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 26px; }
 .anillos.uno { grid-template-columns: minmax(200px, 320px); justify-content: center; }
 .anillo { text-align: center; }
 .anillo h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }

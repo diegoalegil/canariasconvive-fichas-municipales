@@ -167,7 +167,7 @@ function mapa(geo, foco, ambito, w, h, conLimites) {
 /** El pie de un mapa: puesto y peso; solo el peso (la provincia, que no
  *  compite con la otra); o cuántos territorios se ven (`cuenta`). */
 function pieMapa(r, tit, cuenta) {
-  if (!r) return `<b>${cuenta}</b>\n<span>${esc(tit)}</span>`;
+  if (!r) return cuenta == null ? '' : `<b>${cuenta}</b>\n<span>${esc(tit)}</span>`;
   if (!r.puesto) return `<b>${pct(r.peso, 2)}</b>\n<span>de la población de Canarias</span>`;
   return `<b>${r.puesto}.º de ${r.total}</b>\n<span>${esc(tit)}</span>\n<p><b>${pct(r.peso, 2)}</b> <span>de su población</span></p>`;
 }
@@ -179,8 +179,9 @@ function nivelesMapas(f) {
   const ent = entidad(f);
   if (ent.canarias) {
     // Las dos provincias, cada una de su tono (el mismo que en la lista de al lado).
+    // Sin pie: la lista de las dos provincias va justo debajo.
     const tono = Object.fromEntries(f.provincias.map((p, k) => [p.nombre, TONOS_PROVINCIA[k]]));
-    return [['provincias', () => true, null, false, (g) => tono[PROVINCIA_DE[g.properties.isla]] || C.azul, f.provincias.length]];
+    return [['provincias', () => true, null, false, (g) => tono[PROVINCIA_DE[g.properties.isla]] || C.azul]];
   }
   if (ent.agregada) {
     // La isla (o la provincia) en Canarias con su puesto o su peso y, en
@@ -888,8 +889,8 @@ function pintarMapas(f) {
     ? (ent.agregada ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3))
     : ent.agregada ? Math.max(180, anchoDe('mapas', 340) - 8)
     : Math.max(180, Math.floor(anchoDe('mapas', 1080) / (innerWidth > 940 ? 3 : 1)) - 20);
-  // El archipiélago solo, sin la isla ni la comarca debajo, va en una caja más apaisada.
-  const hMapa = IMPRIMIENDO ? mm(ent.agregada ? 11 : 16) : Math.round(wMapa * (ent.agregada ? 0.5 : 0.74));
+  // El archipiélago solo, sin la isla ni la comarca debajo, va en una caja más apaisada (es 2,4 veces más ancho que alto).
+  const hMapa = IMPRIMIENDO ? mm(ent.agregada ? 11 : 16) : Math.round(wMapa * (ent.agregada ? 0.44 : 0.74));
   const niveles = nivelesMapas(f);
   const mapas = el('mapas');
   mapas.classList.toggle('dos', !ent.agregada && niveles.length === 2);
@@ -901,7 +902,7 @@ function pintarMapas(f) {
     return `
     <figure class="mapa">
       ${GEO ? mapa(GEO, foco, filtro, wMapa, h, lim) : `<div class="mapa-hueco" style="width:${wMapa}px;height:${h}px" aria-hidden="true"></div>`}
-      <figcaption class="mapa-pie">${pieMapa(r, tit, cuenta)}</figcaption>
+      ${(() => { const pie = pieMapa(r, tit, cuenta); return pie ? `<figcaption class="mapa-pie">${pie}</figcaption>` : ''; })()}
     </figure>`;
   }).join('');
   el('g-provincias').innerHTML = ent.canarias ? listaProvincias(f) : '';
@@ -1014,15 +1015,8 @@ function pintar(f) {
   const wPi = IMPRIMIENDO ? anchoHoja(7) : anchoDe('g-piramide');
   const wCo = IMPRIMIENDO ? anchoHoja(6) : anchoDe('g-componentes');
 
-  el('g-evolucion').innerHTML =
-    graficoEvolucion(f.evolucion, wEv, IMPRIMIENDO ? mm(27) : acotar(wEv * 0.42, 190, 260));
-  const ext = f.extranjero;
-  el('g-extranjero').innerHTML =
-    graficoExtranjero(ext, wEx, IMPRIMIENDO ? mm(26) : acotar(wEx * 0.72, 200, 260))
-    + (IMPRIMIENDO ? '' : ENT.canarias
-      ? tablaOculta('Población de origen extranjero por año, en porcentaje', ['Año', 'Canarias'], ext.anios.map((a, i) => [a, pct(ext.canarias[i])]))
-      : tablaOculta('Población de origen extranjero por año, en porcentaje', ['Año', f.nombre, 'Canarias'],
-        ext.anios.map((a, i) => [a, pct(propia(ext)[i]), pct(ext.canarias[i])])));
+  dibujarEvolucion(f, wEv);
+  dibujarExtranjero(f, wEx);
   // La leyenda lleva el valor de Canarias: es la referencia de la barra del municipio.
   el('leyenda-extranjero').innerHTML = leyendaExtranjero(f, 2);
 
@@ -1051,14 +1045,7 @@ function pintar(f) {
     ? `<div class="indices-isla">${bloqueIndicesIsla(f.indices, INDICES_FICHA, ENT.provincia ? 'Provincia' : f.nombre)}</div>`
     : bloqueIndices(f.indices, INDICES_FICHA);
 
-  // En papel, el gráfico de componentes cede 3 mm a la nota de El Pinar y
-  // Frontera para que la fila mida lo mismo que en los otros municipios.
-  const comp = f.componentes, anom = comp.anomalias || [];
-  el('g-componentes').innerHTML =
-    graficoComponentes(comp, wCo, IMPRIMIENDO ? mm(anom.length ? 21 : 24) : acotar(wCo * 0.34, 190, 250))
-    + (anom.length ? `<figcaption class="nota">${notaAnomalias(anom)}</figcaption>` : '')
-    + (IMPRIMIENDO ? '' : tablaOculta('Crecimiento vegetativo y saldo migratorio por año, en personas', ['Año', 'Crecimiento vegetativo', 'Saldo migratorio'],
-      comp.anios.map((a, i) => [a, nf(comp.vegetativo[i]), nf(comp.migratorio[i])]).filter(([a]) => a >= ANIO_INICIO_COMPONENTES)));
+  dibujarComponentes(f, wCo);
 
   // En Canarias un solo anillo: el propio es la referencia.
   const o = f.origen;
@@ -1080,6 +1067,53 @@ function pintar(f) {
   conectarLecturaEvolucion();
   conectarIndices();
   fuentesFicha(VISTA, ENT);
+  igualarGraficos(f);
+}
+
+/* Los tres gráficos que pueden crecer para llenar su tarjeta (`igualarGraficos`);
+   `extra` son los píxeles de más sobre su altura normal. */
+function dibujarEvolucion(f, w, extra = 0) {
+  document.getElementById('g-evolucion').innerHTML =
+    graficoEvolucion(f.evolucion, w, (IMPRIMIENDO ? mm(27) : acotar(w * 0.42, 190, 260)) + extra);
+}
+function dibujarExtranjero(f, w, extra = 0) {
+  const ext = f.extranjero;
+  document.getElementById('g-extranjero').innerHTML =
+    graficoExtranjero(ext, w, (IMPRIMIENDO ? mm(26) : acotar(w * 0.72, 200, 260)) + extra)
+    + (IMPRIMIENDO ? '' : ENT.canarias
+      ? tablaOculta('Población de origen extranjero por año, en porcentaje', ['Año', 'Canarias'], ext.anios.map((a, i) => [a, pct(ext.canarias[i])]))
+      : tablaOculta('Población de origen extranjero por año, en porcentaje', ['Año', f.nombre, 'Canarias'],
+        ext.anios.map((a, i) => [a, pct(propia(ext)[i]), pct(ext.canarias[i])])));
+}
+function dibujarComponentes(f, w, extra = 0) {
+  // En papel, el gráfico de componentes cede 3 mm a la nota de El Pinar y
+  // Frontera para que la fila mida lo mismo que en los otros municipios.
+  const comp = f.componentes, anom = comp.anomalias || [];
+  document.getElementById('g-componentes').innerHTML =
+    graficoComponentes(comp, w, (IMPRIMIENDO ? mm(anom.length ? 21 : 24) : acotar(w * 0.34, 190, 250)) + extra)
+    + (anom.length ? `<figcaption class="nota">${notaAnomalias(anom)}</figcaption>` : '')
+    + (IMPRIMIENDO ? '' : tablaOculta('Crecimiento vegetativo y saldo migratorio por año, en personas', ['Año', 'Crecimiento vegetativo', 'Saldo migratorio'],
+      comp.anios.map((a, i) => [a, nf(comp.vegetativo[i]), nf(comp.migratorio[i])]).filter(([a]) => a >= ANIO_INICIO_COMPONENTES)));
+}
+
+/** Las tarjetas de una fila miden lo mismo (estilos.css, `.rejilla`); a la
+ *  más corta le sobra sitio bajo su contenido, y si lo que tiene es uno de
+ *  los gráficos de evolución, origen extranjero o componentes, el gráfico se
+ *  redibuja más alto hasta llenarla (como mucho, dos tercios más). La
+ *  pirámide manda en su fila y no se toca. Una pasada, tras pintar. */
+function igualarGraficos(f) {
+  if (IMPRIMIENDO || innerWidth <= 940) return;   // en una columna cada tarjeta mide lo suyo
+  for (const [id, dibujar] of [['g-evolucion', dibujarEvolucion], ['g-extranjero', dibujarExtranjero], ['g-componentes', dibujarComponentes]]) {
+    const figura = document.getElementById(id);
+    const cuerpo = figura.closest('.cuerpo');
+    const ultimo = cuerpo.lastElementChild;
+    const libre = cuerpo.getBoundingClientRect().bottom - parseFloat(getComputedStyle(cuerpo).paddingBottom) - ultimo.getBoundingClientRect().bottom;
+    const svg = figura.querySelector('svg');
+    if (!svg || libre < 6) continue;
+    const alto = svg.height.baseVal.value;
+    dibujar(f, anchoDe(id, figura.clientWidth), Math.round(Math.min(libre, alto * 0.66)));
+  }
+  conectarLecturaEvolucion();   // el gráfico de evolución se ha vuelto a dibujar
 }
 
 const INDICES_FICHA = ['C10', 'C11', 'C17', 'C14'];

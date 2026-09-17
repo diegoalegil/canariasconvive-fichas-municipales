@@ -18,7 +18,7 @@ function tarjetasEntorno(f, ent, R) {
   const wMapa = ent.agregada ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
   const mapas = niveles.map(([tit, filtro, r, lim, foco, cuenta]) => `
     <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.agregada ? 11 : 20), lim)}
-      <figcaption class="mapa-pie">${pieMapa(r, tit, cuenta)}</figcaption></figure>`).join('');
+      ${(() => { const pie = pieMapa(r, tit, cuenta); return pie ? `<figcaption class="mapa-pie">${pie}</figcaption>` : ''; })()}</figure>`).join('');
   if (!ent.agregada) {
     return `<section class="tarjeta">
       <header class="rotulo">${icono('territorio', 13)}<div><h2>${R.entorno[0]}</h2>
@@ -78,7 +78,7 @@ function hojaFicha(f, pagina) {
           <div class="leyenda">${leyendaPiramide(piramide.vistas[0])}</div>${fuenteGrafico('piramide')}</div>
       </section>
 
-      <section class="tarjeta tercio">
+      <section class="tarjeta tercio indices">
         <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
           <p>${R.indices.replace(/ordenad[oa]s de menor/, 'de menor')}</p></div></header>   <!-- en la hoja, sin «ordenados» -->
         <div class="cuerpo">${ent.agregada ? `<div class="indices-isla">${bloqueIndicesIsla(f.indices, INDICES_FICHA, ent.provincia ? 'Provincia' : f.nombre)}</div>` : bloqueIndices(f.indices, INDICES_FICHA)}${fuenteGrafico('indices')}</div>
