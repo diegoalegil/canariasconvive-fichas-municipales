@@ -453,19 +453,19 @@ recursos. Las tarjetas de cada fila miden lo mismo, con la fórmula abajo, y
 la última, sola, va a todo el ancho.
 
 **Comparador.** Hasta tres municipios en columnas, siempre de mayor a menor
-por el criterio elegido en la barra: una cifra clave (habitantes, edad media,
-variación media anual, mujeres, hombres) o un índice (envejecimiento, juventud,
-dependencia, reemplazo laboral); elegir en un desplegable deja el otro sin
-elección. Las pirámides comparten eje y no llevan aviso alguno. En el lugar
-de nacimiento cada cifra va del tono de su tramo de la barra, que es lo que
-pidió Pedro (el tono más claro, #B5D4F4, no llega al contraste AA sobre
-blanco; queda dicho). Los anillos de origen extranjero van de un solo azul,
-porque es una sola magnitud, y de mayor a menor. Con el mismo código se
-comparan hasta tres islas (`comparar.html?i=tenerife,gran-canaria`) o las
-dos provincias (`comparar.html?provincias`, que las carga las dos de golpe;
-`?p=las-palmas` deja una): un conmutador en la cabecera pasa de municipios a
-islas o a provincias y vacía la comparación, porque los ámbitos no se mezclan
-nunca.
+por la cifra clave elegida en la barra (habitantes, edad media, variación
+media anual, mujeres u hombres). Los índices no ordenan la comparación: su
+sección ya va de mayor a menor, índice a índice, y por eso el desplegable de
+índices se quitó (Pedro). Las pirámides comparten eje y no llevan aviso
+alguno. En el lugar de nacimiento cada cifra va del tono de su tramo de la
+barra, que es lo que pidió Pedro (el tono más claro, #B5D4F4, no llega al
+contraste AA sobre blanco; queda dicho). Los anillos de origen extranjero van
+de un solo azul, porque es una sola magnitud, y de mayor a menor. Con el
+mismo código se comparan hasta tres islas
+(`comparar.html?i=tenerife,gran-canaria`) o las dos provincias
+(`comparar.html?provincias`, que las carga las dos de golpe; `?p=las-palmas`
+deja una): un conmutador en la cabecera pasa de municipios a islas o a
+provincias y vacía la comparación, porque los ámbitos no se mezclan nunca.
 
 **Un solo orden de islas y de provincias**, de oeste a este, que fija
 `exportar_datos.py` en `indice.json` y heredan la portada, los selectores de

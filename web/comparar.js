@@ -13,7 +13,7 @@ const GRIS_REF = '#9AA0A6';
 
 let INDICE = null;
 let ELEGIDOS = [];         // fichas completas, en el orden en que se añadieron
-let ORDEN = 'poblacion';   // criterio de orden: una cifra clave o un índice
+let ORDEN = 'poblacion';   // criterio de orden: una cifra clave
 let MODO = 'municipios';   // 'municipios', 'islas' o 'provincias'
 // Sube con cada cambio de modo: una petición lanzada en un modo anterior no
 // cuenta al llegar, aunque se haya vuelto al mismo modo mientras tanto (si
@@ -52,12 +52,12 @@ const TEXTOS = {
   },
 };
 
-// Las columnas van siempre de mayor a menor por el criterio elegido (Pedro).
+// Las columnas van siempre de mayor a menor por la cifra clave elegida (Pedro).
+// Los índices no ordenan la comparación: su sección ya va de mayor a menor,
+// índice a índice.
 const CRITERIOS = {
   poblacion: (f) => f.poblacion, edad_media: (f) => f.cifras.edad_media, tvma: (f) => f.cifras.tvma,
   pct_mujeres: (f) => f.cifras.pct_mujeres, pct_hombres: (f) => f.cifras.pct_hombres,
-  C10: (f) => propia(f.indices.C10), C11: (f) => propia(f.indices.C11),
-  C17: (f) => propia(f.indices.C17), C14: (f) => propia(f.indices.C14),
 };
 function ordenados() {
   const valor = CRITERIOS[ORDEN] || CRITERIOS.poblacion;
@@ -365,14 +365,11 @@ async function iniciar() {
 
   INDICE = await leerJSON('datos/indice.json');
 
-  // Dos desplegables, un solo criterio: elegir en uno deja el otro sin elección.
-  const selectores = ['sel-orden-cifras', 'sel-orden-indices'].map((id) => document.getElementById(id));
-  selectores.forEach((sel) => sel.addEventListener('change', () => {
-    if (!sel.value) { sel.value = [...sel.options].some((o) => o.value === ORDEN) ? ORDEN : ''; return; }
-    ORDEN = sel.value;
-    selectores.forEach((otro) => { if (otro !== sel) otro.value = ''; });
+  const selOrden = document.getElementById('sel-orden-cifras');
+  selOrden.addEventListener('change', () => {
+    ORDEN = selOrden.value;
     if (ELEGIDOS.length) pintar(true);
-  }));
+  });
 
   const sel = document.getElementById('sel-anadir');
   sel.addEventListener('change', () => {

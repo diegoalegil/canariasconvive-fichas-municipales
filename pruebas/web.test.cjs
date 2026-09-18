@@ -696,13 +696,17 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   const columnas = await page.locator('table.cmp-tabla th[scope="row"]').first().evaluate((e) => e.getBoundingClientRect().width);
   assert.ok(columnas < 220, `la columna de rótulos mide ${columnas} px con un municipio`);
   await sinDesborde(page, 'comparador con 1');
-  // Un solo criterio de orden, de mayor a menor, que manda en todas las secciones y en la tira de elegidos.
+  // Un solo criterio de orden, una cifra clave de mayor a menor, que manda en todas las secciones y en la tira de
+  // elegidos; los índices no ordenan la comparación (Pedro): su sección ya va de mayor a menor, índice a índice.
   await page.selectOption('#sel-anadir', '38038'); await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3'); await espera(400);
-  await page.selectOption('#sel-orden-indices', 'C10'); await espera(400);
-  assert.equal(await page.locator('#sel-orden-cifras').inputValue(), '', 'elegir un índice deja la cifra clave sin elección');
+  assert.deepEqual(await page.locator('.barra select').evaluateAll((ss) => ss.map((s) => s.id)), ['sel-anadir', 'sel-orden-cifras'], 'sin desplegable de índices');
+  assert.ok(!(await page.locator('#sel-orden-cifras option').allTextContents()).some((t) => t.endsWith('…')), 'sin opción vacía');
+  await page.selectOption('#sel-orden-cifras', 'edad_media'); await espera(400);
   const tira = await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents();
-  const envejecimiento = await Promise.all(['35017', '38038'].map(async (c) => { const f = await json(path.join(WEB, `datos/mun/${c}.json`)); return [f.nombre, f.indices.C10.municipio]; }));
-  assert.deepEqual(tira, envejecimiento.sort((a, b) => b[1] - a[1]).map((x) => x[0]), 'de mayor a menor envejecimiento');
+  const edadMedia = await Promise.all(['35017', '38038'].map(async (c) => { const f = await json(path.join(WEB, `datos/mun/${c}.json`)); return [f.nombre, f.cifras.edad_media]; }));
+  assert.deepEqual(tira, edadMedia.sort((a, b) => b[1] - a[1]).map((x) => x[0]), 'de mayor a menor edad media');
+  const indices = await page.locator('#cmp-indices .cmp-indice').evaluateAll((cs) => cs.map((c) => [...c.querySelectorAll('.peldano:not(.cmp-ref) b')].map((b) => parseFloat(b.textContent.replace(/\./g, '').replace(',', '.')))));
+  assert.ok(indices.length === 4 && indices.every((vs) => vs.length === 2 && vs[0] >= vs[1]), `cada índice de mayor a menor por su propio valor: ${JSON.stringify(indices)}`);
   assert.deepEqual(await page.locator('#cmp-piramides .cmp-col h3').allTextContents(), tira);
   assert.equal(await page.locator('.cmp-aviso').count(), 0, 'sin avisos bajo las pirámides');
   assert.equal(await page.locator('#cmp-nacimiento .cmp-barra-val b').evaluateAll((bs) => new Set(bs.map((b) => b.style.color)).size), 3, 'cada cifra del lugar de nacimiento con el tono de su tramo');
