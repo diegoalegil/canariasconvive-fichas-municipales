@@ -153,12 +153,12 @@ function silueta(suyos, w, h) {
 
 function montarIslas() {
   const cont = document.getElementById('islas');
-  // Canarias entera, arriba; el rótulo de cada provincia lleva a su ficha y
-  // encabeza sus islas (el orden de indice.json las deja contiguas).
+  // Canarias entera, arriba, sin cifras (las de la cabecera ya son las suyas);
+  // el rótulo de cada provincia lleva a su ficha y encabeza sus islas (el
+  // orden de indice.json las deja contiguas).
   const banda = document.getElementById('banda-canarias');
   banda.innerHTML = `<span class="canarias-silueta">${silueta(GEO.features, 120, 40)}</span>`
-    + `<b>Canarias</b><span>${nf(INDICE.poblacion_canarias)} habitantes · toda la comunidad autónoma</span>`
-    + `<em>Ver la ficha ${icono('desplegar', 14, 'ico galon')}</em>`;
+    + `<b>Canarias</b><em>Ver la ficha ${icono('desplegar', 14, 'ico galon')}</em>`;
   cont.innerHTML = INDICE.provincias.map((p, n) => `
     <a class="provincia-cab ent" style="--n:${n}" href="${enlaceFicha({ tipo: 'provincia', slug: p.slug })}">
       <b>${esc(p.nombre)}</b><span>${p.islas.length} islas · ${nf(p.poblacion)} habitantes</span>${icono('desplegar', 14, 'ico galon')}

@@ -413,25 +413,25 @@ pestaña se llama «Canarias»), el gráfico de origen extranjero sin la línea
 de Canarias y el lugar de nacimiento con un solo anillo; la evolución va de
 2000 a 2025, como en las islas y las provincias.
 
-**La portada son Canarias, las dos provincias y las siete islas.** Arriba,
-la banda de Canarias entera (silueta del archipiélago, habitantes y «Ver la
-ficha»); debajo, el rótulo de cada provincia, con sus islas y sus habitantes,
-sobre sus tarjetas: una por isla, las siete iguales y en una fila (en el
-móvil, apaisadas en una columna, cada provincia con las suyas debajo), cada
-una con su silueta dibujada con los mismos límites municipales fundidos
-(`portada.js`), su nombre y cuántos municipios tiene. Es una sola retícula
-de siete columnas, con los rótulos en la primera fila (cuatro y tres
-columnas) y las tarjetas en la segunda, así miden exactamente lo mismo. La
-tarjeta despliega la lista de fichas de esa isla: la isla entera primero, en
-azul, y debajo cada municipio por orden alfabético; los siete desplegables
-miden lo mismo, como pidió Pedro para las listas de isla, y el de las
-tarjetas del extremo se alinea a la derecha para no salirse de la tapa. La
-opción señalada va en claro con una marca azul, para que el azul pleno sea
-solo el de la isla entera. El buscador encuentra Canarias, provincias, islas
-y municipios: los que empiezan por lo tecleado antes que los que solo lo
-contienen y, a igualdad, del ámbito mayor al menor. Se probó antes un mapa
-grande del archipiélago con pestañas y un panel; Diego prefirió las
-tarjetas, más limpias y del mismo tamaño.
+**La portada son Canarias, las dos provincias y las siete islas.** Arriba, la
+banda de Canarias entera (silueta del archipiélago, «Canarias» y «Ver la
+ficha», sin cifras: las de la cabecera ya son las suyas); debajo, el rótulo
+de cada provincia, con sus islas y sus habitantes, sobre sus tarjetas: una
+por isla, las siete iguales y en una fila (en el móvil, apaisadas en una
+columna, cada provincia con las suyas debajo), cada una con su silueta
+dibujada con los mismos límites municipales fundidos (`portada.js`), su
+nombre y cuántos municipios tiene. Es una sola retícula de siete columnas,
+con los rótulos en la primera fila (cuatro y tres columnas) y las tarjetas en
+la segunda, así miden exactamente lo mismo. La tarjeta despliega la lista de
+fichas de esa isla: la isla entera primero, en azul, y debajo cada municipio
+por orden alfabético; los siete desplegables miden lo mismo, como pidió Pedro
+para las listas de isla, y el de las tarjetas del extremo se alinea a la
+derecha para no salirse de la tapa. La opción señalada va en claro con una
+marca azul, para que el azul pleno sea solo el de la isla entera. El buscador
+encuentra Canarias, provincias, islas y municipios: los que empiezan por lo
+tecleado antes que los que solo lo contienen y, a igualdad, del ámbito mayor
+al menor. Se probó antes un mapa grande del archipiélago con pestañas y un
+panel; Diego prefirió las tarjetas, más limpias y del mismo tamaño.
 
 **Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
 otro, con el reparto escrito debajo.

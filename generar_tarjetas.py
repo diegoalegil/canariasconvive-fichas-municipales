@@ -211,7 +211,7 @@ def tarjeta_portada(idx):
 
     f = tf("demi", 74)
     y = 168
-    for ln in partir(d, "Una ficha por cada municipio, cada isla, cada provincia y toda Canarias", f, 1000):
+    for ln in partir(d, "Una ficha por municipio, isla, provincia y para toda Canarias", f, 1000):
         d.text((72, y), ln, font=f, fill=BLANCO)
         y += 88
 

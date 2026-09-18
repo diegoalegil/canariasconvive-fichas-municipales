@@ -800,7 +800,7 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   assert.deepEqual(await page.locator('.isla-nombre').allTextContents(), ['El Hierro', 'La Palma', 'La Gomera', 'Tenerife', 'Gran Canaria', 'Fuerteventura', 'Lanzarote'], 'islas de oeste a este, como en el índice');
   // Canarias entera arriba y el rótulo de cada provincia sobre sus islas, los tres con enlace a su ficha.
   assert.equal(await page.locator('#banda-canarias').getAttribute('href'), 'ficha.html?canarias');
-  assert.match(await page.locator('#banda-canarias').textContent(), /Canarias[\d.]+ habitantes/);
+  assert.equal((await page.locator('#banda-canarias').textContent()).trim(), 'CanariasVer la ficha', 'sin cifras: las de la cabecera ya son las de Canarias');
   assert.deepEqual(await page.locator('.provincia-cab').evaluateAll((as) => as.map((a) => [a.querySelector('b').textContent, a.getAttribute('href')])),
     [['Santa Cruz de Tenerife', 'ficha.html?provincia=santa-cruz-de-tenerife'], ['Las Palmas', 'ficha.html?provincia=las-palmas']]);
   // En una columna, cada provincia va justo encima de sus islas.
