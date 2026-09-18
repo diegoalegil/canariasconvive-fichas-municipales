@@ -760,6 +760,7 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
   await espera(900);
   assert.equal(await page.locator('#cmp-titulo').textContent(), 'Comparar provincias');
+  assert.equal(await page.locator('#cmp-intro').textContent(), 'Las dos provincias.', 'el subtítulo de Pedro, sin «una junto a otra»');
   assert.ok(page.url().endsWith('?p=santa-cruz-de-tenerife,las-palmas'), page.url());
   assert.deepEqual(await page.locator('.cmp-cab span').allTextContents(), ['Provincia', 'Provincia']);
   assert.deepEqual(await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas', 'Santa Cruz de Tenerife'], 'de mayor a menor población');

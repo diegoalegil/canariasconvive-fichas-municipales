@@ -44,7 +44,7 @@ const TEXTOS = {
     tabla: 'Cifras clave por isla', parametro: 'i',
   },
   provincias: {
-    titulo: 'Comparar provincias', intro: 'Las dos provincias, una junto a otra.',
+    titulo: 'Comparar provincias', intro: 'Las dos provincias.',
     vacio: 'Elige una provincia en el desplegable de arriba para empezar.',
     anadir: 'Añadir provincia', ninguno: 'Ninguna provincia elegida todavía', fallo: 'No se ha podido añadir la provincia.',
     nacimiento: 'Cada barra suma el 100 % de su provincia', extranjero: 'Porcentaje sobre el total de habitantes de cada provincia',
