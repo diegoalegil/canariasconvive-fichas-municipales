@@ -427,7 +427,7 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'r/canarias.html');
   const envoltorio = await fs.readFile(path.join(WEB, 'r/canarias.html'), 'utf8');
   assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), /<meta property="og:description" content="([^"]*)">/.exec(envoltorio)[1]);
-  assert.equal(await page.locator('#sub-evolucion').textContent(), `Habitantes, 1971–${indice.anio}`, 'la serie regional arranca en 1971');
+  assert.equal(await page.locator('#sub-evolucion').textContent(), `Habitantes, 2000–${indice.anio}`, 'la serie regional va acotada como la de las islas');
   // La propia es la referencia: la pirámide va sin marco negro, el origen extranjero sin la línea de Canarias y un solo anillo.
   assert.deepEqual(await page.locator('.vista').allTextContents(), ['Canarias', 'Canarias: Según origen']);
   assert.equal(await page.locator('#leyenda-piramide .llave').count(), 2, 'la leyenda de la pirámide no lleva marco');
@@ -466,7 +466,7 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.equal(escalera.length, 8);
   assert.deepEqual(escalera.filter((e) => e[1]).map((e) => e[0]), ['Canarias']);
   assert.equal(await page.locator('.fuente-grafico').count(), 8);
-  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de Canarias, 1971–${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de Canarias, 2000–${indice.anio}.`);
   for (const ancho of [375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);

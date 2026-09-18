@@ -208,19 +208,22 @@ la exportación se detiene. `conciliar_excel.py` aplica las mismas al leer el
 libro y cuenta las celdas corregidas, e `invariantes.py` comprueba en los
 JSON que cada isla suma sus municipios.
 
-**Canarias sale de las hojas «R»** (`C1R` desde 1971, `C6R`, `C7R`, `C22R`,
-`C23R`, `C24R`, `C25R` y los índices), con los mismos lectores; el exportador
+**Canarias sale de las hojas «R»** (`C1R`, `C6R`, `C7R`, `C22R`, `C23R`,
+`C24R`, `C25R` y los índices), con los mismos lectores; el exportador
 comprueba que la población coincide en `C1R`, en la pirámide y en la suma de
-las siete islas. **Las dos provincias no tienen hojas** y se suman desde sus
-islas (`PROVINCIAS`, en `territorios.py`): población, pirámides, componentes
-y lugar de nacimiento son sumas exactas; la serie de origen extranjero se
-suma en personas (`C22I` por `C1I`) sobre la población conjunta; y los cuatro
-índices se calculan sobre la pirámide sumada con las fórmulas del libro
-(`indices_de_piramide`), que reproducen exactamente las hojas `C10`–`C17` de
-las siete islas y de Canarias: el exportador lo comprueba antes de usarlas y
-se detiene si dejaran de coincidir. `conciliar_excel.py` contrasta Canarias
-con las hojas «R» y cada provincia con la suma de sus islas, e
-`invariantes.py` recalcula los índices provinciales desde su pirámide.
+las siete islas. `C1R` arranca en 1971, pero la serie de la ficha se acota a
+los años de las de isla y provincia (desde 2000): con 55 años la curva pierde
+detalle y lo que interesa son los últimos 25. **Las dos provincias no tienen
+hojas** y se suman desde sus islas (`PROVINCIAS`, en `territorios.py`):
+población, pirámides, componentes y lugar de nacimiento son sumas exactas; la
+serie de origen extranjero se suma en personas (`C22I` por `C1I`) sobre la
+población conjunta; y los cuatro índices se calculan sobre la pirámide sumada
+con las fórmulas del libro (`indices_de_piramide`), que reproducen
+exactamente las hojas `C10`–`C17` de las siete islas y de Canarias: el
+exportador lo comprueba antes de usarlas y se detiene si dejaran de
+coincidir. `conciliar_excel.py` contrasta Canarias con las hojas «R» y cada
+provincia con la suma de sus islas, e `invariantes.py` recalcula los índices
+provinciales desde su pirámide.
 
 **Particularidades que resuelve el exportador:**
 
@@ -407,8 +410,8 @@ cabe) y Canarias. Canarias lleva «Sus provincias» (el archipiélago con cada
 provincia de un tono y las dos debajo, con el mismo tono) y «Sus islas», y en
 ella la serie propia es la referencia: la pirámide va sin marco negro (la
 pestaña se llama «Canarias»), el gráfico de origen extranjero sin la línea
-de Canarias y el lugar de nacimiento con un solo anillo; la evolución arranca
-en 1971.
+de Canarias y el lugar de nacimiento con un solo anillo; la evolución va de
+2000 a 2025, como en las islas y las provincias.
 
 **La portada son Canarias, las dos provincias y las siete islas.** Arriba,
 la banda de Canarias entera (silueta del archipiélago, habitantes y «Ver la
@@ -512,7 +515,7 @@ vez de 4/8) y lleva solo el mapa de Canarias, la lista va en cuatro columnas
 para Tenerife y Gran Canaria (tres o dos para las demás) con sus tres
 cifras, y los índices van a dos columnas dentro de su tarjeta. Las siete
 miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt. La de
-Canarias mide 270,2 mm (la tarjeta de sus provincias es algo más ancha, 4/8,
+Canarias mide 262,3 mm (la tarjeta de sus provincias es algo más ancha, 4/8,
 para que el nombre de Santa Cruz de Tenerife quepa en una línea) y las dos de
 provincia, 271,5: en el papel la provincia lista sus islas, no sus
 municipios, que ya están en el índice del dossier.
@@ -525,7 +528,7 @@ la misma placa en la cabecera de cada hoja. La ficha de la provincia y la de
 la isla hacen de portada de su grupo, y el índice lleva la hoja de Canarias,
 de cada provincia, de cada isla y de cada municipio (la segunda provincia
 abre columna). Las hojas de isla miden 292,6 mm de 297; la de Canarias,
-286,0; las de provincia, 286,3. Las 98 fichas se piden a la vez y lo que
+277,3; las de provincia, 286,3. Las 98 fichas se piden a la vez y lo que
 falle se vuelve a pedir hasta dos veces antes de dar el error.
 
 ## Verificación
@@ -597,7 +600,7 @@ npm test
   presentación con la escalera, sin desbordes a 375 y 1280, y el paso de la
   isla al municipio y a otra isla con el mismo desplegable); las fichas de
   Canarias y de provincia (se entra por `r/canarias.html`, la serie desde
-  1971, la pirámide sin marco y sin marcadores ni lectura del marco, el
+  2000, la pirámide sin marco y sin marcadores ni lectura del marco, el
   origen extranjero sin línea ni leyenda y un solo anillo, las dos provincias
   con su tono y las siete islas de mayor a menor, cada provincia de su tono
   en el mapa y la isla señalada destacada, Canarias como propia en la

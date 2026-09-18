@@ -7,7 +7,7 @@
 const FUENTES_GRAFICOS = {
   evolucion: 'ISTAC. Cifras oficiales de población de los municipios, 1996–2025.',
   evolucion_isla: 'ISTAC. Cifras oficiales de población de las islas, 2000–2025.',
-  evolucion_canarias: 'ISTAC. Cifras oficiales de población de Canarias, 1971–2025.',
+  evolucion_canarias: 'ISTAC. Cifras oficiales de población de Canarias, 2000–2025.',
   municipios: 'ISTAC. Cifras oficiales de población de los municipios, 2025.',
   islas: 'ISTAC. Cifras oficiales de población de las islas, 2025.',
   extranjero: 'ISTAC. Población según lugar de nacimiento, 2000–2025.',

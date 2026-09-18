@@ -166,7 +166,9 @@ FC = json.loads((RAIZ / "web/datos/canarias.json").read_text(encoding="utf-8"))
 SS.update({s: series(s) for s in ["C6R", "C7R"]})
 check(FC["poblacion"], SS["C1R"]["Canarias"][FC["anio"]], "canarias_poblacion")
 ev = FC["evolucion"]
-check(dict(zip(ev["anios"], ev["valores"])), SS["C1R"]["Canarias"], "canarias_evolucion")
+# La ficha acota la serie regional a los años de las fichas de isla (C1I, desde 2000).
+desde = min(min(s) for s in SS["C1I"].values())
+check(dict(zip(ev["anios"], ev["valores"])), {a: v for a, v in SS["C1R"]["Canarias"].items() if a >= desde}, "canarias_evolucion")
 base, fin = SS["C1R"]["Canarias"][ev["anio_base"]], SS["C1R"]["Canarias"][ev["anio_fin"]]
 check(ev["variacion_acumulada"], round(100 * (fin / base - 1), 1), "canarias_variacion")
 check(abs(FC["cifras"]["tvma"] - 100 * ((fin / base) ** (1 / (ev["anio_fin"] - ev["anio_base"])) - 1)) < 1e-9, True, "canarias_tvma")

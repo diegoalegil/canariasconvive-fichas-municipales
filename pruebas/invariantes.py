@@ -153,6 +153,7 @@ comprobar(suma == indice["poblacion_canarias"], f"los 88 suman {suma} y Canarias
 # Las siete islas: su ficha suma sus municipios, lleva los índices de las siete
 # y su envoltorio i/<isla>.html con la tarjeta og.
 islas_resumen = indice.get("islas_resumen", [])
+anios_evolucion_islas = set()
 comprobar(len(islas_resumen) == 7 and [i["nombre"] for i in islas_resumen] == list(indice["islas"]),
           f"indice.json: islas_resumen no son las siete islas en su orden: {[i.get('nombre') for i in islas_resumen]}")
 for i in islas_resumen:
@@ -162,6 +163,7 @@ for i in islas_resumen:
         continue
     f = json.loads(ruta.read_text(encoding="utf-8"))
     comprobar(f.get("tipo") == "isla" and f.get("slug") == i["slug"] and f["nombre"] == i["nombre"], f"{i['nombre']}: la ficha de isla no lleva tipo, slug y nombre")
+    anios_evolucion_islas.add(tuple(f["evolucion"]["anios"]))
     p = f["piramide"]
     comprobar(sum(p["hombres"]) + sum(p["mujeres"]) == f["poblacion"] == i["poblacion"], f"{i['nombre']}: la pirámide de la isla no suma su población")
     comprobar(all(isinstance(p.get(k), list) and len(p[k]) == 21 for k in ("hombres", "mujeres", "extranjera_hombres", "extranjera_mujeres", "canarias_hombres", "canarias_mujeres")),
@@ -280,9 +282,10 @@ if ruta.exists():
     comprobar([p["nombre"] for p in f["provincias"]] == [p["nombre"] for p in sorted(provincias, key=lambda p: -p["poblacion"])]
               and all(abs(p["peso"] - p["poblacion"] / f["poblacion"] * 100) < 0.006 for p in f["provincias"]),
               "Canarias: la lista de provincias no va de mayor a menor con su peso")
-    comprobar(all("municipio" not in b and "isla" not in b and "provincia" not in b for b in (f["extranjero"], f["origen"]))
-              and f["evolucion"]["anios"][0] == 1971,
-              "Canarias: la serie propia tiene que ser «canarias» (sin otra clave) y la evolución arrancar en 1971 (C1R)")
+    comprobar(all("municipio" not in b and "isla" not in b and "provincia" not in b for b in (f["extranjero"], f["origen"])),
+              "Canarias: la serie propia tiene que ser «canarias» (sin otra clave)")
+    comprobar(anios_evolucion_islas == {tuple(f["evolucion"]["anios"])},
+              f"Canarias: la evolución tiene que llevar los mismos años que las de isla (desde 2000), no {f['evolucion']['anios'][0]}–{f['evolucion']['anios'][-1]}")
     comprobar_ambito(f, "Canarias", "canarias", islas_resumen, WEB / "r/canarias.html", "canarias",
                      f"{len(islas_resumen)} islas y {len(municipios)} municipios")
 

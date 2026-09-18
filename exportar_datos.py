@@ -196,7 +196,9 @@ ORIGEN_R = reparto_origen("C25R")
 ORIGEN_I = reparto_origen("C25I")
 ORIGEN_I_ABS = reparto_origen("C25I", absolutos=True)   # en personas, para sumar las provincias
 
-# Canarias, de las hojas «R»: la serie de población arranca en 1971.
+# Canarias, de las hojas «R». C1R arranca en 1971, pero la ficha acota la serie
+# a los años de las de isla y provincia (C1I, desde 2000): con 55 años la curva
+# pierde detalle y lo que interesa son los últimos 25.
 ANIOS_C1R, SERIE_C1R = serie_completa("C1R")
 ANIOS_C6R, SERIE_C6R = serie_completa("C6R")
 ANIOS_C7R, SERIE_C7R = serie_completa("C7R")
@@ -343,6 +345,12 @@ def serie_json(anios, valores, dec=3):
     """Empareja años y valores descartando huecos."""
     x, y = _sin_nulos(anios, valores)
     return {"anios": x, "valores": [r2(v, dec) for v in y]}
+
+
+def desde(anio, anios, valores):
+    """La serie (años, valores) a partir de `anio`."""
+    pares = [(a, v) for a, v in zip(anios, valores) if a >= anio]
+    return [a for a, _ in pares], [v for _, v in pares]
 
 
 def _por_anio(anios, valores):
@@ -761,7 +769,7 @@ if HX_CAN is None:
     raise SystemExit("Canarias: sin pirámide de origen extranjero en C24R")
 ficha_canarias = ficha_agregada(
     "canarias", "Canarias", POB_CANARIAS,
-    (ANIOS_C1R, SERIE_C1R["Canarias"]), (ANIOS_C22, SERIE_C22_R["Canarias"]),
+    desde(ANIOS_C1I[0], ANIOS_C1R, SERIE_C1R["Canarias"]), (ANIOS_C22, SERIE_C22_R["Canarias"]),
     H_CAN, M_CAN, HX_CAN, MX_CAN,
     (ANIOS_C6R, SERIE_C6R["Canarias"]), (ANIOS_C7R, SERIE_C7R["Canarias"]),
     ORIGEN_R["Canarias"], indices_de_piramide(H_CAN, M_CAN), ORDEN_ISLAS,
