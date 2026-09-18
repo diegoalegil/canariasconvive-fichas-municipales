@@ -304,7 +304,7 @@ async function iniciar() {
 // Los enlaces antiguos index.html?municipio=38038 siguen llevando a la ficha.
 const heredado = new URLSearchParams(location.search).get('municipio');
 if (heredado) {
-  location.replace(conMarca(`ficha.html?municipio=${encodeURIComponent(heredado)}`));
+  location.replace(`ficha.html?municipio=${encodeURIComponent(heredado)}`);
 } else {
   iniciar().catch((e) => {
     document.querySelector('.tapa').classList.remove('espera');

@@ -764,7 +764,7 @@ async function cargar(clave) {
     document.getElementById('sel-municipio').value = ENT.seleccion;
     // La dirección visible es la estable, m/<código>.html o i/<isla>.html (la
     // misma que copia «Copiar enlace»); al recargarla, el envoltorio redirige aquí.
-    history.replaceState(null, '', conMarca(rutaWeb(ENT.ruta)) + location.hash);
+    history.replaceState(null, '', rutaWeb(ENT.ruta) + location.hash);
     metadatosFicha(f);
     avisoReposo();
   } catch (error) {
@@ -1341,7 +1341,7 @@ function conectarCompartir() {
   const original = rotulo.textContent;
   b.addEventListener('click', async () => {
     if (!FICHA) return;
-    const url = conMarca(new URL(ENT.ruta, URL_PUBLICA_SITIO).href);
+    const url = new URL(ENT.ruta, URL_PUBLICA_SITIO).href;
     try {
       await navigator.clipboard.writeText(url);
       rotulo.textContent = 'Enlace copiado';
@@ -1586,7 +1586,7 @@ function abrirPresentacion() {
       <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
       <div><b>${nf(c.pct_mujeres, 1)}<span>${UNI}%</span></b><i>Mujeres</i><em>${nf(c.mujeres)} personas</em></div>
       <div><b>${nf(c.pct_hombres, 1)}<span>${UNI}%</span></b><i>Hombres</i><em>${nf(c.hombres)} personas</em></div></div>
-     <img class="pres-logo" src="${rutaWeb(MARCA.logo)}" alt="${esc(NOMBRE_MARCA)}">`,
+     <div class="pres-logos">${logotipos()}</div>`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
      <p class="pres-fuente">${esc(textoFuente('evolucion'))}</p>`,
@@ -1721,8 +1721,7 @@ async function iniciar() {
   document.getElementById('btn-pdf').addEventListener('click', () => window.print());
   enlacesAbsolutos();
   // La placa del papel se clona en cada cruce: con la ruta absoluta no se resuelve contra m/<código>.html.
-  const placa = document.querySelector('.placa-papel img');
-  if (placa) placa.src = rutaWeb(MARCA.logo);
+  document.querySelector('.placa-papel').innerHTML = logotipos();
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 

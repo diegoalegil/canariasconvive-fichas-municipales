@@ -50,19 +50,24 @@ comprobar(url_publica.startswith("https://") and url_publica.endswith("/"), "sit
 config = (WEB / "config.js").read_text(encoding="utf-8")
 comprobar(url_publica in config, "web/config.js no lleva la URL de sitio.json: ejecutar generar_tarjetas.py")
 comprobar(all(o in config for o in sitio.get("origenes_iframe", [])), "web/config.js no lleva los orígenes de sitio.json: ejecutar generar_tarjetas.py")
-# Las marcas con que se puede ver la web (?marca=): cada una con nombre y logotipos que existen, y en config.js tal cual.
-marcas = sitio.get("marcas", {})
-comprobar(sitio.get("marca_por_defecto") in marcas, "sitio.json: marca_por_defecto no es una de las marcas")
-for id_marca, m in marcas.items():
-    comprobar(re.fullmatch(r"[a-z]+", id_marca) is not None and m.get("nombre") and m.get("entidades"), f"sitio.json: la marca «{id_marca}» necesita id en minúsculas, nombre y entidades")
+# Los tres logotipos (sitio.json, «logos»): id en minúsculas y único, nombre y ficheros que existen; en config.js tal
+# cual; y escritos en el mismo orden en la placa de la portada, en la cabecera de las páginas interiores y en la
+# placa del papel de la ficha (comun.js los dibuja igual donde se generan al vuelo: presentación y dossier).
+logos = sitio.get("logos", [])
+comprobar(len(logos) == 3 and len({l.get("id") for l in logos}) == 3, "sitio.json: tienen que ser tres logotipos con id distinto")
+for l in logos:
+    comprobar(re.fullmatch(r"[a-z]+", l.get("id", "")) is not None and l.get("nombre"), f"sitio.json: el logotipo «{l.get('id')}» necesita id en minúsculas y nombre")
     for clave in ("logo", "menu"):
-        comprobar((WEB / m.get(clave, "")).is_file(), f"sitio.json: falta el logotipo {m.get(clave)} de la marca «{id_marca}»")
-_portada = (WEB / "index.html").read_text(encoding="utf-8")
-comprobar(all(f'<img src="{m["logo"]}" alt="{m["nombre"]}" data-marca="{i}">' in _portada for i, m in marcas.items()),
-          "web/index.html: la portada tiene que llevar los tres logotipos de sitio.json, con su nombre y su id")
-_marcas_config = re.search(r"^const MARCAS = (.*);$", config, re.M)
-comprobar(_marcas_config is not None and json.loads(_marcas_config.group(1)) == marcas, "web/config.js no lleva las marcas de sitio.json: ejecutar generar_tarjetas.py")
-comprobar(f'const MARCA_POR_DEFECTO = {json.dumps(sitio.get("marca_por_defecto"))};' in config, "web/config.js no lleva la marca por defecto de sitio.json")
+        comprobar((WEB / l.get(clave, "")).is_file(), f"sitio.json: falta el fichero {l.get(clave)} del logotipo «{l.get('id')}»")
+def imagenes_de(clave):
+    return "".join(f'<img src="{l[clave]}" alt="{l["nombre"]}" data-logo="{l["id"]}">' for l in logos)
+_tres = lambda html, clave: imagenes_de(clave) in re.sub(r">\s+<", "><", html)
+comprobar(_tres((WEB / "index.html").read_text(encoding="utf-8"), "logo"), "web/index.html: la placa de la portada tiene que llevar los tres logotipos de sitio.json, en su orden")
+for pagina in ("ficha", "comparar", "guia", "dossier"):
+    comprobar(_tres((WEB / f"{pagina}.html").read_text(encoding="utf-8"), "menu"), f"web/{pagina}.html: la cabecera tiene que llevar los tres logotipos de menú de sitio.json, en su orden")
+comprobar(_tres((WEB / "ficha.html").read_text(encoding="utf-8"), "logo"), "web/ficha.html: la placa del papel tiene que llevar los tres logotipos de sitio.json, en su orden")
+_logos_config = re.search(r"^const LOGOS = (.*);$", config, re.M)
+comprobar(_logos_config is not None and json.loads(_logos_config.group(1)) == logos, "web/config.js no lleva los logotipos de sitio.json: ejecutar generar_tarjetas.py")
 
 MARCAS = [2.5 + 5 * i for i in range(20)] + [102.0]   # marcas de clase de la edad media (exportar_datos.py)
 
@@ -81,8 +86,7 @@ def envoltorio_seguro(h):
     if len(scripts) != 1 or not csp:
         return False
     huella = "sha256-" + base64.b64encode(hashlib.sha256(scripts[0].encode("utf-8")).digest()).decode()
-    # El script conserva la consulta (?marca=) al redirigir a la ficha.
-    return f"script-src '{huella}'" in csp.group(1) and "default-src 'none'" in csp.group(1) and "location.search" in scripts[0]
+    return f"script-src '{huella}'" in csp.group(1) and "default-src 'none'" in csp.group(1)
 
 
 municipios = indice["municipios"]

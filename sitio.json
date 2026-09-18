@@ -4,25 +4,24 @@
     "https://canariasconvive.com",
     "https://www.canariasconvive.com"
   ],
-  "marca_por_defecto": "canariasconvive",
-  "marcas": {
-    "canariasconvive": {
+  "logos": [
+    {
+      "id": "canariasconvive",
       "nombre": "Canarias Convive",
       "logo": "img/logo-canariasconvive.png",
-      "menu": "img/logo-canariasconvive-menu.png",
-      "entidades": "Gobierno de Canarias · Universidad de La Laguna"
+      "menu": "img/logo-canariasconvive-menu.png"
     },
-    "obiten": {
+    {
+      "id": "obiten",
       "nombre": "OBITen",
       "logo": "img/logo-obiten.png",
-      "menu": "img/logo-obiten.png",
-      "entidades": "Cabildo de Tenerife · Universidad de La Laguna"
+      "menu": "img/logo-obiten.png"
     },
-    "juntas": {
+    {
+      "id": "juntas",
       "nombre": "Juntas en la misma dirección",
       "logo": "img/logo-juntas.png",
-      "menu": "img/logo-juntas.png",
-      "entidades": "Cabildo de Tenerife · Universidad de La Laguna"
+      "menu": "img/logo-juntas.png"
     }
-  }
+  ]
 }

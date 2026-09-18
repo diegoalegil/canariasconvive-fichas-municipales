@@ -154,59 +154,23 @@ if (BARRA_PEGAJOSA && 'ResizeObserver' in window) {
 const RAIZ_WEB = new URL('.', document.currentScript.src);
 const rutaWeb = (ruta) => new URL(ruta, RAIZ_WEB).href;
 
-/* ------------------------------------------------------------- marca ------- */
-/* La web se ve con la marca del programa que la enlaza o la enmarca: Canarias
-   Convive por defecto, u otra con ?marca=<id> en la dirección (los ids, sus
-   logotipos y su nombre están en sitio.json y llegan en config.js: MARCAS y
-   MARCA_POR_DEFECTO). La marca cambia el logotipo de la cabecera, de la
-   portada, de la placa del papel y de la presentación, el nombre en los
-   títulos y en los pies del dossier, y la línea de entidades de su portada. Se
-   recuerda mientras se navega: los enlaces internos la llevan al pulsarlos y la
-   sesión la guarda por si alguno se escapa. Sin parámetro ni sesión, la de por
-   defecto: una web enmarcada en otro sitio no hereda la marca de otra pestaña.
-   Las tarjetas de vista previa y las etiquetas og: son estáticas y van siempre
-   con la marca por defecto. */
-const MARCAS_SITIO = typeof MARCAS !== 'undefined' && Object.keys(MARCAS).length ? MARCAS
-  : { canariasconvive: { nombre: 'Canarias Convive', logo: 'img/logo-canariasconvive.png', menu: 'img/logo-canariasconvive-menu.png', entidades: 'Gobierno de Canarias · Universidad de La Laguna' } };
-const MARCA_BASE = typeof MARCA_POR_DEFECTO !== 'undefined' && MARCAS_SITIO[MARCA_POR_DEFECTO] ? MARCA_POR_DEFECTO : Object.keys(MARCAS_SITIO)[0];
-const MARCA_ID = (() => {
-  const pedida = new URLSearchParams(location.search).get('marca');
-  let id = pedida && MARCAS_SITIO[pedida] ? pedida : null;
-  try {
-    if (id) sessionStorage.setItem('marca', id);
-    else if (pedida === null) id = sessionStorage.getItem('marca');   // sin parámetro: la de la sesión, si la hay
-  } catch { /* sin almacenamiento (privado, bloqueado): la marca va solo en la dirección */ }
-  return id && MARCAS_SITIO[id] ? id : MARCA_BASE;
-})();
-const MARCA = MARCAS_SITIO[MARCA_ID];
-const NOMBRE_MARCA = MARCA.nombre;
-/** El título de una página, con la marca activa. */
-const tituloPagina = (texto) => `${texto} · ${NOMBRE_MARCA}`;
-/** Una dirección de la web con la marca activa, si no es la de por defecto. */
-function conMarca(url) {
-  if (MARCA_ID === MARCA_BASE) return url;
-  const u = new URL(url, location.href);
-  if (!u.searchParams.has('marca')) u.searchParams.set('marca', MARCA_ID);
-  return u.href;
-}
-/** Logotipos, título y enlaces de la página con la marca activa. Se ejecuta
- *  en cuanto carga este script, antes del primer dibujado, porque la
- *  cabecera va antes que los scripts en todas las páginas. La portada no
- *  cambia: lleva siempre los tres logotipos juntos. */
-function aplicarMarca() {
-  document.documentElement.dataset.marca = MARCA_ID;
-  if (MARCA_ID === MARCA_BASE) return;
-  document.querySelectorAll('.marca img').forEach((img) => { img.src = rutaWeb(MARCA.menu || MARCA.logo); img.alt = NOMBRE_MARCA; });
-  document.querySelectorAll('.placa-papel img').forEach((img) => { img.src = rutaWeb(MARCA.logo); img.alt = NOMBRE_MARCA; });
-  const base = MARCAS_SITIO[MARCA_BASE].nombre;
-  if (document.title.endsWith(` · ${base}`)) document.title = document.title.slice(0, -base.length) + NOMBRE_MARCA;
-  // Los enlaces de la propia web llevan la marca al pulsarlos (también con Ctrl o Cmd, en otra pestaña).
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a[href]');
-    if (a && a.origin === location.origin && !a.href.startsWith('data:')) a.href = conMarca(a.href);
-  }, true);
-}
-aplicarMarca();
+/* --------------------------------------------------------- logotipos ------ */
+/* Los tres programas van juntos en toda la web (Pedro): la placa de la portada,
+   la cabecera de las páginas interiores, la placa del papel, la presentación y
+   la portada y las hojas del dossier. Vienen de sitio.json por config.js
+   (LOGOS: id, nombre, logotipo grande y de menú), en ese orden, y cada uno
+   lleva su altura en estilos.css por data-logo: el de OBITen es apaisado con
+   letra pequeña y el de Juntas en la misma dirección es cuadrado; a la altura
+   del de Canarias Convive no se leerían. En el HTML estático van escritos
+   (invariantes.py lo comprueba); `logotipos` dibuja los que se generan al
+   vuelo, con la ruta absoluta (la placa del papel se clona en cada cruce y el
+   dossier vive en otra carpeta). */
+const LOGOS_SITIO = typeof LOGOS !== 'undefined' && LOGOS.length ? LOGOS
+  : [{ id: 'canariasconvive', nombre: 'Canarias Convive', logo: 'img/logo-canariasconvive.png', menu: 'img/logo-canariasconvive-menu.png' }];
+const logotipos = (clave = 'logo') => LOGOS_SITIO.map((l) =>
+  `<img src="${rutaWeb(l[clave] || l.logo)}" alt="${esc(l.nombre)}" data-logo="${esc(l.id)}">`).join('');
+/** El título de una página: la web es la de Canarias Convive. */
+const tituloPagina = (texto) => `${texto} · Canarias Convive`;
 
 /** Los enlaces relativos del HTML pasan a absolutos contra la raíz. */
 function enlacesAbsolutos() {

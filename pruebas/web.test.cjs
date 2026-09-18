@@ -925,74 +925,65 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   await contexto.close();
 });
 
-test('marca: ?marca=obiten cambia logotipos, títulos, enlaces y papel; sin parámetro o con una marca desconocida, Canarias Convive', async () => {
+test('logotipos: los tres juntos, en el orden de sitio.json, en la portada, la cabecera, el papel, la presentación y el dossier', async () => {
   const sitio = await json(path.join(RAIZ, 'sitio.json'));
-  const marca = sitio.marcas.obiten;
-  const { page, contexto, errores } = await abrir('index.html?marca=obiten');
+  const esperados = (clave) => sitio.logos.map((l) => [l[clave].split('/').pop(), l.nombre, l.id]);
+  const vistos = (selector) => page.locator(selector).evaluateAll((is) => is.map((i) => [i.getAttribute('src').split('/').pop(), i.alt, i.dataset.logo]));
+  const cargados = (selector) => page.locator(selector).evaluateAll((is) => is.every((i) => i.complete && i.naturalWidth > 0));
+  const { page, contexto, errores } = await abrir('index.html');
   await page.waitForSelector('.isla-menu');
-  const estado = () => page.evaluate(() => ({
-    marca: document.documentElement.dataset.marca, titulo: document.title,
-    logo: document.querySelector('.marca img')?.getAttribute('src').split('/').pop(),
-    alt: document.querySelector('.marca img')?.alt,
-    placa: document.querySelector('.placa-papel img')?.getAttribute('src').split('/').pop(),
-  }));
-  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Fichas demográficas municipales · ${marca.nombre}`, logo: undefined, alt: undefined, placa: undefined });
-  // La portada lleva siempre los tres logotipos juntos, en el orden de sitio.json, sea cual sea la marca.
-  assert.deepEqual(await page.locator('.tapa-marca .placa img').evaluateAll((is) => is.map((i) => [i.getAttribute('src').split('/').pop(), i.alt])),
-    Object.values(sitio.marcas).map((m) => [m.logo.split('/').pop(), m.nombre]));
-  // Los enlaces llevan la marca al pulsarlos; la ficha la conserva al cambiar de territorio y en «Copiar enlace».
+  assert.deepEqual(await vistos('.tapa-marca .placa img'), esperados('logo'), 'la placa de la portada');
+  assert.ok(await cargados('.tapa-marca .placa img'), 'los tres cargan');
+  assert.equal(await page.title(), 'Fichas demográficas municipales · Canarias Convive');
+  // La cabecera de la ficha, cada logotipo a su altura (el cuadrado, el más alto) y los tres en una fila también en el móvil.
   await page.locator('#banda-canarias').click();
   await page.waitForSelector('#fuente-g-origen');
-  assert.ok(page.url().endsWith('/fichas/r/canarias.html?marca=obiten'), page.url());
-  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Canarias · Ficha demográfica · ${marca.nombre}`, logo: 'logo-obiten.png', alt: marca.nombre, placa: 'logo-obiten.png' });
-  await page.selectOption('#sel-municipio', '38038');
-  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
+  assert.ok(page.url().endsWith('/fichas/r/canarias.html'), page.url());
+  assert.deepEqual(await vistos('.marca img'), esperados('menu'), 'la cabecera');
+  const altos = await page.locator('.marca img').evaluateAll((is) => is.map((i) => Math.round(i.getBoundingClientRect().height)));
+  assert.ok(altos[0] < altos[1] && altos[1] < altos[2], `cada logotipo a su altura: ${altos}`);
+  for (const ancho of [320, 375]) {
+    await page.setViewportSize({ width: ancho, height: 800 });
+    await espera(300);
+    const filas = new Set(await page.locator('.marca img').evaluateAll((is) => is.map((i) => { const r = i.getBoundingClientRect(); return Math.round((r.top + r.height / 2) / 10); })));
+    assert.equal(filas.size, 1, `los tres logotipos en una fila a ${ancho}`);
+    await sinDesborde(page, `ficha con los tres logotipos a ${ancho}`);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
   await espera(300);
-  assert.ok(page.url().endsWith('/fichas/m/38038.html?marca=obiten'), page.url());
-  // El portapapeles se lee solo en Chromium (WebKit no concede el permiso): en los dos se captura lo que se escribe.
-  await page.evaluate(() => { navigator.clipboard.writeText = (t) => { window.__copiado = t; return Promise.resolve(); }; });
-  await page.locator('#btn-compartir').click();
-  await espera(200);
-  assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}m/38038.html?marca=obiten`);
-  // La presentación y la hoja llevan el logotipo de la marca; en el papel, el año no queda tapado por la placa.
+  // La presentación, y la hoja impresa: la placa con los tres, a la derecha del año y dentro de la cabecera.
   await page.locator('#btn-presentar').click();
   await espera(300);
-  assert.equal(await page.locator('.pres-logo').getAttribute('src').then((s) => s.split('/').pop()), 'logo-obiten.png');
+  assert.deepEqual(await vistos('.pres-logos img'), esperados('logo'), 'la presentación');
   await page.keyboard.press('Escape');
   await espera(200);
   await page.emulateMedia({ media: 'print' });
   await espera(200);
-  const cajas = await page.evaluate(() => { const r = (e) => e.getBoundingClientRect().toJSON(); return { placa: r(document.querySelector('.placa-papel')), anio: r(document.getElementById('anio')) }; });
+  assert.deepEqual(await vistos('.placa-papel img'), esperados('logo'), 'la placa del papel');
+  const cajas = await page.evaluate(() => { const r = (e) => e.getBoundingClientRect().toJSON(); return { placa: r(document.querySelector('.placa-papel')), anio: r(document.getElementById('anio')), cabecera: r(document.querySelector('.cabecera')) }; });
   assert.ok(cajas.placa.left >= cajas.anio.right, `la placa va a la derecha del año: ${JSON.stringify(cajas)}`);
+  assert.ok(cajas.placa.top >= cajas.cabecera.top && cajas.placa.bottom <= cajas.cabecera.bottom, `la placa cabe en la cabecera: ${JSON.stringify(cajas)}`);
   await page.emulateMedia({ media: null });
-  // El comparador desde el botón, con la marca; el sobre m/<código>.html?marca= la pasa a la ficha.
-  await page.locator('#btn-comparar').click();
-  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent.startsWith('1 de 3'));
-  assert.ok(page.url().endsWith('?m=38038&marca=obiten'), page.url());
-  assert.equal(await page.title(), `Comparar municipios · ${marca.nombre}`);
-  await page.goto(base + 'i/tenerife.html?marca=juntas');
+  // Un ?marca= antiguo no hace nada: ni cambia el título ni se cuela en los enlaces.
+  await page.goto(base + 'ficha.html?municipio=38038&marca=obiten');
   await page.waitForSelector('#fuente-g-origen');
-  assert.equal(await page.locator('.marca img').getAttribute('alt'), sitio.marcas.juntas.nombre);
-  assert.ok((await page.locator('.marca img').boundingBox()).height > 40, 'el logotipo cuadrado va más alto que el de Canarias Convive');
-  // El dossier: la placa de cada hoja, los pies y la línea de entidades de la portada.
-  await page.goto(base + 'dossier.html?marca=obiten');
+  assert.equal(await page.title(), 'Santa Cruz de Tenerife · Fichas municipales · Canarias Convive');
+  assert.ok(page.url().endsWith('/fichas/m/38038.html'), page.url());
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.marca), undefined);
+  await page.evaluate(() => { navigator.clipboard.writeText = (t) => { window.__copiado = t; return Promise.resolve(); }; });
+  await page.locator('#btn-compartir').click();
+  await espera(200);
+  assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}m/38038.html`);
+  // El dossier: la placa de cada hoja con los tres, la portada con los tres en su placa y sin línea de entidades, los pies.
+  await page.goto(base + 'dossier.html');
   await page.waitForFunction(() => document.getElementById('d-total').textContent === '101 hojas', null, { timeout: 120000 });
-  assert.equal(await page.locator('.placa-papel img[src$="logo-obiten.png"]').count(), 98);
-  assert.equal(await page.locator('.d-marca').textContent(), marca.entidades);
-  assert.equal(await page.locator('.d-portada-placa img').getAttribute('src').then((s) => s.split('/').pop()), 'logo-obiten.png', 'la portada del dossier lleva el logotipo');
-  assert.equal(await page.locator('.d-pie span').first().textContent(), `${marca.nombre} · Fichas demográficas municipales`);
+  assert.equal(await page.locator('.placa-papel').count(), 98);
+  assert.equal(await page.locator('.placa-papel img[src$="logo-juntas.png"]').count(), 98, 'cada hoja lleva los tres logotipos');
+  assert.deepEqual(await vistos('.d-portada-placa img'), esperados('logo'), 'la portada del dossier');
+  assert.equal(await page.locator('.d-marca').count(), 0, 'sin línea de entidades');
+  assert.equal(await page.locator('.d-pie span').first().textContent(), 'Canarias Convive · Fichas demográficas municipales');
   assert.deepEqual(errores, []);
   await contexto.close();
-  // Otra pestaña sin parámetro, o con una marca que no existe: Canarias Convive.
-  const otra = await abrir('ficha.html?municipio=38038');
-  await otra.page.waitForSelector('#fuente-g-origen');
-  assert.equal(await otra.page.title(), 'Santa Cruz de Tenerife · Fichas municipales · Canarias Convive');
-  assert.ok(otra.page.url().endsWith('/fichas/m/38038.html'), otra.page.url());
-  await otra.page.goto(base + 'ficha.html?municipio=38038&marca=zzz');
-  await otra.page.waitForSelector('#fuente-g-origen');
-  assert.equal(await otra.page.evaluate(() => document.documentElement.dataset.marca + ' ' + document.querySelector('.marca img').getAttribute('src').split('/').pop()), 'canariasconvive logo-canariasconvive-menu.png');
-  assert.deepEqual(otra.errores, []);
-  await otra.contexto.close();
 });
 
 test('portada: si fallan los datos, el buscador se desactiva y el aviso se anuncia', async () => {
@@ -1114,8 +1105,8 @@ test('papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias c
   // En la hoja se imprime la fuente de cada gráfico, la marca del programa va en la cabecera, y la ficha es una A4.
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('.fuente-grafico:visible').count(), 7, 'siete fuentes en la hoja');
-  assert.ok(await page.locator('.cabecera .placa-papel img').isVisible(), 'la marca del programa va en la cabecera de la hoja');
-  assert.ok(await page.locator('.cabecera .placa-papel img').evaluate((i) => i.complete && i.naturalWidth > 0), 'el logotipo carga');
+  assert.equal(await page.locator('.cabecera .placa-papel img:visible').count(), 3, 'los tres logotipos van en la cabecera de la hoja');
+  assert.ok(await page.locator('.cabecera .placa-papel img').evaluateAll((is) => is.every((i) => i.complete && i.naturalWidth > 0)), 'los logotipos cargan');
   assert.equal(await page.locator('.cifra').count(), 4, 'cuatro cifras clave, con la edad media');
   await page.emulateMedia({ media: null });
   const a4 = await page.pdf({ preferCSSPageSize: true, printBackground: true });
@@ -1145,7 +1136,7 @@ test('papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias c
   assert.match(await page.locator('.hoja-texto').nth(1).textContent(), /Canarias toda la comunidad · 4.*Santa Cruz de Tenerife la provincia · 5.*El Hierro la isla · 6.*Las Palmas la provincia · 64/s, 'el índice lleva la hoja de Canarias, de cada provincia y de cada isla');
   assert.ok(await page.getByRole('button', { name: 'Imprimir o guardar en PDF' }).isVisible(), 'el botón de imprimir se ve');
   assert.equal(await page.locator('.hoja-ficha .fuente-grafico').count(), 88 * 7 + 10 * 8, 'cada gráfico del dossier lleva su fuente (ocho por encima del municipio)');
-  assert.equal(await page.locator('.hoja-ficha .d-cab .placa-papel:visible').count(), 98, 'cada hoja del dossier lleva la marca del programa en la cabecera');
+  assert.equal(await page.locator('.hoja-ficha .d-cab .placa-papel:visible').count(), 98, 'cada hoja del dossier lleva los logotipos en la cabecera');
   const desbordan = await page.locator('.hoja').evaluateAll((els) => els.flatMap((e, i) => (e.scrollHeight > e.clientHeight + 1 ? [i + 1] : [])));
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });
