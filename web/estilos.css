@@ -82,8 +82,8 @@ html { scroll-padding-top: 76px; }   /* la barra es pegajosa: anclas y foco por 
    el de OBITen es apaisado con letra pequeña y el de Juntas en la misma
    dirección es cuadrado; a la altura del de Canarias Convive no se leerían.
    Las variables valen también en el papel y en el dossier. */
-:root[data-marca="obiten"] { --alto-logo: 40px; --alto-logo-portada: 44px; --alto-logo-pres: 48px; --alto-placa: 7mm; --reserva-placa: 26mm; --alto-logo-dossier: 11mm; }
-:root[data-marca="juntas"] { --alto-logo: 46px; --alto-logo-portada: 60px; --alto-logo-pres: 72px; --alto-placa: 8mm; --reserva-placa: 15mm; --alto-logo-dossier: 15mm; }
+:root[data-marca="obiten"] { --alto-logo: 40px; --alto-logo-pres: 48px; --alto-placa: 7mm; --reserva-placa: 26mm; --alto-logo-dossier: 11mm; }
+:root[data-marca="juntas"] { --alto-logo: 46px; --alto-logo-pres: 72px; --alto-placa: 8mm; --reserva-placa: 15mm; --alto-logo-dossier: 15mm; }
 .marca span {
   font-size: 11px; font-weight: 600; color: var(--gris);
   letter-spacing: .4px; text-transform: uppercase;
@@ -387,10 +387,14 @@ select {
   display: flex; flex-direction: column; gap: 22px;
 }
 .tapa-marca { display: flex; align-items: center; gap: var(--e-4); flex-wrap: wrap; }
-.tapa-marca img { height: var(--alto-logo-portada, 32px); width: auto; display: block; }
+/* Los tres logotipos en una placa, cada uno a la altura a la que se lee (las
+   mismas que en la cabecera de las páginas interiores). */
+.tapa-marca img { height: 34px; width: auto; display: block; }
+.tapa-marca img[data-marca="obiten"] { height: 40px; }
+.tapa-marca img[data-marca="juntas"] { height: 46px; }
 .tapa-marca .placa {
-  background: #fff; border-radius: var(--r-2); padding: 8px 12px;
-  display: inline-flex; box-shadow: var(--s-1);
+  background: #fff; border-radius: var(--r-2); padding: 8px 16px;
+  display: inline-flex; align-items: center; gap: 20px; box-shadow: var(--s-1);
 }
 .tapa-marca > span:last-child {
   font-size: 12px; font-weight: 600; letter-spacing: .18em;
@@ -731,6 +735,11 @@ select {
   .buscador { width: 100%; }
 }
 @media (max-width: 460px) {
+  /* Los tres logotipos de la portada caben en una fila hasta 320 px de ancho. */
+  .tapa-marca .placa { gap: 14px; padding: 8px 12px; }
+  .tapa-marca img { height: 28px; }
+  .tapa-marca img[data-marca="obiten"] { height: 33px; }
+  .tapa-marca img[data-marca="juntas"] { height: 38px; }
   .cifras { grid-template-columns: 1fr; }
   .cifra, .cifra:nth-child(odd), .cifra:nth-child(2) { border-left: 0; border-top: 1px solid var(--linea); padding: var(--e-4) var(--e-2); }
   .cifra:first-child { border-top: 0; }

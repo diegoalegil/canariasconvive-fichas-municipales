@@ -926,11 +926,14 @@ test('marca: ?marca=obiten cambia logotipos, títulos, enlaces y papel; sin par�
   await page.waitForSelector('.isla-menu');
   const estado = () => page.evaluate(() => ({
     marca: document.documentElement.dataset.marca, titulo: document.title,
-    logo: (document.querySelector('.marca img') || document.querySelector('.tapa-marca .placa img')).getAttribute('src').split('/').pop(),
-    alt: (document.querySelector('.marca img') || document.querySelector('.tapa-marca .placa img')).alt,
+    logo: document.querySelector('.marca img')?.getAttribute('src').split('/').pop(),
+    alt: document.querySelector('.marca img')?.alt,
     placa: document.querySelector('.placa-papel img')?.getAttribute('src').split('/').pop(),
   }));
-  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Fichas demográficas municipales · ${marca.nombre}`, logo: 'logo-obiten.png', alt: marca.nombre, placa: undefined });
+  assert.deepEqual(await estado(), { marca: 'obiten', titulo: `Fichas demográficas municipales · ${marca.nombre}`, logo: undefined, alt: undefined, placa: undefined });
+  // La portada lleva siempre los tres logotipos juntos, en el orden de sitio.json, sea cual sea la marca.
+  assert.deepEqual(await page.locator('.tapa-marca .placa img').evaluateAll((is) => is.map((i) => [i.getAttribute('src').split('/').pop(), i.alt])),
+    Object.values(sitio.marcas).map((m) => [m.logo.split('/').pop(), m.nombre]));
   // Los enlaces llevan la marca al pulsarlos; la ficha la conserva al cambiar de territorio y en «Copiar enlace».
   await page.locator('#banda-canarias').click();
   await page.waitForSelector('#fuente-g-origen');

@@ -191,11 +191,12 @@ function conMarca(url) {
 }
 /** Logotipos, título y enlaces de la página con la marca activa. Se ejecuta
  *  en cuanto carga este script, antes del primer dibujado, porque la
- *  cabecera va antes que los scripts en todas las páginas. */
+ *  cabecera va antes que los scripts en todas las páginas. La portada no
+ *  cambia: lleva siempre los tres logotipos juntos. */
 function aplicarMarca() {
   document.documentElement.dataset.marca = MARCA_ID;
   if (MARCA_ID === MARCA_BASE) return;
-  document.querySelectorAll('.marca img, .tapa-marca .placa img').forEach((img) => { img.src = rutaWeb(MARCA.menu || MARCA.logo); img.alt = NOMBRE_MARCA; });
+  document.querySelectorAll('.marca img').forEach((img) => { img.src = rutaWeb(MARCA.menu || MARCA.logo); img.alt = NOMBRE_MARCA; });
   document.querySelectorAll('.placa-papel img').forEach((img) => { img.src = rutaWeb(MARCA.logo); img.alt = NOMBRE_MARCA; });
   const base = MARCAS_SITIO[MARCA_BASE].nombre;
   if (document.title.endsWith(` · ${base}`)) document.title = document.title.slice(0, -base.length) + NOMBRE_MARCA;

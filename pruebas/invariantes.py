@@ -57,6 +57,9 @@ for id_marca, m in marcas.items():
     comprobar(re.fullmatch(r"[a-z]+", id_marca) is not None and m.get("nombre") and m.get("entidades"), f"sitio.json: la marca «{id_marca}» necesita id en minúsculas, nombre y entidades")
     for clave in ("logo", "menu"):
         comprobar((WEB / m.get(clave, "")).is_file(), f"sitio.json: falta el logotipo {m.get(clave)} de la marca «{id_marca}»")
+_portada = (WEB / "index.html").read_text(encoding="utf-8")
+comprobar(all(f'<img src="{m["logo"]}" alt="{m["nombre"]}" data-marca="{i}">' in _portada for i, m in marcas.items()),
+          "web/index.html: la portada tiene que llevar los tres logotipos de sitio.json, con su nombre y su id")
 _marcas_config = re.search(r"^const MARCAS = (.*);$", config, re.M)
 comprobar(_marcas_config is not None and json.loads(_marcas_config.group(1)) == marcas, "web/config.js no lleva las marcas de sitio.json: ejecutar generar_tarjetas.py")
 comprobar(f'const MARCA_POR_DEFECTO = {json.dumps(sitio.get("marca_por_defecto"))};' in config, "web/config.js no lleva la marca por defecto de sitio.json")

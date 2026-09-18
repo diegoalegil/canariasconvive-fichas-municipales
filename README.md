@@ -38,23 +38,26 @@ dirección con `?marca=juntas` en cualquier dirección de la web
 parámetro a la ficha). Las tres marcas viven en `sitio.json` (`marcas`: id,
 nombre, logotipo grande y de menú, y la línea de entidades de la portada del
 dossier; `marca_por_defecto`) y llegan a la web en `config.js`. La marca
-cambia el logotipo de la cabecera, de la portada, de la placa del papel y de
-la presentación, el nombre en los títulos de las páginas y en los pies del
-dossier, y la línea de entidades de su portada; el resto es idéntico. Se
-recuerda mientras se navega: los enlaces internos la llevan al pulsarlos,
-«Copiar enlace» la incluye y la sesión la guarda por si algún enlace se
-escapa; sin parámetro ni sesión (otra pestaña, otro sitio que la enmarca) es
-la de por defecto, y una marca desconocida también. Cada marca lleva su
-altura de logotipo (`--alto-logo`, `--alto-placa`… en `estilos.css`, por
-`data-marca` en `<html>`): el de OBITen es apaisado con letra pequeña y el de
-Juntas es cuadrado, y a la altura del de Canarias Convive no se leerían; en
-el papel, una placa más alta se coloca a la derecha del año, no debajo. Las
-tarjetas de vista previa y las etiquetas `og:` son estáticas y van siempre
-con la marca por defecto: si algún día hace falta una vista previa por marca,
-se generan los sobres por marca. Añadir una marca es añadir su entrada en
-`sitio.json` y sus dos PNG en `web/img/`, y ejecutar `generar_tarjetas.py`.
-Las líneas de entidades de OBITen y de Juntas («Cabildo de Tenerife ·
-Universidad de La Laguna») están puestas de oído: hay que confirmarlas.
+cambia el logotipo de la cabecera de las páginas interiores, de la placa del
+papel y de la presentación, el nombre en los títulos de las páginas y en los
+pies del dossier, y la línea de entidades de su portada; el resto es
+idéntico. Se recuerda mientras se navega: los enlaces internos la llevan al
+pulsarlos, «Copiar enlace» la incluye y la sesión la guarda por si algún
+enlace se escapa; sin parámetro ni sesión (otra pestaña, otro sitio que la
+enmarca) es la de por defecto, y una marca desconocida también. La portada no
+cambia: lleva siempre los tres logotipos juntos en su placa, en el orden de
+`sitio.json` (Pedro). Cada marca lleva su altura de logotipo (`--alto-logo`,
+`--alto-placa`… en `estilos.css`, por `data-marca` en `<html>`; en la
+portada, por `data-marca` en cada imagen): el de OBITen es apaisado con letra
+pequeña y el de Juntas es cuadrado, y a la altura del de Canarias Convive no
+se leerían; en el papel, una placa más alta se coloca a la derecha del año,
+no debajo. Las tarjetas de vista previa y las etiquetas `og:` son estáticas y
+van siempre con la marca por defecto: si algún día hace falta una vista
+previa por marca, se generan los sobres por marca. Añadir una marca es añadir
+su entrada en `sitio.json` y sus dos PNG en `web/img/`, y ejecutar
+`generar_tarjetas.py`. Las líneas de entidades de OBITen y de Juntas
+(«Cabildo de Tenerife · Universidad de La Laguna») están puestas de oído: hay
+que confirmarlas.
 
 ## Regenerar los datos
 
