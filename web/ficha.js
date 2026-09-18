@@ -56,6 +56,18 @@ function pasoRedondo(rango, objetivo = 5) {
   for (const m of [1, 2, 5, 10]) if (bruto <= m * exp) return m * exp;
   return 10 * exp;
 }
+/** El paso del eje de la evolución: el múltiplo redondo (1, 2, 2,5 o 5 por
+ *  potencia de diez) con el que salen los tramos más cercanos a `objetivo`
+ *  desde cero, y a igual número de tramos el más fino. Con `pasoRedondo` un
+ *  tercio de las fichas se quedaba en tres tramos (Tenerife de 500.000 en
+ *  500.000) y la curva perdía detalle (Pedro); así salen entre cuatro y seis. */
+function pasoEvolucion(rango, objetivo = 5) {
+  if (!(rango > 0)) return 1;
+  const exp = Math.pow(10, Math.floor(Math.log10(rango / objetivo)));
+  const tramos = (p) => Math.ceil(rango / p - 1e-9);
+  return [1, 2, 2.5, 5, 10].map((m) => m * exp)
+    .reduce((mejor, p) => (Math.abs(tramos(p) - objetivo) < Math.abs(tramos(mejor) - objetivo) ? p : mejor));
+}
 
 /* ---------------------------------------------------------- impresión ----- */
 /* Al imprimir, los gráficos se redibujan a la medida de la hoja (escalar un SVG
@@ -260,9 +272,12 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
   const m = P ? { t: 20, r: 8, b: 13, l: 36 } : { t: 30, r: 14, b: 26, l: 52 };
   const fe = P ? 6.5 : 10;
   const X = ev.anios, Y = ev.valores;
-  // El margen izquierdo se hace al rótulo más largo del eje (Canarias pasa
-  // del millón: «2.000.000» no cabe en el de los municipios).
-  m.l = Math.max(m.l, Math.round(nf(Math.max(...Y)).length * fe * 0.58 + (P ? 4 : 8)));
+  // Eje desde cero, en los tramos redondos más cercanos a cinco (`pasoEvolucion`).
+  const paso = pasoEvolucion(Math.max(...Y) * 1.12, 5);
+  const tope = Math.ceil(Math.max(...Y) * 1.12 / paso) * paso;
+  // El margen izquierdo se hace al rótulo más largo del eje, el del tope: en
+  // Tenerife los datos tienen seis cifras y el tope siete («1.250.000»).
+  m.l = Math.max(m.l, Math.round(nf(tope).length * fe * 0.58 + (P ? 4 : 8)));
   // Cápsula con la variación acumulada y su rótulo. Si el rótulo no cabe al lado
   // (pantallas estrechas) baja a una segunda línea y el margen superior crece
   // para que los dos queden por encima de la rejilla. Se decide antes de la rejilla.
@@ -273,8 +288,6 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
   const anchoCapsula = Math.max(P ? 40 : 58, textoVar.length * (P ? 4.7 : 6.4) + (P ? 10 : 16));
   const cabeAlLado = w - m.r - (m.l + anchoCapsula + 16) > leyendaVar.length * (P ? 3.8 : 5.6);
   if (!cabeAlLado) m.t += P ? 12 : 16;
-  const paso = pasoRedondo(Math.max(...Y) * 1.12, 5);
-  const tope = Math.ceil(Math.max(...Y) * 1.12 / paso) * paso;
   const px = (a) => m.l + (a - X[0]) / (X[X.length - 1] - X[0]) * (w - m.l - m.r);
   const py = (v) => h - m.b - (v / tope) * (h - m.t - m.b);
 

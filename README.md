@@ -354,6 +354,17 @@ resalta en los cuatro índices: con el ratón al pasar, con el dedo con un
 toque que fija, y con el teclado enfocando el bloque y recorriendo los
 ámbitos con las flechas (Enter fija, Escape suelta), como la pirámide.
 
+**Evolución de la población.** La curva desde cero, con el eje vertical en
+los tramos redondos (1, 2, 2,5 o 5 por potencia de diez) más cercanos a
+cinco, entre cuatro y seis (`pasoEvolucion`): cada 250.000 en Tenerife, cada
+500.000 en Canarias, cada 10.000 en Adeje. Antes el paso era el primer
+múltiplo redondo por encima de un quinto del máximo y un tercio de las fichas
+se quedaba en tres tramos, donde la curva pierde detalle, dijo Pedro. El
+margen izquierdo se hace al rótulo del tope, que en Tenerife y Gran Canaria
+tiene siete cifras aunque los datos tengan seis. Encima, la cápsula con la
+variación acumulada de los últimos 25 años; el eje temporal de cinco en cinco
+años, cuadrado con el último dato.
+
 **Origen extranjero.** Barras del municipio, la última destacada con su cifra,
 y la línea de Canarias como referencia, con su último valor en la leyenda. El
 eje va de 5 en 5, como pidió Pedro, con el tope en el múltiplo justo por

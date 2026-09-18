@@ -350,6 +350,12 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.ok(page.url().endsWith('/fichas/i/tenerife.html'), page.url());
   assert.equal(await page.locator('#sel-municipio').inputValue(), 'isla:tenerife');
   assert.equal(await page.locator('#migas').textContent(), 'Canarias · 31 municipios');
+  // El eje de la evolución, cada 250.000 (cinco tramos), con los rótulos de siete cifras enteros dentro del dibujo (Pedro).
+  const ejeEvolucion = await page.locator('#g-evolucion svg').evaluate((svg) => {
+    const ts = [...svg.querySelectorAll('text[text-anchor="end"]')];
+    return { rotulos: ts.map((t) => t.textContent), dentro: ts.every((t) => t.getBBox().x >= 0) };
+  });
+  assert.deepEqual(ejeEvolucion, { rotulos: ['0', '250.000', '500.000', '750.000', '1.000.000', '1.250.000'], dentro: true });
   assert.equal(await page.locator('#btn-comparar').evaluate((a) => a.href), base + 'comparar.html?i=tenerife');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'i/tenerife.html');
   const envoltorio = await fs.readFile(path.join(WEB, 'i/tenerife.html'), 'utf8');
