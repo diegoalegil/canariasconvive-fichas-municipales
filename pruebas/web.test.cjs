@@ -423,6 +423,8 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.equal(await page.locator('#nombre').textContent(), 'Canarias');
   assert.ok(page.url().endsWith('/fichas/r/canarias.html'), page.url());
   assert.equal(await page.locator('#sel-municipio').inputValue(), 'canarias');
+  assert.deepEqual(await page.locator('#sel-municipio optgroup[label="Canarias"] option').allTextContents(),
+    ['Canarias · todo el archipiélago', 'Provincia de Santa Cruz de Tenerife', 'Provincia de Las Palmas'], 'las provincias, como las dicta Pedro');
   assert.equal(await page.locator('#migas').textContent(), '2 provincias · 7 islas · 88 municipios');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'r/canarias.html');
   const envoltorio = await fs.readFile(path.join(WEB, 'r/canarias.html'), 'utf8');

@@ -398,20 +398,20 @@ transforma entre unas y otras.
 
 **Las fichas de provincia y de Canarias siguen el mismo patrón**
 (`ficha.html?provincia=las-palmas`, `ficha.html?canarias`; el desplegable
-abre con «Canarias · todo el archipiélago» y las dos provincias). La
-provincia lleva «La provincia en Canarias» (sus islas destacadas en el
-archipiélago y su peso; sin puesto, porque entre dos no hay clasificación),
-«Sus islas» («Las 4 islas de la provincia y su peso demográfico de mayor a
-menor») y, a todo lo ancho, «Sus municipios» («Los 54 municipios de la
-provincia…», con el mapa de sus islas y sus términos al lado: señalar uno lo
-destaca); en la escalera de índices van sus islas, «Provincia» (como
-«Municipio» e «Isla» en el bloque municipal: «Santa Cruz de Tenerife» no
-cabe) y Canarias. Canarias lleva «Sus provincias» (el archipiélago con cada
-provincia de un tono y las dos debajo, con el mismo tono) y «Sus islas», y en
-ella la serie propia es la referencia: la pirámide va sin marco negro (la
-pestaña se llama «Canarias»), el gráfico de origen extranjero sin la línea
-de Canarias y el lugar de nacimiento con un solo anillo; la evolución va de
-2000 a 2025, como en las islas y las provincias.
+abre con «Canarias · todo el archipiélago», «Provincia de Santa Cruz de
+Tenerife» y «Provincia de Las Palmas»). La provincia lleva «La provincia en
+Canarias» (sus islas destacadas en el archipiélago y su peso; sin puesto,
+porque entre dos no hay clasificación), «Sus islas» («Las 4 islas de la
+provincia y su peso demográfico de mayor a menor») y, a todo lo ancho, «Sus
+municipios» («Los 54 municipios de la provincia…», con el mapa de sus islas y
+sus términos al lado: señalar uno lo destaca); en la escalera de índices van
+sus islas, «Provincia» (como «Municipio» e «Isla» en el bloque municipal:
+«Santa Cruz de Tenerife» no cabe) y Canarias. Canarias lleva «Sus provincias»
+(el archipiélago con cada provincia de un tono y las dos debajo, con el mismo
+tono) y «Sus islas», y en ella la serie propia es la referencia: la pirámide
+va sin marco negro (la pestaña se llama «Canarias»), el gráfico de origen
+extranjero sin la línea de Canarias y el lugar de nacimiento con un solo
+anillo; la evolución va de 2000 a 2025, como en las islas y las provincias.
 
 **La portada son Canarias, las dos provincias y las siete islas.** Arriba, la
 banda de Canarias entera (silueta del archipiélago, «Canarias» y «Ver la

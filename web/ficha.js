@@ -1750,7 +1750,7 @@ async function iniciar() {
   const sel = document.getElementById('sel-municipio');
   sel.innerHTML = `<optgroup label="Canarias">
       <option value="canarias">Canarias · todo el archipiélago</option>
-      ${(INDICE.provincias || []).map((p) => `<option value="provincia:${p.slug}">${esc(p.nombre)} · toda la provincia</option>`).join('')}
+      ${(INDICE.provincias || []).map((p) => `<option value="provincia:${p.slug}">Provincia de ${esc(p.nombre)}</option>`).join('')}
     </optgroup>` + Object.entries(INDICE.islas).map(([isla, muns]) => {
     const i = (INDICE.islas_resumen || []).find((x) => x.nombre === isla);
     return `<optgroup label="${esc(isla)}">`
