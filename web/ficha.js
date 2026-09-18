@@ -476,24 +476,16 @@ function construirPiramide(p, w, h, vistaFija = null, rotulo = 'Municipio', prop
 
   // ---- rejilla y eje ----
   // Van en un grupo propio que `mostrarVista` reescribe al cambiar de pestaña.
-  // Una vertical por punto hasta 8, cada dos desde 10; rótulos de dos en dos
-  // (cada cuatro donde 2 % no llegan a 30 px), el tope siempre rotulado y sin
-  // el múltiplo anterior si queda pegado; en el dibujo estrecho el rótulo del
-  // tope se ancla hacia dentro para no salirse del borde.
+  // Líneas y rótulos según `pasosEje` (comun.js); en el dibujo estrecho el
+  // rótulo del tope se ancla hacia dentro para no salirse del borde.
   const ejeSVG = (eje) => {
-    const paso = eje <= 8 ? 1 : 2;
-    const cada = escala(2, eje) >= 30 ? 2 : 4;
     const estrecho = m.l < 12;
-    // Los pasos intermedios y, siempre, el tope (el eje entero puede ser impar).
-    const valores = [];
-    for (let v = 0; v < eje; v += paso) valores.push(v);
-    valores.push(eje);
     let out = '';
-    for (const v of valores) {
+    for (const { v, rotulo } of pasosEje(eje, anchoLado)) {
       for (const [, signo] of LADOS_PI) {
         const x = centro + signo * (hueco / 2 + escala(v, eje));
         out += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${(h - m.b).toFixed(1)}" stroke="${C.rejilla}" stroke-width="${rej}"/>`;
-        if (v === eje || (v % cada === 0 && eje - v >= cada)) {
+        if (rotulo) {
           const ancla = v === eje && estrecho ? (signo < 0 ? 'start' : 'end') : 'middle';
           out += `<text x="${(x - (ancla === 'middle' ? 0 : signo * 2)).toFixed(1)}" y="${(h - m.b + fe + (IMPRIMIENDO ? 3 : 6)).toFixed(1)}" `
                + `text-anchor="${ancla}" font-size="${fe}" fill="${C.gris}">${v}${UNI}%</text>`;

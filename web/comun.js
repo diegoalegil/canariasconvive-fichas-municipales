@@ -48,6 +48,19 @@ const ultimoValido = (V) => {
  *  el mismo a los dos lados (regla de Pedro: que se adapte a cada pirámide).
  *  La misma en ficha, dossier y comparador; exportar_datos.py la repite. */
 const ejeAutomatico = (maximo) => Math.max(1, Math.ceil(maximo - 1e-9));
+/** Rejilla y rótulos de ese eje, los mismos en la ficha, el dossier y el
+ *  comparador: una línea por punto hasta 8, cada dos desde 10 y siempre el
+ *  tope; rótulo de dos en dos (de cuatro en cuatro donde 2 % no llegan a
+ *  30 px), el tope siempre rotulado y sin el múltiplo anterior si queda
+ *  pegado. `anchoLado`, en px, es lo que mide un lado de la pirámide. */
+function pasosEje(eje, anchoLado) {
+  const paso = eje <= 8 ? 1 : 2;
+  const cada = Math.min(2, eje) / eje * anchoLado >= 30 ? 2 : 4;
+  const pasos = [];
+  for (let v = 0; v < eje; v += paso) pasos.push({ v, rotulo: v % cada === 0 && eje - v >= cada });
+  pasos.push({ v: eje, rotulo: true });
+  return pasos;
+}
 /** Comarca sin el prefijo de isla («Tenerife - Abona» → «Abona»), o null cuando
  *  la comarca es la isla entera (El Hierro): migas y tercer mapa la omiten. */
 const comarcaDe = (f) => { const c = f.comarca.replace(/^.*? - /, ''); return c === f.isla ? null : c; };

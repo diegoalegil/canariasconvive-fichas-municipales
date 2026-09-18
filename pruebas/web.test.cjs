@@ -733,6 +733,16 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   assert.equal(await page.locator('#sel-anadir option').count(), 8, 'las siete islas y el rótulo');
   assert.equal(await page.locator('#sub-nacimiento').textContent(), 'Cada barra suma el 100\u00a0% de su isla');
   assert.equal(await page.locator('#cmp-piramides .cmp-col').count(), 2);
+  // El eje de las pirámides con sus referencias: la misma rejilla y los mismos rótulos que en la ficha (Pedro).
+  const maximos = await Promise.all(['gran-canaria', 'tenerife'].map(async (s) => {
+    const p = (await json(path.join(WEB, `datos/isla/${s}.json`))).piramide, t = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0);
+    return Math.max(...p.hombres, ...p.mujeres) / t * 100;
+  }));
+  const tope = Math.ceil(Math.max(...maximos) - 1e-9);
+  for (const [rotulos, lineas] of await page.locator('#cmp-piramides svg').evaluateAll((ss) => ss.map((s) => [[...s.querySelectorAll('text')].map((t) => t.textContent).filter((t) => t.includes('%')), s.querySelectorAll('line').length]))) {
+    assert.deepEqual([rotulos.slice(0, 2), rotulos.slice(-2)], [['0\u00a0%', '0\u00a0%'], [`${tope}\u00a0%`, `${tope}\u00a0%`]], `eje rotulado del 0 al tope: ${rotulos}`);
+    assert.ok(rotulos.length >= 6 && lineas === 2 * (tope + 1), `rótulos intermedios y una línea por punto: ${rotulos} · ${lineas} líneas`);
+  }
   assert.equal(await page.locator('#cmp-indices .peldano').count(), 4 * 3, 'dos islas y Canarias en cada índice');
   await page.selectOption('#sel-orden-cifras', 'edad_media'); await espera(400);
   const edades = await page.locator('.cmp-tabla tbody tr').nth(1).locator('.cmp-val').allTextContents();

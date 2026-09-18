@@ -329,7 +329,9 @@ una barra miente. `exportar_datos.py` escribe el reparto en cada exportación
 y se detiene si algún municipio necesitara más de 14. Los rótulos van de dos
 en dos, como en el cuaderno, salvo en el móvil con eje de 10 o más, donde van
 de cuatro en cuatro; el tope siempre rotulado, sin el múltiplo anterior si
-queda pegado. En reposo no hay ninguna cifra ni línea horizontal. Al señalar
+queda pegado (`pasosEje`, en `web/comun.js`: la misma rejilla y los mismos
+rótulos en la ficha, el dossier y el comparador). En reposo no hay ninguna
+cifra ni línea horizontal. Al señalar
 un grupo de edad —con el ratón, el dedo o las flechas— sus porcentajes
 aparecen en el dibujo junto a la punta de las barras (azul para la barra,
 negro para el marco), con dos decimales y «< 0,01 %» cuando hay personas pero
@@ -456,13 +458,14 @@ la última, sola, va a todo el ancho.
 por la cifra clave elegida en la barra (habitantes, edad media, variación
 media anual, mujeres u hombres). Los índices no ordenan la comparación: su
 sección ya va de mayor a menor, índice a índice, y por eso el desplegable de
-índices se quitó (Pedro). Las pirámides comparten eje y no llevan aviso
-alguno. En el lugar de nacimiento cada cifra va del tono de su tramo de la
-barra, que es lo que pidió Pedro (el tono más claro, #B5D4F4, no llega al
-contraste AA sobre blanco; queda dicho). Los anillos de origen extranjero van
-de un solo azul, porque es una sola magnitud, y de mayor a menor. Con el
-mismo código se comparan hasta tres islas
-(`comparar.html?i=tenerife,gran-canaria`) o las dos provincias
+índices se quitó (Pedro). Las pirámides comparten eje, con la misma rejilla y
+los mismos rótulos que la de la ficha (Pedro: sin referencias en el eje no se
+puede comparar), y no llevan aviso alguno. En el lugar de nacimiento cada
+cifra va del tono de su tramo de la barra, que es lo que pidió Pedro (el tono
+más claro, #B5D4F4, no llega al contraste AA sobre blanco; queda dicho). Los
+anillos de origen extranjero van de un solo azul, porque es una sola
+magnitud, y de mayor a menor. Con el mismo código se comparan hasta tres
+islas (`comparar.html?i=tenerife,gran-canaria`) o las dos provincias
 (`comparar.html?provincias`, que las carga las dos de golpe; `?p=las-palmas`
 deja una): un conmutador en la cabecera pasa de municipios a islas o a
 provincias y vacía la comparación, porque los ámbitos no se mezclan nunca.

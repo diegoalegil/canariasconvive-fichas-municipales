@@ -96,14 +96,16 @@ function piramide(f, tope, w) {
   const y = (i) => m.t + (n - 1 - i) * fila;
 
   let barras = '', rejilla = '', eje = '';
-  // Líneas de dos en dos; rótulo en el 0, el tope y, si hay sitio, el medio.
-  for (let v = 0; v <= tope; v += 2) {
+  // La misma rejilla y los mismos rótulos que la pirámide de la ficha (`pasosEje`,
+  // comun.js): sin referencias en el eje no se puede comparar (Pedro). El rótulo
+  // del tope se ancla hacia dentro, que el margen es de 4 px.
+  for (const { v, rotulo } of pasosEje(tope, lado)) {
     for (const s of [-1, 1]) {
       const px = centro + s * (hueco / 2 + x(v));
-      const extremo = v === tope;
       rejilla += `<line x1="${px.toFixed(1)}" y1="${m.t}" x2="${px.toFixed(1)}" y2="${h - m.b}" stroke="#D9D9D9"/>`;
-      if (v === 0 || extremo || (tope % 4 === 0 && v === tope / 2)) {
-        eje += `<text x="${px.toFixed(1)}" y="${h - 7}" `
+      if (rotulo) {
+        const extremo = v === tope;
+        eje += `<text x="${(px - (extremo ? s * 2 : 0)).toFixed(1)}" y="${h - 7}" `
              + `text-anchor="${extremo ? (s < 0 ? 'start' : 'end') : 'middle'}" `
              + `font-size="8.5" fill="#5F5E5A">${v}${UNI}%</text>`;
       }
