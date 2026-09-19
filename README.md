@@ -104,7 +104,7 @@ territorios.py       islas, comarcas y excepciones de nombres, extraídas del no
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública, los orígenes que pueden enmarcar la web y los tres logotipos, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
-pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones
+pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; y medir-papel.cjs, las medidas de la A4 y del dossier
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
 web/index.html       portada: buscador, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
@@ -308,36 +308,38 @@ cabecera azul se vuelven blancos sin duplicar el marcado.
 
 **Pirámide con dos pestañas.** «Municipio y Canarias»: el municipio en barras
 azules y Canarias en marcos negros huecos, cada uno sobre su población total.
-«Municipio: Según origen» (con la mayúscula que dictó Pedro): nacidos en España en azul y nacidos en el
-extranjero (hoja `C24`) en negro hueco, cada población sobre su propio total,
-que es como lo calcula Pedro; la leyenda dice «Hombres españoles · Mujeres
-españolas · Extranjeros», con sus palabras, y la línea de fuente de la pestaña
-precisa que el ISTAC mide dónde nació cada persona, no su nacionalidad. Las
-barras ocupan 0,8 de la fila, como en su cuaderno. El eje lo decide cada
-pestaña de cada municipio: el entero más pequeño que cubre todas sus barras,
-el mismo a los dos lados (`ejeAutomatico`, en `web/comun.js`), que es su
-regla: que se adapte a cada pirámide para que se vea lo más ancha posible.
-Sale 5 en 62 municipios, 6 en 24 y 7 en Artenara y Tejeda en la primera
-pestaña; en la segunda va de 5 a 14 (14 en Artenara): sobre base propia los
-extranjeros de un municipio pequeño se concentran mucho, y un eje que corta
-una barra miente. `exportar_datos.py` escribe el reparto en cada exportación
-y se detiene si algún municipio necesitara más de 14. Los rótulos van de dos
-en dos, como en el cuaderno, salvo en el móvil con eje de 10 o más, donde van
-de cuatro en cuatro; el tope siempre rotulado, sin el múltiplo anterior si
-queda pegado (`pasosEje`, en `web/comun.js`: la misma rejilla y los mismos
-rótulos en la ficha, el dossier y el comparador). En reposo no hay ninguna
-cifra ni línea horizontal. Al señalar
-un grupo de edad —con el ratón, el dedo o las flechas— sus porcentajes
-aparecen en el dibujo junto a la punta de las barras (azul para la barra,
-negro para el marco), con dos decimales y «< 0,01 %» cuando hay personas pero
-el redondeo daría cero, y una región viva invisible los dice en palabras. Van
-por fuera de la barra; si no caben en una línea, en dos (pueden salir un poco
-del dibujo, sobre el relleno de la tarjeta); y si tampoco caben, dentro de la
+«Municipio: Según origen» (con la mayúscula que dictó Pedro): nacidos en
+España en azul y nacidos en el extranjero (hoja `C24`) en negro hueco, cada
+población sobre su propio total, que es como lo calcula Pedro; la leyenda
+dice «Hombres españoles · Mujeres españolas · Extranjeros», con sus palabras,
+y la línea de fuente de la pestaña precisa que el ISTAC mide dónde nació cada
+persona, no su nacionalidad. Las barras ocupan 0,8 de la fila, como en su
+cuaderno. El eje lo decide cada pestaña de cada municipio: el entero más
+pequeño que cubre todas sus barras, el mismo a los dos lados
+(`ejeAutomatico`, en `web/comun.js`), que es su regla: que se adapte a cada
+pirámide para que se vea lo más ancha posible. Sale 5 en 62 municipios, 6 en
+24 y 7 en Artenara y Tejeda en la primera pestaña; en la segunda va de 5 a 14
+(14 en Artenara): sobre base propia los extranjeros de un municipio pequeño
+se concentran mucho, y un eje que corta una barra miente. `exportar_datos.py`
+escribe el reparto en cada exportación y se detiene si algún municipio
+necesitara más de 14. Los rótulos van de dos en dos, como en el cuaderno,
+salvo en el móvil con eje de 10 o más, donde van de cuatro en cuatro, y solo
+en los múltiplos: un tope impar lleva línea pero no rótulo, con eje 5 se lee
+0, 2 y 4 (Pedro: un mismo criterio, sin mezclar el 2 par con el 5 impar; que
+va de dos en dos se deduce). La regla es `pasosEje`, en `web/comun.js`: la
+misma rejilla y los mismos rótulos en la ficha, el dossier y el comparador.
+En reposo no hay ninguna cifra ni línea horizontal. Al señalar un grupo de
+edad —con el ratón, el dedo o las flechas— sus porcentajes aparecen en el
+dibujo junto a la punta de las barras (azul para la barra, negro para el
+marco), con dos decimales y «< 0,01 %» cuando hay personas pero el redondeo
+daría cero, y una región viva invisible los dice en palabras. Van por fuera
+de la barra; si no caben en una línea, en dos (pueden salir un poco del
+dibujo, sobre el relleno de la tarjeta); y si tampoco caben, dentro de la
 barra pegadas a la punta, nunca en la base. Un clic o un toque fija el grupo:
 la franja fijada sobrevive al cambio de pestaña, al redibujado por cambio de
 ancho y a la impresión (en la hoja no se imprime), y otro clic la suelta. En
-pantalla cada fila mide al menos 24 px, el objetivo de puntero que pide
-WCAG 2.5.8: la pirámide crece a 550 px de alto cuando la tarjeta es ancha.
+pantalla cada fila mide al menos 24 px, el objetivo de puntero que pide WCAG
+2.5.8: la pirámide crece a 550 px de alto cuando la tarjeta es ancha.
 
 **Índices con la escala de Pedro.** Los tres ámbitos ordenados de izquierda a
 derecha por valor, y el tono indica la posición; dos ámbitos con el mismo
@@ -389,15 +391,17 @@ extranjero, pirámide con las pestañas «Isla y Canarias» e «Isla: según
 origen», componentes y lugar de nacimiento). Los otros dos: en vez de «El
 municipio en su entorno», «La isla en Canarias» (la isla destacada en el
 archipiélago, su puesto entre las siete y su peso, y debajo la isla con sus
-términos municipales) junto a «Sus municipios» («Los 31 municipios de la
-isla y su peso demográfico de mayor a menor», con las palabras de Pedro), la
-lista de mayor a menor población con una barra de fondo proporcional al
-mayor, sus habitantes y su peso en la isla, cada uno enlazado a su ficha
-(señalar uno en la lista lo destaca en el mapa); y en «Información
-geodemográfica», las siete islas y
-Canarias ordenadas de menor a mayor en cada índice, en una escalera vertical
-con la barra proporcional al mayor valor, la isla en azul y Canarias en gris,
-que es la escala de tres ámbitos de Pedro extendida a ocho. La cabecera dice
+términos municipales) junto a «Sus municipios» («Los 31 municipios de la isla
+y su peso demográfico de mayor a menor», con las palabras de Pedro), la lista
+de mayor a menor población con una barra de fondo proporcional al mayor, sus
+habitantes y su peso en la isla, cada uno enlazado a su ficha (señalar uno en
+la lista lo destaca en el mapa, y señalar uno en el mapa, o llegar a él con
+el teclado, pinta su fila en el azul del mapa —la barra en el azul pleno, el
+resto en el medio, el texto en blanco— en vez de subrayarlo: ubica mejor,
+dice Pedro); y en «Información geodemográfica», las siete islas y Canarias
+ordenadas de menor a mayor en cada índice, en una escalera vertical con la
+barra proporcional al mayor valor, la isla en azul y Canarias en gris, que es
+la escala de tres ámbitos de Pedro extendida a ocho. La cabecera dice
 «Canarias · 31 municipios» donde la municipal dice la isla y la comarca. El
 desplegable de la barra es uno solo para todo: cada isla abre su grupo con
 «toda la isla» y sigue con sus municipios, así que de la isla se pasa al
@@ -515,7 +519,9 @@ pies de los mapas, los rótulos de los índices y las notas van a 6,5 pt, y la
 línea de fuente de cada gráfico, la letra más pequeña de la hoja, a 6 pt (a
 6,5 la hoja de isla del dossier se salía). Medido en la versión publicada:
 las 88 fichas miden 271,7 mm de los 281 disponibles (272,6 en El Pinar y
-Frontera, por su nota de 2007), y la hoja más alta del dossier, 293,2 de 297.
+Frontera, por su nota de 2007), y la hoja más alta del dossier, 292,4 de 297.
+Las medidas salen de `pruebas/medir-papel.cjs`, que recorre las 98 fichas en
+la A4 y las 101 hojas del dossier con la altura libre.
 
 La ficha de isla también es una A4, con tres concesiones al papel: la
 tarjeta del mapa cede sitio a la lista de municipios (3/9 de la retícula en
@@ -532,12 +538,14 @@ El dossier (`dossier.html`) compone las 101 hojas —portada, guía de uso,
 índice, Canarias y, por cada provincia, su ficha seguida de las de sus islas,
 cada una con una hoja por municipio— con las reglas de impresión de
 `estilos.css`, que copia en caliente, y los mismos gráficos que la ficha, con
-la misma placa en la cabecera de cada hoja. La ficha de la provincia y la de
-la isla hacen de portada de su grupo, y el índice lleva la hoja de Canarias,
-de cada provincia, de cada isla y de cada municipio (la segunda provincia
-abre columna). Las hojas de isla miden 292,6 mm de 297; la de Canarias,
-277,3; las de provincia, 286,3. Las 98 fichas se piden a la vez y lo que
-falle se vuelve a pedir hasta dos veces antes de dar el error.
+la misma placa en la cabecera de cada hoja y el nombre a 17 pt, como en la
+ficha suelta (a 19 pt, con la placa al lado, «Santa María de Guía de Gran
+Canaria» pasaba a dos líneas y la hoja se salía). La ficha de la provincia y
+la de la isla hacen de portada de su grupo, y el índice lleva la hoja de
+Canarias, de cada provincia, de cada isla y de cada municipio (la segunda
+provincia abre columna). Las hojas de isla miden 291,8 mm de 297; la de
+Canarias, 276,5; las de provincia, 285,5. Las 98 fichas se piden a la vez y
+lo que falle se vuelve a pedir hasta dos veces antes de dar el error.
 
 ## Verificación
 
@@ -652,30 +660,36 @@ npm test
 En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` pasa
 los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo
 existe en Chromium); cubre, entre otras cosas, que Safari no da el foco a un
-botón al pulsarlo con el ratón, y sin él la presentación no devolvería el foco
-ni las listas de isla recibirían las teclas. Lo que la batería no cubre: los
-diálogos de impresión reales, un móvil físico, el `<iframe>` de WordPress
+botón al pulsarlo con el ratón, y sin él la presentación no devolvería el
+foco ni las listas de isla recibirían las teclas. Lo que la batería no cubre:
+los diálogos de impresión reales, un móvil físico, el `<iframe>` de WordPress
 (probado a mano desde otro origen: la ficha pinta y cambia su dirección sin
-error) y los rastreadores de vista previa. Después de publicar conviene pasar
-`m/38038.html` por el depurador de compartir de Facebook o pegarlo en un chat
-de WhatsApp y comprobar que la tarjeta es la del municipio.
+error) y los rastreadores de vista previa. Dos herramientas más, fuera de la
+batería: `npm run medir` (`pruebas/medir-papel.cjs`) mide cuánto ocupa cada
+ficha en la A4 y cada hoja del dossier contra una web servida (por defecto,
+`http://localhost:8140/`), y `npm run humo` (`pruebas/humo.cjs`) recorre la
+web publicada tras cada despliegue: política de contenido y versión de
+recursos en las cinco páginas, los tres logotipos, los sobres, el comparador,
+la 404 y el dossier, sin errores de consola. Después de publicar conviene
+pasar `m/38038.html` por el depurador de compartir de Facebook o pegarlo en
+un chat de WhatsApp y comprobar que la tarjeta es la del municipio.
 
 ## Accesibilidad
 
 Comprobado con el navegador y axe, aparte de la batería automática, en 320,
-375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin
-desbordes horizontales, también con los desplegables abiertos; sin texto por
-debajo de 7,5 px reales; todo el texto pasa el contraste AA (4,5:1, o 3:1 en
-texto grande): el nombre del municipio en el comparador va en negro con una
-marca de color debajo, porque el azul claro de su serie da 2,1:1. Objetivos
-táctiles de 44 px con puntero grueso. Pirámide y evolución se recorren con
-teclado (flechas, Inicio, Fin, Escape); las cifras del grupo señalado, que en
-pantalla van dentro del dibujo, las dice en palabras una región viva
-invisible, que en la evolución solo cambia al cambiar de año; los gráficos de
-origen extranjero y de componentes llevan una tabla oculta con su serie;
-cada gráfico lleva su descripción y su fuente, y las cifras del comparador
-son una tabla con encabezados de fila y columna. El buscador de la portada es
-un combobox: el foco no sale del campo y la opción activa se señala con
+375, 414, 700, 701, 941, 1180, 1440 y 2560 px: sin desbordes horizontales,
+también con los desplegables abiertos; sin texto por debajo de 7,5 px reales;
+todo el texto pasa el contraste AA (4,5:1, o 3:1 en texto grande): el nombre
+del municipio en el comparador va en negro con una marca de color debajo,
+porque el azul claro de su serie da 2,1:1. Objetivos táctiles de 44 px con
+puntero grueso. Pirámide y evolución se recorren con teclado (flechas,
+Inicio, Fin, Escape); las cifras del grupo señalado, que en pantalla van
+dentro del dibujo, las dice en palabras una región viva invisible, que en la
+evolución solo cambia al cambiar de año; los gráficos de origen extranjero y
+de componentes llevan una tabla oculta con su serie; cada gráfico lleva su
+descripción y su fuente, y las cifras del comparador son una tabla con
+encabezados de fila y columna. El buscador de la portada es un combobox: el
+foco no sale del campo y la opción activa se señala con
 `aria-activedescendant`. Cada tarjeta de isla es un botón que abre un
 `listbox` (flechas, Inicio, Fin y Escape, que devuelve el foco; con el ratón,
 Safari no da el foco al botón y se le da a mano para que lleguen las teclas),
@@ -683,18 +697,20 @@ y su silueta queda oculta a las tecnologías de apoyo. En la ficha de isla, la
 lista de municipios es una lista ordenada de enlaces, señalar uno lo destaca
 solo en el mapa de la isla (el de Canarias no responde) y el resaltado se
 suelta al salir; la escalera de índices es una lista ordenada por índice. La
-presentación es un diálogo modal: el resto queda
-inerte y oculto al lector de pantalla, el tabulador no sale y al cerrar el
-foco vuelve al botón. Las anclas y el foco se colocan por debajo de la barra
-pegajosa, cuya altura real se mide. El contorno de foco de los gráficos no
-depende solo de `:focus-visible`. Los avisos de carga y de error son
-regiones de estado en las cinco páginas. axe-core (WCAG 2.2 AA) no señala
-ninguna violación en las cinco páginas a 320 y 1280 px, con desplegables,
-presentación y comparador abiertos, con una excepción que es decisión de
-Pedro: las cifras del lugar de nacimiento en el comparador van del tono de
-su tramo, y los dos tonos claros no llegan al contraste AA sobre blanco. Las transiciones se desactivan con
-`prefers-reduced-motion` y con la pestaña oculta, donde el navegador congela
-`requestAnimationFrame`.
+presentación es un diálogo modal: el resto queda inerte y oculto al lector de
+pantalla, el tabulador no sale y al cerrar el foco vuelve al botón. Las
+anclas y el foco se colocan por debajo de la barra pegajosa, cuya altura real
+se mide. El contorno de foco de los gráficos no depende solo de
+`:focus-visible`; sobre la fila azul de la lista de municipios el contorno es
+blanco, y la pastilla de color de la provincia mayor (del mismo azul que la
+barra) lleva un anillo blanco para no fundirse con ella. Los avisos de carga
+y de error son regiones de estado en las cinco páginas. axe-core (WCAG 2.2
+AA) no señala ninguna violación en las cinco páginas a 320 y 1280 px, con
+desplegables, presentación y comparador abiertos, con una excepción que es
+decisión de Pedro: las cifras del lugar de nacimiento en el comparador van
+del tono de su tramo, y los dos tonos claros no llegan al contraste AA sobre
+blanco. Las transiciones se desactivan con `prefers-reduced-motion` y con la
+pestaña oculta, donde el navegador congela `requestAnimationFrame`.
 
 Queda abierta una sola cosa, por decisión: en Safari anterior a 16, al
 llegar al final de un desplegable de isla el dedo arrastra también la página

@@ -50,15 +50,17 @@ const ultimoValido = (V) => {
 const ejeAutomatico = (maximo) => Math.max(1, Math.ceil(maximo - 1e-9));
 /** Rejilla y rótulos de ese eje, los mismos en la ficha, el dossier y el
  *  comparador: una línea por punto hasta 8, cada dos desde 10 y siempre el
- *  tope; rótulo de dos en dos (de cuatro en cuatro donde 2 % no llegan a
- *  30 px), el tope siempre rotulado y sin el múltiplo anterior si queda
- *  pegado. `anchoLado`, en px, es lo que mide un lado de la pirámide. */
+ *  tope; rótulo solo en los pares, de dos en dos (de cuatro en cuatro donde
+ *  2 % no llegan a 30 px). Un tope impar lleva línea pero no rótulo: con eje
+ *  5 se lee 0, 2 y 4, no 0, 2 y 5 (Pedro: un mismo criterio, sin mezclar el
+ *  2 par con el 5 impar; que va de dos en dos se deduce). `anchoLado`, en
+ *  px, es lo que mide un lado de la pirámide. */
 function pasosEje(eje, anchoLado) {
   const paso = eje <= 8 ? 1 : 2;
   const cada = Math.min(2, eje) / eje * anchoLado >= 30 ? 2 : 4;
   const pasos = [];
-  for (let v = 0; v < eje; v += paso) pasos.push({ v, rotulo: v % cada === 0 && eje - v >= cada });
-  pasos.push({ v: eje, rotulo: true });
+  for (let v = 0; v < eje; v += paso) pasos.push({ v, rotulo: v % cada === 0 });
+  pasos.push({ v: eje, rotulo: eje % cada === 0 });
   return pasos;
 }
 /** Comarca sin el prefijo de isla («Tenerife - Abona» → «Abona»), o null cuando

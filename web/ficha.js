@@ -342,7 +342,7 @@ function graficoExtranjero(ext, w, h) {
   const vivos = A.map((a, i) => [a, M[i]]).filter(([, v]) => v != null && isFinite(v));
   // Eje de 5 en 5 (Pedro), tope en el múltiplo justo por encima del máximo;
   // por encima del 40 % se rotulan los múltiplos de 10 y el tope, sin el
-  // múltiplo anterior si queda pegado (como en la pirámide).
+  // múltiplo anterior si queda pegado.
   const maximo = Math.max(...M.concat(R).filter((v) => v != null));
   const paso = 5;
   const tope = Math.ceil(maximo / paso) * paso;
@@ -490,7 +490,7 @@ function construirPiramide(p, w, h, vistaFija = null, rotulo = 'Municipio', prop
   // ---- rejilla y eje ----
   // Van en un grupo propio que `mostrarVista` reescribe al cambiar de pestaña.
   // Líneas y rótulos según `pasosEje` (comun.js); en el dibujo estrecho el
-  // rótulo del tope se ancla hacia dentro para no salirse del borde.
+  // rótulo del tope, cuando lo lleva, se ancla hacia dentro para no salirse.
   const ejeSVG = (eje) => {
     const estrecho = m.l < 12;
     let out = '';

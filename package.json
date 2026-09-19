@@ -6,7 +6,9 @@
     "test": "python3 pruebas/invariantes.py && python3 pruebas/conciliar_excel.py && node --test pruebas/web.test.cjs",
     "test:datos": "python3 pruebas/invariantes.py && python3 pruebas/conciliar_excel.py",
     "test:excel": "python3 pruebas/conciliar_excel.py",
-    "test:web": "node --test pruebas/web.test.cjs"
+    "test:web": "node --test pruebas/web.test.cjs",
+    "medir": "node pruebas/medir-papel.cjs",
+    "humo": "node pruebas/humo.cjs"
   },
   "devDependencies": { "playwright": "1.62.1" }
 }

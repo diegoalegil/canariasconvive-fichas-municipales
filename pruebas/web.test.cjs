@@ -150,7 +150,7 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#lectura-piramide').textContent(), '');
   // El eje es el entero más pequeño que cubre las barras, por pestaña y municipio: Santa Cruz 5 y 6,
-  // Artenara 7 y 14, siempre con el tope rotulado y sin el múltiplo anterior si queda pegado. Sin horizontales.
+  // Artenara 7 y 14; rótulos solo en los pares (Pedro): un tope impar lleva línea y no rótulo. Sin horizontales.
   const rotulosEje = () => page.locator('#eje-piramide text').allTextContents().then((t) => [...new Set(t.map((x) => x.replace(/\s/g, '')))].join(' '));
   assert.equal(await rotulosEje(), '0% 2% 4% 6%');
   assert.equal(await page.locator('#g-piramide line').evaluateAll((ls) => ls.filter((l) => l.getAttribute('y1') === l.getAttribute('y2')).length), 0, 'sin líneas horizontales');
@@ -188,30 +188,30 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.locator('#g-piramide').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowUp');
   assert.match(await page.locator('#lectura-piramide').textContent(), /^5 a 9 años/, 'tras imprimir');
-  // Santa Cruz en la primera pestaña: 4,51 % en el grupo mayor, eje 5 (el 4 queda pegado y no se rotula).
-  assert.equal(await rotulosEje(), '0% 2% 5%');
-  // Alajeró, según origen: eje 9 (impar por encima de 8): el tope se dibuja y se rotula igualmente.
+  // Santa Cruz en la primera pestaña: 4,51 % en el grupo mayor, eje 5: se lee 0, 2 y 4, y el 5 solo lleva línea.
+  assert.equal(await rotulosEje(), '0% 2% 4%');
+  assert.equal(await page.locator('#eje-piramide line').count(), 12, 'una línea por punto, el tope incluido');
+  // Alajeró, según origen: eje 9 (impar por encima de 8): el tope se dibuja sin rótulo.
   await page.selectOption('#sel-municipio', '38003');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Alajeró');
   await espera(1000);
   await page.locator('.vista').nth(1).click();
   await espera(1000);
-  assert.equal(await rotulosEje(), '0% 2% 4% 6% 9%', 'eje impar con el tope rotulado (el 8 queda pegado)');
+  assert.equal(await rotulosEje(), '0% 2% 4% 6% 8%', 'eje impar: el tope sin rótulo');
   await page.locator('.vista').nth(0).click();
   await espera(600);
   // Artenara: 6,62 % en un grupo sobre el total (eje 7) y 13,85 % entre los nacidos fuera (eje 14).
   await page.selectOption('#sel-municipio', '35005');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Artenara');
   await espera(1000);
-  assert.equal(await rotulosEje(), '0% 2% 4% 7%');
+  assert.equal(await rotulosEje(), '0% 2% 4% 6%');
   await page.locator('.vista').nth(1).click();
   await espera(1000);
   assert.equal(await rotulosEje(), '0% 2% 4% 6% 8% 10% 12% 14%', 'rótulos de dos en dos, como en el cuaderno de Pedro');
-  // En el móvil van de cuatro en cuatro y el tope se rotula sin el 12 pegado («14 %12 %»),
-  // anclado hacia dentro para que no se salga del dibujo.
+  // En el móvil van de cuatro en cuatro, también solo los múltiplos: 0, 4, 8 y 12, sin el 14.
   await page.setViewportSize({ width: 375, height: 900 });
   await espera(500);
-  assert.equal(await rotulosEje(), '0% 4% 8% 14%');
+  assert.equal(await rotulosEje(), '0% 4% 8% 12%');
   assert.deepEqual(await solapes(page, '#eje-piramide text'), [], 'rótulos del eje de la pirámide que se pisan a 375');
   assert.ok(await page.locator('#eje-piramide text').evaluateAll((ts) => ts.every((t) => { const r = t.getBoundingClientRect(), s = t.ownerSVGElement.getBoundingClientRect(); return r.left >= s.left - 0.5 && r.right <= s.right + 0.5; })), 'ningún rótulo del eje se sale del dibujo');
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -376,10 +376,22 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.equal(await page.locator('#mapas figure').first().locator('path[data-codmun]').count(), 0, 'el mapa de Canarias no lleva códigos: no responde al ratón');
   await page.locator('#mapas path[data-codmun="38001"]').hover();
   assert.equal(await page.locator('.lista-mun li.foco').getAttribute('data-codmun'), '38001', 'señalar en el mapa marca la fila');
+  // La fila señalada se pinta en el azul del mapa (la barra en el pleno, el resto en el medio) con el texto en blanco, sin subrayado (Pedro).
+  await espera(100);   // con «reducir movimiento» las transiciones duran 0,01 ms: el estilo calculado llega en el cuadro siguiente
+  const fila = await page.locator('.lista-mun li.foco').evaluate((li) => { const a = getComputedStyle(li.querySelector('a')); return { fondo: getComputedStyle(li).backgroundImage.replace(/\s+/g, ' '), texto: a.color, subrayado: a.textDecorationLine }; });
+  assert.ok(fila.fondo.startsWith('linear-gradient(90deg, rgb(24, 95, 165) 0px, rgb(24, 95, 165)') && fila.fondo.includes('rgb(46, 117, 182)'), `la barra en azul y el resto en azul medio: ${fila.fondo}`);
+  assert.deepEqual([fila.texto, fila.subrayado], ['rgb(255, 255, 255)', 'none']);
   await page.mouse.move(5, 5);
   await espera(100);
   assert.equal(await page.locator('#mapas path[data-codmun="38001"]').getAttribute('fill'), '#85B7EB', 'al salir de los mapas se suelta el resaltado');
   assert.equal(await page.locator('.lista-mun li.foco').count(), 0);
+  // Con el teclado, la fila también se señala y el anillo de foco se ve en blanco sobre el azul
+  // (foco programático: Safari no tabula por los enlaces, y así vale en los dos motores).
+  await page.locator('.lista-mun li a').nth(1).focus();
+  await espera(100);
+  assert.equal(await page.locator('.lista-mun li.foco a').evaluate((a) => `${a.closest('li').dataset.codmun} ${getComputedStyle(a).outlineColor}`), `${await page.locator('.lista-mun li').nth(1).getAttribute('data-codmun')} rgb(255, 255, 255)`, 'el anillo de foco en blanco sobre la fila azul');
+  await page.locator('#sel-municipio').focus();
+  assert.equal(await page.locator('.lista-mun li.foco').count(), 0, 'al salir con el teclado se suelta');
   // Índices: las siete islas y Canarias de menor a mayor, la isla en azul.
   const escalera = await page.locator('.indice-isla').first().locator('.tramo').evaluateAll((ts) => ts.map((t) => [t.querySelector('span').textContent, parseFloat(t.querySelector('b').textContent.replace(',', '.')), t.classList.contains('propia')]));
   assert.equal(escalera.length, 8);
@@ -457,6 +469,11 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   const provincias = await page.locator('#g-provincias li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, l.querySelector('.tono').style.background, l.querySelector('span').textContent]));
   assert.deepEqual(provincias.map((p) => p[0]), [base + 'p/las-palmas.html', base + 'p/santa-cruz-de-tenerife.html']);
   assert.deepEqual(provincias.map((p) => p[1]), ['rgb(24, 95, 165)', 'rgb(133, 183, 235)']);
+  // Señalada la provincia mayor, su pastilla (del mismo azul que la barra) se recorta con un anillo blanco.
+  await page.locator('#g-provincias li').first().hover();
+  await espera(100);
+  assert.match(await page.locator('#g-provincias li.foco .tono').evaluate((t) => getComputedStyle(t).boxShadow), /rgb\(255, 255, 255\)/, 'la pastilla se ve sobre la fila azul');
+  await page.mouse.move(5, 5);
   const islas = await page.locator('#g-municipios li').evaluateAll((ls) => ls.map((l) => [l.querySelector('a').href, parseInt(l.querySelector('b').textContent.replace(/\./g, ''), 10)]));
   assert.equal(islas.length, 7);
   assert.ok(islas.every((f, i) => !i || f[1] <= islas[i - 1][1]), 'de mayor a menor');
@@ -746,8 +763,9 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   }));
   const tope = Math.ceil(Math.max(...maximos) - 1e-9);
   for (const [rotulos, lineas] of await page.locator('#cmp-piramides svg').evaluateAll((ss) => ss.map((s) => [[...s.querySelectorAll('text')].map((t) => t.textContent).filter((t) => t.includes('%')), s.querySelectorAll('line').length]))) {
-    assert.deepEqual([rotulos.slice(0, 2), rotulos.slice(-2)], [['0\u00a0%', '0\u00a0%'], [`${tope}\u00a0%`, `${tope}\u00a0%`]], `eje rotulado del 0 al tope: ${rotulos}`);
-    assert.ok(rotulos.length >= 6 && lineas === 2 * (tope + 1), `rótulos intermedios y una línea por punto: ${rotulos} · ${lineas} líneas`);
+    const pares = []; for (let v = 0; v <= tope; v += 2) pares.push(`${v}\u00a0%`, `${v}\u00a0%`);
+    assert.deepEqual(rotulos, pares, `rótulos solo en los pares, del 0 al mayor par del eje: ${rotulos}`);
+    assert.equal(lineas, 2 * (tope + 1), `una línea por punto, el tope incluido: ${lineas} líneas`);
   }
   assert.equal(await page.locator('#cmp-indices .peldano').count(), 4 * 3, 'dos islas y Canarias en cada índice');
   await page.selectOption('#sel-orden-cifras', 'edad_media'); await espera(400);

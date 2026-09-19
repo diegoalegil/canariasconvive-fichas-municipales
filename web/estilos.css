@@ -325,7 +325,16 @@ select {
   background: linear-gradient(90deg, var(--azul-palido) 0 var(--w), transparent var(--w) 100%);
 }
 .lista-mun a { color: var(--negro); text-decoration: none; min-width: 0; }
-.lista-mun a:hover, .lista-mun li.foco a { text-decoration: underline; text-decoration-color: var(--azul); }
+/* La fila señalada (desde el mapa, con el ratón o con el teclado) toma el azul
+   del territorio en el mapa: la barra en el azul pleno y el resto de la fila en
+   el medio, con el texto en blanco para que se lea sobre los dos (Pedro: ubica
+   mejor que el subrayado). */
+.lista-mun li.foco { background: linear-gradient(90deg, var(--azul) 0 var(--w), var(--azul-medio) var(--w) 100%); }
+.lista-mun li.foco a, .lista-mun li.foco em, .lista-mun li.foco b, .lista-mun li.foco span { color: #fff; }
+/* Sobre la fila azul, el anillo de foco azul no se vería y la pastilla de color
+   de la provincia mayor (#185FA5) se fundiría con la barra: los dos en blanco. */
+.lista-mun li.foco a:focus-visible { outline-color: #fff; }
+.lista-mun li.foco .tono { box-shadow: 0 0 0 1.5px #fff; }
 /* El número de orden y el peso van en negro: el gris no llega al contraste AA sobre la barra. */
 .lista-mun em {
   font-style: normal; display: inline-block; width: 22px; color: var(--negro);
