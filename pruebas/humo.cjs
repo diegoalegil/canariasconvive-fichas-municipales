@@ -23,7 +23,7 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   const page = await navegador.newPage({ viewport: { width: 1280, height: 900 } });
   const consola = [];
   page.on('pageerror', (e) => consola.push(e.message));
-  page.on('console', (m) => { if (m.type() === 'error') consola.push(m.text()); });
+  page.on('console', (m) => { if (m.type() === 'error') consola.push(`${m.text()} @ ${m.location().url}`); });
   page.on('response', (r) => { if (r.status() >= 400 && !/favicon|no-existe/.test(r.url())) consola.push(`HTTP ${r.status()} ${r.url()}`); });
   const logosDe = (sel) => page.locator(sel).evaluateAll((is) => is.map((i) => i.alt + (i.complete && i.naturalWidth > 0 ? '' : ' (no carga)')));
 
@@ -82,7 +82,7 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   ok(await page.locator('.hoja-ficha').count() === 98 && await page.locator('.placa-papel').count() === 98, 'el dossier con sus 98 fichas y sus placas');
 
   await navegador.close();
-  const ruido = consola.filter((m) => !/favicon|no-existe|404 \(File not found\)/.test(m));   // la 404 a propósito no es ruido
+  const ruido = consola.filter((m) => !/favicon|no-existe/.test(m));   // la 404 a propósito no es ruido
   if (ruido.length) errores.push(`consola: ${ruido.join(' | ')}`);
   console.log(errores.length ? errores.join('\n') : `humo v=${version}: todo en verde en ${base} (política de contenido en las cinco páginas, sin errores de consola)`);
   process.exit(errores.length ? 1 : 0);
