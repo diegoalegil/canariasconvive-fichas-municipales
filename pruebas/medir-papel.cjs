@@ -1,6 +1,6 @@
 /* Medidas del papel: cuánto mide cada ficha en la A4 (límite 281 mm) y cada
    hoja del dossier (límite 297 mm; la hoja recorta por lo bajo sin avisar).
-   Uso: NODE_PATH=$(npm root -g) node pruebas/medir-papel.cjs [base]
+   Uso: npm run medir [-- base]   (o NODE_PATH=$(npm root -g) node pruebas/medir-papel.cjs [base] sin npm ci)
    La base es la web servida (por defecto http://localhost:8140/). Imprime las
    peores fichas municipales, las diez agregadas (islas, provincias y Canarias)
    y las peores hojas del dossier; las cifras del README salen de aquí. */

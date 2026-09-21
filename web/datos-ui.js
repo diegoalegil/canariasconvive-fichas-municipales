@@ -30,6 +30,9 @@ function ponerFuente(elemento, id, clave) {
   if (p.textContent !== texto) p.textContent = texto;
 }
 
+/** La fuente de la evolución, que cambia con el ámbito (ficha, presentación y dossier). */
+const claveEvolucion = (ent) => ent?.canarias ? 'evolucion_canarias' : ent?.agregada ? 'evolucion_isla' : 'evolucion';
+
 /** Las siete tarjetas con gráfico de la ficha (ocho por encima del municipio,
  *  con la lista de lo que contiene; nueve en la provincia, que lista también
  *  sus municipios); la pirámide sigue a su pestaña. Las cifras clave no
@@ -37,7 +40,7 @@ function ponerFuente(elemento, id, clave) {
  *  (`entidad`, ficha.js); las provincias se suman desde las islas. */
 function fuentesFicha(vistaPiramide = 0, ent = null) {
   const agregada = !!ent?.agregada;
-  [['g-evolucion', ent?.canarias ? 'evolucion_canarias' : agregada ? 'evolucion_isla' : 'evolucion'],
+  [['g-evolucion', claveEvolucion(ent)],
    ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
    ['g-municipios', ent?.isla ? 'municipios' : agregada ? 'islas' : null],
    ['g-municipios-provincia', ent?.provincia ? 'municipios' : null],
@@ -51,6 +54,7 @@ function fuentesFicha(vistaPiramide = 0, ent = null) {
 
 /** Las cuatro secciones con gráfico del comparador. */
 function fuentesComparador() {
-  [['cmp-piramides', 'piramide'], ['cmp-indices', 'indices'], ['cmp-nacimiento', 'nacimiento'], ['cmp-extranjero', 'extranjero']]
+  // El comparador solo enseña el último dato de origen extranjero: la misma operación y año que el lugar de nacimiento.
+  [['cmp-piramides', 'piramide'], ['cmp-indices', 'indices'], ['cmp-nacimiento', 'nacimiento'], ['cmp-extranjero', 'nacimiento']]
     .forEach(([id, clave]) => ponerFuente(document.getElementById(id), `fuente-${id}`, clave));
 }

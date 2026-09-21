@@ -223,11 +223,12 @@ def conciliar_extranjero_islas(tolerancia=1.0):
     """C22I contra la suma de sus municipios, año a año, en personas. Si una
     isla no cuadra pero su recuento es el de otra isla y el de la otra es el
     suyo, las dos columnas van cambiadas en el libro ese año (C2I, de donde
-    sale C22I): se corrige aquí y se avisa para que se arregle en el Excel. A
-    15/9/2026, C2I trae Lanzarote y Fuerteventura intercambiadas de 2021 a
-    2025, los años de la operación censal. Cualquier otro descuadre detiene la
-    exportación: la ficha de la isla diría un dato distinto del de sus
-    municipios."""
+    sale C22I): se corrige aquí y se avisa para que se arregle en el Excel
+    (el libro del 15/9/2026 traía Lanzarote y Fuerteventura intercambiadas de
+    2021 a 2025, los años de la operación censal; Pedro lo corrigió el 16/9 y
+    el cruce se conserva por si vuelve a pasar, como los de
+    correcciones_libro.py). Cualquier otro descuadre detiene la exportación: la
+    ficha de la isla diría un dato distinto del de sus municipios."""
     cuadra = lambda a, b: a is not None and b is not None and abs(a - b) <= tolerancia
     pob_i = {i: _por_anio(ANIOS_C1I, SERIE_C1I[i]) for i in ISLAS}
     agregados = {(i, a): _agregado_extranjero(i, a) for i in ISLAS for a in ANIOS_C22I}
@@ -310,12 +311,17 @@ def edad_media(h, m):
     return float((total * np.array(MARCAS)).sum() / total.sum())
 
 
-def variacion(x, y, anio_base=ANIO_BASE_VAR):
-    """(% acumulado, año inicial real, año final)."""
+def _ventana(x, y, anio_base):
+    """(valores por año, primer año de la ventana, último año): la ventana
+    arranca en `anio_base` o, si la serie empieza después, en su primer año."""
     d = dict(zip(x, y))
     posteriores = [a for a in x if a >= anio_base]
-    a0 = posteriores[0] if posteriores else x[0]
-    a1 = x[-1]
+    return d, (posteriores[0] if posteriores else x[0]), x[-1]
+
+
+def variacion(x, y, anio_base=ANIO_BASE_VAR):
+    """(% acumulado, año inicial real, año final)."""
+    d, a0, a1 = _ventana(x, y, anio_base)
     if not d[a0]:
         return None, a0, a1
     return (d[a1] / d[a0] - 1) * 100, a0, a1
@@ -323,10 +329,7 @@ def variacion(x, y, anio_base=ANIO_BASE_VAR):
 
 def tvma(x, y, anio_base=ANIO_BASE_VAR):
     """Tasa de variación media anual, %."""
-    d = dict(zip(x, y))
-    posteriores = [a for a in x if a >= anio_base]
-    a0 = posteriores[0] if posteriores else x[0]
-    a1 = x[-1]
+    d, a0, a1 = _ventana(x, y, anio_base)
     n = a1 - a0
     if not d[a0] or n <= 0:
         return None
@@ -786,7 +789,7 @@ ficha_canarias = ficha_agregada(
 escribir_agregada(ficha_canarias)
 
 # El último dato regional de origen extranjero, para la portada (sin redondear).
-_ext_canarias = [v for v in SERIE_C22_R["Canarias"] if isinstance(v, (int, float)) and np.isfinite(v)][-1]
+_ext_canarias = _sin_nulos(ANIOS_C22, SERIE_C22_R["Canarias"])[1][-1]
 
 indice = {
     "anio": ANIO_POB,

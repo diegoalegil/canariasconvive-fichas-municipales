@@ -2,16 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/ficha.html">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ficha demográfica municipal · Canarias Convive</title>
-<meta name="description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de cualquiera de los 88 municipios y las siete islas de Canarias.">
+<meta name="description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de Canarias, de cada provincia, de cada isla y de cada uno de los 88 municipios.">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Canarias Convive">
 <meta property="og:locale" content="es_ES">
 <meta property="og:title" content="Ficha demográfica municipal · Canarias Convive">
-<meta property="og:description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de cualquiera de los 88 municipios y las siete islas de Canarias.">
+<meta property="og:description" content="Estructura de la población, evolución, lugar de nacimiento e índices geodemográficos de Canarias, de cada provincia, de cada isla y de cada uno de los 88 municipios.">
 <meta property="og:image" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/og/portada.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -20,7 +20,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=105">
+<link rel="stylesheet" href="estilos.css?v=106">
 </head>
 <body>
 
@@ -40,6 +40,7 @@
     <a class="btn btn-liso" href="comparar.html" id="btn-comparar" data-ico="relevo" aria-label="Comparar"><span>Comparar</span></a>
     <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
     <button class="btn btn-liso" type="button" id="btn-compartir" data-ico="enlace" aria-label="Copiar enlace"><span>Copiar enlace</span></button>
+    <span class="oculto" id="estado-copiar" role="status"></span>
     <button class="btn btn-liso" type="button" id="btn-presentar" data-ico="presentar" aria-label="Presentar"><span>Presentar</span></button>
     <!-- Abre el diálogo de impresión (la hoja es una A4), no descarga nada. -->
     <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Imprimir o guardar en PDF</button>
@@ -144,7 +145,7 @@
       </div>
     </section>
 
-    <section class="tarjeta tercio indices" id="sec-indices">
+    <section class="tarjeta tercio indices">
       <header class="rotulo" data-ico="dependencia">
         <div><h2>Información geodemográfica</h2><p id="sub-indices">Los tres ámbitos, ordenados de menor a mayor valor</p></div>
       </header>
@@ -179,10 +180,10 @@
 
 </main>
 
-<script src="config.js?v=105"></script>
-<script src="comun.js?v=105"></script>
-<script src="iconos.js?v=105"></script>
-<script src="datos-ui.js?v=105"></script>
-<script src="ficha.js?v=105"></script>
+<script src="config.js?v=106"></script>
+<script src="comun.js?v=106"></script>
+<script src="iconos.js?v=106"></script>
+<script src="datos-ui.js?v=106"></script>
+<script src="ficha.js?v=106"></script>
 </body>
 </html>

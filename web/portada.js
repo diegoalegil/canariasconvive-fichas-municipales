@@ -111,7 +111,9 @@ function teclas(e, disparador, lista, alAbrir, mueve) {
     case 'ArrowDown':
     case 'ArrowUp':
       e.preventDefault();
-      if (lista.hidden) { if (alAbrir) alAbrir(); abrir(disparador, lista); }
+      // El buscador abre su lista al buscar (con algo tecleado); las islas, siempre.
+      if (lista.hidden) { if (alAbrir) alAbrir(); else abrir(disparador, lista); }
+      if (lista.hidden) return;
       mueve(e.key === 'ArrowDown' ? 1 : -1);
       break;
     case 'Home':
@@ -193,25 +195,23 @@ function montarBuscador() {
   const buscar = () => {
     const q = plano(campo.value.trim());
     desmarcar(campo, lista);
-    if (!q) { cerrar(); lista.innerHTML = ''; return; }
-    // Primero los que empiezan por lo tecleado; las islas, antes que los municipios.
-    const orden = (a, b) => {
-      const ea = plano(a.nombre).startsWith(q), eb = plano(b.nombre).startsWith(q);
-      if (ea !== eb) return ea ? -1 : 1;
-      return a.nombre.localeCompare(b.nombre, 'es');
-    };
-    const coincide = (x) => plano(x.nombre).includes(q);
+    if (!q) { cerrar(); lista.innerHTML = ''; document.getElementById('buscar-estado').textContent = ''; return; }
     // Los que empiezan por lo tecleado van antes que los que solo lo contienen;
     // dentro de cada grupo, Canarias y las provincias antes que las islas, y
     // las islas antes que los municipios («tene» da Tenerife, la isla, antes
-    // que Santa Cruz de Tenerife, la provincia).
+    // que Santa Cruz de Tenerife, la provincia); cada grupo, por orden alfabético.
+    const empieza = (x) => plano(x.nombre).startsWith(q);
+    const coincide = (x) => plano(x.nombre).includes(q);
+    const orden = (a, b) => a.nombre.localeCompare(b.nombre, 'es');
     const ambitos = [{ tipo: 'canarias', nombre: 'Canarias' }, ...INDICE.provincias.map((p) => ({ tipo: 'provincia', slug: p.slug, nombre: p.nombre }))];
     const grupos = [ambitos, INDICE.islas_resumen, INDICE.municipios].map((g) => g.filter(coincide).sort(orden));
-    const empieza = (x) => plano(x.nombre).startsWith(q);
     const hallados = [...grupos.flatMap((g) => g.filter(empieza)), ...grupos.flatMap((g) => g.filter((x) => !empieza(x)))];
     lista.innerHTML = hallados.length
       ? hallados.map((x) => opcion(x, true, 'res')).join('')
       : '<div role="option" aria-disabled="true" class="vacio">Ningún territorio se llama así.</div>';
+    // Cuántos hay, para el lector de pantalla (la lista abierta no lo dice).
+    document.getElementById('buscar-estado').textContent = hallados.length
+      ? `${hallados.length} ${hallados.length === 1 ? 'territorio encontrado' : 'territorios encontrados'}` : 'Ningún territorio se llama así.';
     abrir(campo, lista);
   };
 
@@ -221,7 +221,7 @@ function montarBuscador() {
   campo.parentElement.addEventListener('keydown', (e) => teclas(e, campo, lista, buscar, (paso) => moverActivo(campo, lista, paso)));
   // Enter abre la opción activa o, sin haber bajado, la primera de la lista.
   campo.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || lista.hidden) return;   // cerrada con Escape, Enter no salta a nada
     const elegida = lista.querySelector('a.activa') || lista.querySelector('a');
     if (elegida) { e.preventDefault(); elegida.click(); }
   });

@@ -3,7 +3,7 @@
    consola, con la versión de recursos del repositorio y con lo esencial de
    cada una en su sitio. No sustituye a la batería (web.test.cjs): la
    complementa donde la batería no llega, el alojamiento.
-   Uso: NODE_PATH=$(npm root -g) node pruebas/humo.cjs [base]
+   Uso: npm run humo [-- base]   (o NODE_PATH=$(npm root -g) node pruebas/humo.cjs [base] sin npm ci)
    La base por defecto es la URL pública de sitio.json. */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -68,7 +68,7 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '3 de 3');
   ok(await page.locator('#cmp-piramides svg').count() === 3, 'el comparador con tres municipios');
   await page.goto(base + 'comparar.html?provincias');
-  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
+  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 2');
   ok(await page.locator('#cmp-intro').textContent() === 'Las dos provincias.', 'el comparador de provincias');
 
   // La 404 con su icono (solo el alojamiento la sirve; un servidor local da la suya), y el dossier entero.

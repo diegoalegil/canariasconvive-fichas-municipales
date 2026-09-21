@@ -194,19 +194,19 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   // Alajeró, según origen: eje 9 (impar por encima de 8): el tope se dibuja sin rótulo.
   await page.selectOption('#sel-municipio', '38003');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Alajeró');
-  await espera(1000);
+  await espera(100);
   await page.locator('.vista').nth(1).click();
-  await espera(1000);
+  await espera(100);
   assert.equal(await rotulosEje(), '0% 2% 4% 6% 8%', 'eje impar: el tope sin rótulo');
   await page.locator('.vista').nth(0).click();
   await espera(600);
   // Artenara: 6,62 % en un grupo sobre el total (eje 7) y 13,85 % entre los nacidos fuera (eje 14).
   await page.selectOption('#sel-municipio', '35005');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Artenara');
-  await espera(1000);
+  await espera(100);
   assert.equal(await rotulosEje(), '0% 2% 4% 6%');
   await page.locator('.vista').nth(1).click();
-  await espera(1000);
+  await espera(100);
   assert.equal(await rotulosEje(), '0% 2% 4% 6% 8% 10% 12% 14%', 'rótulos de dos en dos, como en el cuaderno de Pedro');
   // En el móvil van de cuatro en cuatro, también solo los múltiplos: 0, 4, 8 y 12, sin el 14.
   await page.setViewportSize({ width: 375, height: 900 });
@@ -308,7 +308,8 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.selectOption('#sel-municipio', '38020');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Güímar');
   await espera(400);
-  const ejeComp = await page.locator('#g-componentes svg text').evaluateAll((ts) => ts.map((t) => t.textContent).filter((t) => !/^20\d\d$/.test(t)).map((t) => parseInt(t.replace(/\./g, ''), 10)));
+  const ejeComp = await page.locator('#g-componentes svg text').evaluateAll((ts) => ts.map((t) => t.textContent).filter((t) => !/^20\d\d$/.test(t)).map((t) => parseInt(t.replace(/\./g, '').replace('\u2212', '-'), 10)));
+  assert.ok(ejeComp.some((v) => v < 0) && await page.locator('#g-componentes svg text').evaluateAll((ts) => ts.some((t) => t.textContent.startsWith('\u2212'))), 'los negativos del eje llevan el menos tipográfico');
   const comp = (await json(path.join(WEB, 'datos/mun/38020.json'))).componentes;
   const serie = comp.anios.flatMap((a, i) => a >= 2002 ? [comp.vegetativo[i], comp.migratorio[i]] : []).filter((v) => v != null);
   assert.ok(Math.max(...ejeComp) >= Math.max(...serie) && Math.min(...ejeComp) <= Math.min(...serie), `el eje cubre las barras: ${ejeComp}`);
@@ -401,6 +402,13 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de las islas, 2000–${indice.anio}.`);
   assert.equal(await page.locator('.anillo h3').first().textContent(), 'Isla');
   assert.match(await page.locator('.cifra').nth(1).textContent().then((t) => t.replace(/\s+/g, ' ').trim()), /^\d+,\d años Edad media$/, 'la isla lleva su edad media');
+  // Para el lector de pantalla, la pirámide (pestaña activa) y la evolución van también como tabla, como extranjero y componentes.
+  const tenerife = await json(path.join(WEB, 'datos/isla/tenerife.json'));
+  assert.deepEqual(await page.locator('#g-piramide > .oculto thead th').allTextContents(), ['Edad', 'Hombres', 'Mujeres', 'Canarias, hombres', 'Canarias, mujeres']);
+  assert.equal(await page.locator('#g-piramide > .oculto tbody tr').count(), 21);
+  assert.equal(await page.locator('#g-piramide > .oculto').count(), 1, 'una sola tabla, la de la pestaña activa');
+  assert.equal(await page.locator('#g-evolucion .oculto tbody tr').count(), tenerife.evolucion.anios.length);
+  assert.equal(await page.locator('#g-indices').getAttribute('role'), 'group', 'el bloque de índices con teclado tiene nombre accesible');
   for (const ancho of [375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);
@@ -492,11 +500,30 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.deepEqual(escalera.filter((e) => e[1]).map((e) => e[0]), ['Canarias']);
   assert.equal(await page.locator('.fuente-grafico').count(), 8);
   assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de Canarias, 2000–${indice.anio}.`);
+  assert.deepEqual(await page.locator('#g-piramide > .oculto thead th').allTextContents(), ['Edad', 'Hombres españoles', 'Mujeres españolas', 'Extranjeros, hombres', 'Extranjeros, mujeres'], 'la tabla de la pirámide es la de la pestaña activa');
+  await page.locator('.vista').nth(0).click(); await espera(900);
+  assert.deepEqual(await page.locator('#g-piramide > .oculto thead th').allTextContents(), ['Edad', 'Hombres', 'Mujeres'], 'sin marco, la tabla de la pirámide lleva solo las dos series');
+  assert.equal(await page.locator('#mapas svg').first().getAttribute('aria-label'), 'Las dos provincias en el mapa de Canarias');
   for (const ancho of [375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 900 });
     await espera(400);
     await sinDesborde(page, `ficha de Canarias a ${ancho}`);
   }
+  // En el móvil, señalar una franja de la pirámide sin marco escribe su lectura (antes fallaba por el marco que no hay).
+  await page.setViewportSize({ width: 375, height: 900 });
+  await espera(400);
+  await page.locator('#g-piramide').focus();
+  await page.keyboard.press('ArrowUp');
+  await espera(150);
+  assert.match(await page.locator('#lectura-piramide').textContent(), /^\d+ (a \d+|o más) años\. Hombres: \d+,\d\d\u00a0%; Mujeres: \d+,\d\d\u00a0%\.$/, 'la lectura de Canarias en el móvil');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await espera(400);
+  // «Copiar enlace» copia la dirección estable del ámbito.
+  await page.evaluate(() => { navigator.clipboard.writeText = (t) => { window.__copiado = t; return Promise.resolve(); }; });
+  await page.locator('#btn-compartir').click();
+  await espera(200);
+  assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}r/canarias.html`);
+  assert.equal(await page.locator('#estado-copiar').textContent(), 'Enlace copiado', 'el lector de pantalla también se entera');
   // A la provincia: sus islas, sus 54 municipios con su mapa, «Provincia» en la escalera y el peso sin puesto.
   await page.selectOption('#sel-municipio', 'provincia:santa-cruz-de-tenerife');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
@@ -518,6 +545,31 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.deepEqual(tramos.filter((e) => e[1]).map((e) => e[0]), ['Provincia']);
   assert.equal(await page.locator('.fuente-grafico').count(), 9, 'nueve fuentes: las dos listas llevan la suya');
   assert.equal(await page.locator('#btn-comparar').evaluate((a) => a.href), base + 'comparar.html?p=santa-cruz-de-tenerife');
+  assert.equal(await page.locator('#mapa-provincia svg').getAttribute('aria-label'), 'Términos municipales de la provincia');
+  await page.locator('#btn-compartir').click();
+  await espera(200);
+  assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}p/santa-cruz-de-tenerife.html`);
+  // El sobre de la provincia redirige y lleva sus etiquetas.
+  await page.goto(base + 'p/las-palmas.html');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.ok(page.url().endsWith('/fichas/p/las-palmas.html'), page.url());
+  assert.equal(await page.locator('#nombre').textContent(), 'Las Palmas');
+  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), sitio.url_publica + 'p/las-palmas.html');
+  const sobreP = await fs.readFile(path.join(WEB, 'p/las-palmas.html'), 'utf8');
+  assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), /<meta property="og:description" content="([^"]*)">/.exec(sobreP)[1]);
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].every((l) => l.href.includes('/fichas/img/'))), 'los iconos siguen colgando de la raíz tras cambiar la dirección');
+  // Una dirección que no existe cae a Santa Cruz de Tenerife y deja la dirección corregida; el enlace heredado de la portada sigue valiendo.
+  for (const rota of ['ficha.html?municipio=99999', 'ficha.html?provincia=no-existe', 'ficha.html?isla=atlantida']) {
+    await page.goto(base + rota);
+    await page.waitForSelector('#fuente-g-origen');
+    assert.equal(await page.locator('#nombre').textContent(), 'Santa Cruz de Tenerife', rota);
+    assert.ok(page.url().endsWith('/fichas/m/38038.html'), page.url());
+    assert.equal(await page.locator('#sel-municipio').inputValue(), '38038');
+  }
+  await page.goto(base + 'index.html?municipio=38001');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#nombre').textContent(), 'Adeje');
+  assert.ok(page.url().endsWith('/fichas/m/38001.html'), page.url());
   // Y de la provincia a un municipio: la ficha vuelve a la forma municipal.
   await page.selectOption('#sel-municipio', '38001');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Adeje');
@@ -634,6 +686,8 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   await espera(900);
   assert.equal(await page.locator('#pres-contador').textContent(), '4 / 6');
+  assert.match(await page.locator('#pres-anuncio').textContent(), /^Diapositiva 4 de 6: /, 'el cambio de diapositiva se anuncia');
+  assert.equal(await page.locator('#pres-anuncio').getAttribute('aria-live'), 'polite');
   assert.equal(await page.locator('.pres-cifras > div').count(), 4, 'la presentación lleva las cuatro cifras, con la edad media');
   assert.match(await page.locator('.pres-cifras > div').nth(1).textContent(), /^\d+,\d\u00a0añosEdad media$/);
   assert.match(await page.locator('#pres-leyenda').textContent(), /Hombres españolesMujeres españolasExtranjeros/);
@@ -661,10 +715,18 @@ test('ficha: el cambio de municipio no deja fantasmas y con movimiento reducido 
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038', { movimiento: 'no-preference' });
   await page.waitForSelector('#fuente-g-origen');
   await page.selectOption('#sel-municipio', '38001');
-  await espera(150);
-  assert.ok((await page.locator('.fantasma').count()) > 0, 'el cruce deja fantasmas mientras dura');
+  await page.waitForSelector('.fantasma', { timeout: 2000 });
+  const fantasmas = await page.evaluate(() => { const fs = [...document.querySelectorAll('.fantasma')]; return { n: fs.length, conId: document.querySelectorAll('.fantasma[id], .fantasma [id]').length, inertes: fs.every((f) => f.inert && f.getAttribute('aria-hidden') === 'true') }; });
+  assert.ok(fantasmas.n > 0 && fantasmas.conId === 0 && fantasmas.inertes, `el cruce deja fantasmas mientras dura, sin ningún id (que duplicaría los de la ficha) y fuera del teclado y del lector: ${JSON.stringify(fantasmas)}`);
   await espera(1200);
   assert.equal(await page.locator('.fantasma').count(), 0);
+  // Imprimir a mitad de un cruce lo corta: sin fantasmas ni animaciones en la hoja.
+  await page.selectOption('#sel-municipio', '38038');
+  await espera(80);
+  await page.evaluate(() => dispatchEvent(new Event('beforeprint')));
+  await espera(100);
+  assert.deepEqual(await page.evaluate(() => [document.querySelectorAll('.fantasma').length, document.getAnimations().length]), [0, 0], 'beforeprint deja la hoja quieta');
+  await page.evaluate(() => dispatchEvent(new Event('afterprint')));
   await contexto.close();
   const r = await abrir('ficha.html?municipio=38038');
   await r.page.waitForSelector('#fuente-g-origen');
@@ -791,7 +853,7 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   assert.match(await page.locator('#cmp-vacio').textContent(), /Elige una isla/);
   // A provincias: entran las dos de golpe (comparar por provincia es compararlas).
   await page.locator('.cmp-modo [data-modo="provincias"]').click();
-  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
+  await page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 2');
   await espera(900);
   assert.equal(await page.locator('#cmp-titulo').textContent(), 'Comparar provincias');
   assert.equal(await page.locator('#cmp-intro').textContent(), 'Las dos provincias.', 'el subtítulo de Pedro, sin «una junto a otra»');
@@ -799,15 +861,18 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   assert.deepEqual(await page.locator('.cmp-cab span').allTextContents(), ['Provincia', 'Provincia']);
   assert.deepEqual(await page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas', 'Santa Cruz de Tenerife'], 'de mayor a menor población');
   assert.equal(await page.locator('#sel-anadir option').count(), 3, 'las dos provincias y el rótulo');
+  assert.equal(await page.locator('#sel-anadir option[value]:not([value=""]):not([disabled])').count(), 0, 'las dos ya elegidas van apagadas, y el desplegable también');
+  assert.equal(await page.locator('#sel-anadir').isDisabled(), true);
+  assert.equal(await page.locator('#cmp-cuenta').getAttribute('role'), 'status', 'la cuenta se anuncia');
   assert.equal(await page.locator('#cmp-indices .peldano').count(), 4 * 3, 'dos provincias y Canarias en cada índice');
   await sinDesborde(page, 'comparador de provincias');
   await contexto.close();
   // ?p=<una> deja una sola; ?provincias, las dos.
   const otra = await abrir('comparar.html?p=las-palmas');
-  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '1 de 3');
+  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '1 de 2');
   assert.deepEqual(await otra.page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas']);
   await otra.page.goto(base + 'comparar.html?provincias');
-  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 3');
+  await otra.page.waitForFunction(() => document.getElementById('cmp-cuenta').textContent === '2 de 2');
   // Cambiar de modo y volver antes de que lleguen las provincias no las duplica ni pasa del máximo.
   await retrasar(otra.page, '**/datos/provincia/*.json', 700);
   for (const modo of ['islas', 'provincias', 'islas', 'provincias']) {
@@ -816,7 +881,7 @@ test('comparador: islas con islas y municipios con municipios; cambiar de modo v
   }
   await espera(2500);
   assert.deepEqual(await otra.page.locator('#cmp-elegidos .cmp-ficha b').allTextContents(), ['Las Palmas', 'Santa Cruz de Tenerife'], 'ir y volver de modo no duplica las provincias');
-  assert.equal(await otra.page.locator('#cmp-cuenta').textContent(), '2 de 3');
+  assert.equal(await otra.page.locator('#cmp-cuenta').textContent(), '2 de 2');
   assert.ok(otra.page.url().endsWith('?p=santa-cruz-de-tenerife,las-palmas'), otra.page.url());
   assert.deepEqual(errores.concat(otra.errores), []);
   await otra.contexto.close();
@@ -850,6 +915,7 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   for (const ancho of [320, 375, 1280]) {
     await page.setViewportSize({ width: ancho, height: 812 });
     await espera(200);
+    assert.ok(await page.locator('.provincia-cab > span').evaluateAll((ss) => ss.every((s) => s.scrollWidth <= s.clientWidth + 1)), `a ${ancho} la cuenta de cada provincia se lee entera`);
     for (const boton of await page.locator('.isla-menu > .isla-tarjeta').all()) {
       await boton.click();
       await espera(80);
@@ -889,6 +955,8 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   assert.equal(await page.evaluate(() => document.activeElement.textContent), await lista.locator('a').last().textContent(), 'Fin va a la última opción');
   await page.keyboard.press('Home');
   assert.match(await page.evaluate(() => document.activeElement.textContent), /^Toda la isla/, 'Inicio va a la isla entera');
+  await espera(100);   // con «reducir movimiento» las transiciones duran 0,01 ms: el estilo llega en el cuadro siguiente
+  assert.deepEqual(await page.evaluate(() => { const a = document.activeElement; return [getComputedStyle(a).boxShadow.includes('rgb(255, 255, 255)'), getComputedStyle(a.querySelector('em')).color]; }), [true, 'rgb(255, 255, 255)'], 'con foco, «Toda la isla» lleva la barra blanca y su cifra en blanco');
   await page.keyboard.press('Escape');
   await espera(60);
   assert.equal(await page.locator('.isla-menu .desplegable:not([hidden])').count(), 0, 'Escape cierra la lista');
@@ -917,8 +985,18 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   assert.equal(await page.locator('#resultados').isHidden(), true, 'Escape cierra el buscador');
   assert.equal(await page.locator('#buscar').getAttribute('aria-expanded'), 'false');
   assert.equal(await page.locator('#buscar').getAttribute('aria-activedescendant'), null);
+  // Cerrada con Escape, Enter no salta a ningún sitio; con el campo vacío, la flecha no abre una lista vacía.
+  await page.keyboard.press('Enter');
+  await espera(100);
+  assert.ok(page.url().endsWith('/fichas/index.html'), `Enter con la lista cerrada no navega: ${page.url()}`);
+  await page.fill('#buscar', '');
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.locator('#buscar').getAttribute('aria-expanded'), 'false', 'sin nada tecleado, la flecha no abre la lista');
   await page.fill('#buscar', 'zzzz');
   assert.equal(await page.locator('#resultados [role="option"][aria-disabled="true"]').count(), 1, 'sin resultados, una opción inactiva lo dice');
+  assert.equal(await page.locator('#buscar-estado').textContent(), 'Ningún territorio se llama así.', 'y el lector de pantalla lo oye');
+  await page.fill('#buscar', 'tene');
+  assert.match(await page.locator('#buscar-estado').textContent(), /^\d+ territorios encontrados$/, 'cuántos hay, para el lector de pantalla');
   await page.fill('#buscar', 'la ');
   assert.deepEqual(await page.locator('#resultados a').evaluateAll((as) => as.slice(0, 3).map((a) => a.textContent)), ['Las PalmasToda la provincia', 'La GomeraToda la isla', 'La PalmaToda la isla'], 'la provincia y las islas, antes que los municipios');
   await page.fill('#buscar', 'santa cruz'); await espera(250);
@@ -994,7 +1072,8 @@ test('logotipos: los tres juntos, en el orden de sitio.json, en la portada, la c
   assert.equal(await page.evaluate(() => window.__copiado), `${sitio.url_publica}m/38038.html`);
   // El dossier: la placa de cada hoja con los tres, la portada con los tres en su placa y sin línea de entidades, los pies.
   await page.goto(base + 'dossier.html');
-  await page.waitForFunction(() => document.getElementById('d-total').textContent === '101 hojas', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.getElementById('d-total').textContent !== '', null, { timeout: 120000 });
+  assert.equal(await page.locator('#d-total').textContent(), '101 hojas');
   assert.equal(await page.locator('.placa-papel').count(), 98);
   assert.equal(await page.locator('.placa-papel img[src$="logo-juntas.png"]').count(), 98, 'cada hoja lleva los tres logotipos');
   assert.deepEqual(await vistos('.d-portada-placa img'), esperados('logo'), 'la portada del dossier');

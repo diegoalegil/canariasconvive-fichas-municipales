@@ -16,23 +16,23 @@ const DIRECCION_WEB = URL_PUBLICA_SITIO.replace(/^https?:\/\//, '').replace(/\/$
 function tarjetasEntorno(f, ent, R) {
   const niveles = nivelesMapas(f);
   const wMapa = ent.agregada ? anchoHoja(3) - mm(1) : Math.floor((anchoHoja(12) - 2 * mm(4)) / 3);
-  const mapas = niveles.map(([tit, filtro, r, lim, foco, cuenta]) => `
-    <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.agregada ? 11 : 20), lim)}
+  const mapas = niveles.map(([tit, filtro, r, lim, foco, cuenta, titulo]) => `
+    <figure class="mapa">${mapa(GEOD, foco, filtro, wMapa, mm(ent.agregada ? 11 : 20), lim, titulo)}
       ${(() => { const pie = pieMapa(r, tit, cuenta); return pie ? `<figcaption class="mapa-pie">${pie}</figcaption>` : ''; })()}</figure>`).join('');
   if (!ent.agregada) {
     return `<section class="tarjeta">
-      <header class="rotulo">${icono('territorio', 13)}<div><h2>${R.entorno[0]}</h2>
+      <header class="rotulo">${icono('territorio', 13)}<div><h3>${R.entorno[0]}</h3>
         <p>${R.entorno[1]}</p></div></header>
       <div class="cuerpo"><div class="mapas${niveles.length === 2 ? ' dos' : ''}">${mapas}</div>${fuenteGrafico('mapas')}</div>
     </section>`;
   }
   return `<section class="tarjeta tercio entorno-isla${ent.canarias ? ' entorno-canarias' : ''}">
-      <header class="rotulo">${icono('territorio', 13)}<div><h2>${R.entorno[0]}</h2>
+      <header class="rotulo">${icono('territorio', 13)}<div><h3>${R.entorno[0]}</h3>
         <p>${R.entorno[1]}</p></div></header>
       <div class="cuerpo"><div class="mapas isla">${mapas}</div>${ent.canarias ? `<div class="lista-provincias">${listaProvincias(f)}</div>` : ''}${fuenteGrafico('mapas')}</div>
     </section>
     <section class="tarjeta dos-tercios municipios-isla${ent.canarias ? ' municipios-canarias' : ''}">
-      <header class="rotulo">${icono('poblacion', 13)}<div><h2>${R.lista[0]}</h2>
+      <header class="rotulo">${icono('poblacion', 13)}<div><h3>${R.lista[0]}</h3>
         <p>${R.lista[1]}</p></div></header>
       <div class="cuerpo">${ent.isla ? listaMunicipios(f) : listaIslas(f)}${fuenteGrafico(ent.isla ? 'municipios' : 'islas')}</div>
     </section>`;
@@ -58,14 +58,14 @@ function hojaFicha(f, pagina) {
 
     <div class="rejilla">
       <section class="tarjeta dos-tercios">
-        <header class="rotulo">${icono('variacion', 13)}<div><h2>Evolución de la población</h2>
+        <header class="rotulo">${icono('variacion', 13)}<div><h3>Evolución de la población</h3>
           <p>Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</p></div></header>
-        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + ent.id)}</figure>${fuenteGrafico(ent.canarias ? 'evolucion_canarias' : ent.agregada ? 'evolucion_isla' : 'evolucion')}</div>
+        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + ent.id)}</figure>${fuenteGrafico(claveEvolucion(ent))}</div>
       </section>
 
       <section class="tarjeta tercio">
-        <header class="rotulo">${icono('extranjero', 13)}<div><h2>Origen extranjero</h2>
-          <p>Porcentaje sobre el total</p></div></header>
+        <header class="rotulo">${icono('extranjero', 13)}<div><h3>Origen extranjero</h3>
+          <p>Porcentaje sobre el total de habitantes</p></div></header>
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, mm(26))}</figure>
           <div class="leyenda">${leyendaExtranjero(f, 2)}</div>${fuenteGrafico('extranjero')}</div>
       </section>
@@ -73,35 +73,34 @@ function hojaFicha(f, pagina) {
       ${tarjetasEntorno(f, ent, R)}
 
       <section class="tarjeta dos-tercios">
-        <header class="rotulo">${icono('edad', 13)}<div><h2>Estructura de la población</h2></div></header>
+        <header class="rotulo">${icono('edad', 13)}<div><h3>Estructura de la población</h3></div></header>
         <div class="cuerpo"><figure>${piramide.svg}</figure>
           <div class="leyenda">${leyendaPiramide(piramide.vistas[0])}</div>${fuenteGrafico('piramide')}</div>
       </section>
 
       <section class="tarjeta tercio indices">
-        <header class="rotulo">${icono('dependencia', 13)}<div><h2>Información geodemográfica</h2>
+        <header class="rotulo">${icono('dependencia', 13)}<div><h3>Información geodemográfica</h3>
           <p>${R.indices.replace(/ordenad[oa]s de menor/, 'de menor')}</p></div></header>   <!-- en la hoja, sin «ordenados» -->
         <div class="cuerpo">${ent.agregada ? `<div class="indices-isla">${bloqueIndicesIsla(f.indices, INDICES_FICHA, ent.provincia ? 'Provincia' : f.nombre)}</div>` : bloqueIndices(f.indices, INDICES_FICHA)}${fuenteGrafico('indices')}</div>
       </section>
 
       <section class="tarjeta mitad">
-        <header class="rotulo">${icono('relevo', 13)}<div><h2>Componentes del cambio poblacional</h2></div></header>
-        <div class="cuerpo"><figure>${graficoComponentes(f.componentes, wCo, mm(anom.length ? 21 : 24))}</figure>
+        <header class="rotulo">${icono('relevo', 13)}<div><h3>Componentes del cambio poblacional</h3></div></header>
+        <div class="cuerpo"><figure>${graficoComponentes(f.componentes, wCo, mm(anom.length ? 21 : 24))}${anom.length ? `<figcaption class="nota">${notaAnomalias(anom)}</figcaption>` : ''}</figure>
           <div class="leyenda">
             <span><i class="llave" style="background:#85B7EB"></i>Crecimiento vegetativo</span>
             <span><i class="llave" style="background:#185FA5"></i>Saldo migratorio</span>
           </div>
-          ${anom.length ? `<p class="nota">${notaAnomalias(anom)}</p>` : ''}
           ${fuenteGrafico('componentes')}
         </div>
       </section>
 
       <section class="tarjeta mitad">
-        <header class="rotulo">${icono('nacimiento', 13)}<div><h2>Lugar de nacimiento</h2>
+        <header class="rotulo">${icono('nacimiento', 13)}<div><h3>Lugar de nacimiento</h3>
           <p>De cada cien habitantes, dónde nacieron</p></div></header>
         <div class="cuerpo"><div class="anillos${ent.canarias ? ' uno' : ''}">
           ${(ent.canarias ? [['Canarias', f.origen.canarias]] : [[ent.rotulo, propia(f.origen)], ['Canarias', f.origen.canarias]]).map(([t, v]) => `
-            <div class="anillo"><h3>${t}</h3>${anilloOrigen(v, 30, 13)}
+            <div class="anillo"><h4>${t}</h4>${anilloOrigen(v, 30, 13)}
               <div class="reparto">${f.origen.categorias.map((cat, i) =>
                 `<div><i style="background:${TONOS_ORIGEN[i]}"></i><span>${esc(cat)}</span><b>${nf(v[i], 1)}\u00a0%</b></div>`).join('')}
               </div></div>`).join('')}
@@ -120,7 +119,7 @@ function hojaPortada() {
     <h1>Fichas demográficas<br>municipales de Canarias</h1>
     <p class="d-lede">Una ficha por Canarias, por cada provincia, por cada isla y por cada uno de los 88 municipios
       del archipiélago: estructura de la población, evolución, índices geodemográficos y lugar de nacimiento.</p>
-    <div class="d-portada-mapa">${mapaArchipielago()}</div>
+    <div class="d-portada-mapa" aria-hidden="true">${mapaArchipielago()}</div>
     <div class="d-portada-pie">
       <div><b>${IDX.anio}</b><span>Población a 1 de enero</span></div>
       <div><b>${nf(IDX.poblacion_canarias)}</b><span>Habitantes</span></div>
@@ -159,7 +158,7 @@ function hojaGuia(fichas, pagina) {
         <h3>Las fuentes</h3>
         <p>ISTAC (población, movimiento natural y migraciones) y GRAFCAN (límites
            municipales). Cada gráfico lleva la suya al pie. Las fichas interactivas están en
-           <b>${web}</b></p>
+           <b>${web}</b>.</p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>
@@ -217,7 +216,7 @@ function traerReglasDeImpresion() {
 }
 
 /* --------------------------------------------------------------- montaje -- */
-/** Las 98 fichas en paralelo (rutas bajo datos/); lo que falle se vuelve a
+/** Las 98 fichas (y el índice y la geometría) en paralelo, rutas bajo datos/; lo que falle se vuelve a
  *  pedir hasta dos veces antes de darse por vencido, sin tirar lo que ya llegó. */
 async function leerFichas(rutas) {
   const fichas = new Map();
@@ -240,10 +239,7 @@ async function iniciarDossier() {
   if (!n) throw new Error('no se han encontrado las reglas de impresión de estilos.css');
   const aviso = document.getElementById('d-aviso');
 
-  [IDX, GEOD] = await Promise.all([
-    leerJSON('datos/indice.json'),
-    leerJSON('datos/geo/municipios.json'),
-  ]);
+  [IDX, GEOD] = await leerFichas(['indice', 'geo/municipios']);   // con los mismos reintentos que las fichas
 
   const islas = IDX.islas_resumen, provincias = IDX.provincias;
   for (const pr of provincias) for (const slug of pr.islas) PROVINCIA_DE[islas.find((i) => i.slug === slug).nombre] = pr.nombre;

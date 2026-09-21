@@ -29,14 +29,22 @@ addEventListener('error', (e) => {
   if (e.target && e.target.tagName === 'SCRIPT') document.querySelector('.tapa.espera')?.classList.remove('espera');
 }, true);
 
-/** Cifra en español: punto de millar siempre, coma decimal, `d` decimales. */
+/** Cifra en español: punto de millar siempre, coma decimal, `d` decimales y el
+ *  menos tipográfico (−) en los negativos, como en las cifras clave. */
 const nf = (v, d = 0) => v == null || !isFinite(v)
   ? '—'
-  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' });
+  : v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' }).replace(/^-/, '\u2212');
 
 // Espacio duro entre la cifra y su unidad (%, años…): nunca se separan al final de línea.
 const UNI = '\u00a0';
 const pct = (v, d = 1) => v == null ? '—' : nf(v, d) + UNI + '%';
+/** La serie de un gráfico como tabla solo para el lector de pantalla (clase
+ *  `oculto`): la primera celda de cada fila es su cabecera. */
+function tablaOculta(titulo, cabeceras, filas) {
+  return `<div class="oculto"><table><caption>${esc(titulo)}</caption>`
+    + `<thead><tr>${cabeceras.map((c) => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead>`
+    + `<tbody>${filas.map((f) => `<tr>${f.map((v, i) => i ? `<td>${v}</td>` : `<th scope="row">${v}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
 
 const acotar = (v, min, max) => Math.max(min, Math.min(max, v));
 /** Último valor no nulo de una serie. */
@@ -49,7 +57,7 @@ const ultimoValido = (V) => {
  *  La misma en ficha, dossier y comparador; exportar_datos.py la repite. */
 const ejeAutomatico = (maximo) => Math.max(1, Math.ceil(maximo - 1e-9));
 /** Rejilla y rótulos de ese eje, los mismos en la ficha, el dossier y el
- *  comparador: una línea por punto hasta 8, cada dos desde 10 y siempre el
+ *  comparador: una línea por punto hasta 8, cada dos desde 9 y siempre el
  *  tope; rótulo solo en los pares, de dos en dos (de cuatro en cuatro donde
  *  2 % no llegan a 30 px). Un tope impar lleva línea pero no rótulo: con eje
  *  5 se lee 0, 2 y 4, no 0, 2 y 5 (Pedro: un mismo criterio, sin mezclar el
@@ -174,9 +182,11 @@ const logotipos = (clave = 'logo') => LOGOS_SITIO.map((l) =>
 /** El título de una página: la web es la de Canarias Convive. */
 const tituloPagina = (texto) => `${texto} · Canarias Convive`;
 
-/** Los enlaces relativos del HTML pasan a absolutos contra la raíz. */
+/** Los enlaces relativos del HTML pasan a absolutos contra la raíz; también
+ *  los iconos de la pestaña, que si no se pedirían bajo m/, i/, p/ o r/ en
+ *  cuanto la ficha cambia la dirección visible. */
 function enlacesAbsolutos() {
-  document.querySelectorAll('a[href]').forEach((a) => {
+  document.querySelectorAll('a[href], link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((a) => {
     const h = a.getAttribute('href');
     if (/^(https?:|mailto:|#|\/)/.test(h)) return;
     a.href = rutaWeb(h);

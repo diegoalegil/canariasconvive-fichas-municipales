@@ -10,10 +10,11 @@ las cinco páginas y config.js.
                                      web/m/<cod>.html, web/i/<slug>.html, web/p/<slug>.html, web/r/canarias.html
 
 La tarjeta lleva un solo dato, los habitantes, y ningún texto por debajo de
-26 px. Compone en Avenir Next (Montserrat no está en el sistema; si se instala,
+25 px. Compone en Avenir Next (Montserrat no está en el sistema; si se instala,
 va la primera en FAMILIAS). Necesita macOS y Pillow."""
 import base64
 import hashlib
+import html
 import json
 import re
 from pathlib import Path
@@ -377,7 +378,7 @@ def escribir_envoltorios(idx, base, web=WEB):
     for m in idx["municipios"]:
         script = script_envoltorio(f"../ficha.html?municipio={m['codmun']}")
         (salida / f"{m['codmun']}.html").write_text(
-            ENVOLTORIO.format(nombre=m["nombre"], cod=m["codmun"], script=script, hash=hash_script(script),
+            ENVOLTORIO.format(nombre=html.escape(m["nombre"], quote=True), cod=m["codmun"], script=script, hash=hash_script(script),
                               hab=nf(m["poblacion"]), anio=idx["anio"], base=base),
             encoding="utf-8")
     salida = web / "i"
@@ -385,7 +386,7 @@ def escribir_envoltorios(idx, base, web=WEB):
     for i in idx.get("islas_resumen", []):
         script = script_envoltorio(f"../ficha.html?isla={i['slug']}")
         (salida / f"{i['slug']}.html").write_text(
-            ENVOLTORIO_ISLA.format(nombre=i["nombre"], slug=i["slug"], n=i["municipios"], script=script,
+            ENVOLTORIO_ISLA.format(nombre=html.escape(i["nombre"], quote=True), slug=i["slug"], n=i["municipios"], script=script,
                                    hash=hash_script(script), hab=nf(i["poblacion"]), anio=idx["anio"], base=base),
             encoding="utf-8")
     # Las provincias (con sus islas y municipios) y Canarias (con las siete islas y los 88).
@@ -399,7 +400,7 @@ def escribir_envoltorios(idx, base, web=WEB):
         salida.mkdir(exist_ok=True)
         script = script_envoltorio(f"../ficha.html?{consulta}")
         (salida / f"{slug}.html").write_text(
-            ENVOLTORIO_AMBITO.format(nombre=nombre, slug=slug, carpeta=carpeta, de=de, contiene=contiene,
+            ENVOLTORIO_AMBITO.format(nombre=html.escape(nombre, quote=True), slug=slug, carpeta=carpeta, de=de, contiene=contiene,
                                      consulta=consulta, script=script, hash=hash_script(script),
                                      hab=nf(poblacion), anio=idx["anio"], base=base),
             encoding="utf-8")
@@ -416,6 +417,7 @@ def main():
     geo = json.loads((WEB / "datos" / "geo" / "municipios.json").read_text(encoding="utf-8"))
     if Image is None:
         raise SystemExit("Hace falta Pillow para las tarjetas: pip install -r requirements.txt")
+    familia()   # sin tipografía (fuera de macOS) se detiene aquí, antes de reescribir nada
     SALIDA_OG.mkdir(exist_ok=True)
     reescribir_paginas(BASE, anio=idx["anio"], origenes=ORIGENES)
     escribir_envoltorios(idx, BASE)

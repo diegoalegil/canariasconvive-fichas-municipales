@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fichas demográficas municipales · Canarias Convive</title>
@@ -20,7 +20,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=105">
+<link rel="stylesheet" href="estilos.css?v=106">
 </head>
 <body>
 
@@ -54,6 +54,7 @@
                aria-controls="resultados" aria-autocomplete="list">
         <div class="desplegable" id="resultados" role="listbox"
              aria-label="Territorios encontrados" hidden></div>
+        <span class="oculto" id="buscar-estado" aria-live="polite"></span>
       </div>
     </div>
 
@@ -76,9 +77,9 @@
 <!-- Sin JavaScript la clase «espera» no se retiraría nunca: aquí se anula (y si un
      script no llega a cargar, comun.js la retira). -->
 <noscript><style>.tapa.espera .ent { opacity: 1; }</style></noscript>
-<script src="config.js?v=105"></script>
-<script src="comun.js?v=105"></script>
-<script src="iconos.js?v=105"></script>
-<script src="portada.js?v=105"></script>
+<script src="config.js?v=106"></script>
+<script src="comun.js?v=106"></script>
+<script src="iconos.js?v=106"></script>
+<script src="portada.js?v=106"></script>
 </body>
 </html>

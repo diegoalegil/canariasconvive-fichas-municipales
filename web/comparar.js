@@ -47,7 +47,7 @@ const TEXTOS = {
     titulo: 'Comparar provincias', intro: 'Las dos provincias.',
     vacio: 'Elige una provincia en el desplegable de arriba para empezar.',
     anadir: 'Añadir provincia', ninguno: 'Ninguna provincia elegida todavía', fallo: 'No se ha podido añadir la provincia.',
-    nacimiento: 'Cada barra suma el 100 % de su provincia', extranjero: 'Porcentaje sobre el total de habitantes de cada provincia',
+    nacimiento: 'Cada barra suma el 100\u00a0% de su provincia', extranjero: 'Porcentaje sobre el total de habitantes de cada provincia',
     tabla: 'Cifras clave por provincia', parametro: 'p',
   },
 };
@@ -177,7 +177,7 @@ function seccionCifras() {
     </tr></thead><tbody role="rowgroup">
     ${filas.map(([rot, uni, fn], i) => `<tr role="row">
       <th class="cmp-rot" scope="row" role="rowheader" id="cmp-fila-${i}"><b>${rot}</b><span>${uni}</span></th>
-      ${municipios.map((f) => `<td role="cell" class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${tono(f)}"><span class="cmp-dato">${fn(f)}</span></td>`).join('')}
+      ${municipios.map((f) => `<td role="cell" class="cmp-val" data-mun="${esc(f.nombre)}" style="--c:${tono(f)}"><span>${fn(f)}</span></td>`).join('')}
     </tr>`).join('')}
     </tbody></table>`;
 }
@@ -189,13 +189,23 @@ function seccionPiramides(ancho) {
     return t ? [...p.hombres, ...p.mujeres].map((v) => v / t * 100) : [0];
   })));
 
+  // Para el lector de pantalla, las mismas cifras que dibujan las pirámides.
+  const columnas = ordenados();
+  const enPorcentaje = (f) => { const p = f.piramide, t = p.hombres.reduce((a, b) => a + b, 0) + p.mujeres.reduce((a, b) => a + b, 0); return [p.hombres, p.mujeres].map((s) => s.map((v) => t ? v / t * 100 : 0)); };
+  const series = columnas.map(enPorcentaje);
+  const edades = ELEGIDOS[0].piramide.edades;
+  const tabla = tablaOculta('Estructura por edad en porcentaje sobre el total de cada territorio',
+    ['Edad', ...columnas.flatMap((f) => [`${f.nombre}, hombres`, `${f.nombre}, mujeres`])],
+    edades.map((e, i) => [esc(e), ...series.flatMap(([H, M]) => [pct(H[i], 2), pct(M[i], 2)])]));
+
   return `<div class="cmp-cols" style="--cols:${ELEGIDOS.length}">
-    ${ordenados().map((f) => `
+    ${columnas.map((f) => `
       <div class="cmp-col">
         <h3 style="color:var(--azul)">${esc(f.nombre)}</h3>
         ${piramide(f, tope, ancho)}
       </div>`).join('')}
   </div>
+  ${tabla}
   <div class="leyenda">
     <span><i class="llave" style="background:#2E75B6"></i>Hombres</span>
     <span><i class="llave" style="background:#85B7EB"></i>Mujeres</span>
@@ -205,7 +215,7 @@ function seccionPiramides(ancho) {
 function seccionIndices() {
   const codigos = ['C10', 'C11', 'C17', 'C14'];
   const comoSeLee = {
-    C10: 'personas de 65 y más por cada persona menor de 15',
+    C10: 'personas de 65 o más por cada persona menor de 15',
     C11: 'menores de 15 por cada cien personas de 15 a 64',
     C17: 'menores de 15 y mayores de 64 por cada cien personas de 15 a 64',
     C14: 'personas de 15 a 19 por cada cien de 60 a 64',
@@ -247,7 +257,7 @@ function seccionNacimiento() {
     <div class="cmp-apilada">
       <span class="cmp-barra-rot" ${municipio ? 'style="color:var(--azul)"' : ''}>${esc(rot)}</span>
       ${barraApilada(vals)}
-      <span class="cmp-barra-val">${vals.map((v, i) => `<b style="color:${TONOS_ORIGEN[i]}">${nf(v, 1)}</b>`).join(' · ')}</span>
+      <span class="cmp-barra-val">${vals.map((v, i) => `<b style="color:${TONOS_ORIGEN[i]}"><span class="oculto">${esc(cats[i])}: </span>${nf(v, 1)}</b>`).join(' · ')}</span>
     </div>`;
   return `
     ${ordenados().map((f) => fila(f.nombre, propia(f.origen), true)).join('')}
@@ -305,6 +315,9 @@ function pintar(cruzar = false) {
 
 function pintarElegidos() {
   const cont = document.getElementById('cmp-elegidos');
+  const sel = document.getElementById('sel-anadir');
+  // Reescribir la lista destruye el botón que tuviera el foco; se mira antes y se recoloca al final.
+  const teniaFoco = document.activeElement === sel || cont.contains(document.activeElement);
   cont.innerHTML = ordenados().map((f) => `
     <span class="cmp-ficha" style="--c:${tono(f)}">
       <b>${esc(f.nombre)}</b>
@@ -312,16 +325,24 @@ function pintarElegidos() {
     </span>`).join('') || `<span class="cmp-ninguno">${TEXTOS[MODO].ninguno}</span>`;
   cont.querySelectorAll('[data-quitar]').forEach((b) =>
     b.addEventListener('click', () => quitar(b.dataset.quitar)));
-  document.getElementById('cmp-cuenta').textContent =
-    `${ELEGIDOS.length} de ${MAXIMO}`;
-  document.getElementById('sel-anadir').disabled = ELEGIDOS.length + PENDIENTES.size >= MAXIMO;
-  document.getElementById('cmp-cuenta').textContent += PENDIENTES.size ? ` · ${PENDIENTES.size} cargando` : '';
+  // La cuenta es una región viva: se escribe de una vez. Las provincias son dos, no tres.
+  const tope = topeDelModo();
+  document.getElementById('cmp-cuenta').textContent = `${ELEGIDOS.length} de ${tope}` + (PENDIENTES.size ? ` · ${PENDIENTES.size} cargando` : '');
+  const lleno = ELEGIDOS.length + PENDIENTES.size >= tope;
+  sel.disabled = lleno;
+  // Lo ya elegido (o en camino) no se puede volver a elegir.
+  sel.querySelectorAll('option[value]').forEach((o) => { o.disabled = ELEGIDOS.some((f) => claveDe(f) === o.value) || PENDIENTES.has(o.value); });
+  // Con el desplegable apagado, el foco que estaba en él o en la lista iría al principio de la página: al último «Quitar»
+  // (quitar() coloca el suyo; con el desplegable vivo el foco no se toca).
+  if (lleno && teniaFoco) ([...cont.querySelectorAll('[data-quitar]')].pop() || document.getElementById('sel-orden-cifras')).focus();
 }
+/** Plazas del modo: tres, salvo en provincias, que son las que hay. */
+const topeDelModo = () => MODO === 'provincias' ? INDICE.provincias.length : MAXIMO;
 
 async function anadir(clave) {
   const codigo = String(clave), generacion = GENERACION;
   const repetido = () => ELEGIDOS.some((f) => claveDe(f) === codigo);
-  if (ELEGIDOS.length + PENDIENTES.size >= MAXIMO || PENDIENTES.has(codigo) || repetido()) return;
+  if (ELEGIDOS.length + PENDIENTES.size >= topeDelModo() || PENDIENTES.has(codigo) || repetido()) return;
   PENDIENTES.add(codigo); reservarColor(codigo);
   ELECCION.set(codigo, ++secuenciaEleccion);
   pintarElegidos();
@@ -329,7 +350,7 @@ async function anadir(clave) {
   try {
     const f = await leerJSON(rutaDatos(codigo));
     if (generacion !== GENERACION) return;   // se cambió de modo mientras cargaba: ya no cuenta
-    if (repetido() || ELEGIDOS.length >= MAXIMO) return;
+    if (repetido() || ELEGIDOS.length >= topeDelModo()) return;
     ELEGIDOS.push(f);
     ELEGIDOS.sort((a, b) => ELECCION.get(claveDe(a)) - ELECCION.get(claveDe(b)));
     PENDIENTES.delete(codigo);
@@ -339,7 +360,7 @@ async function anadir(clave) {
     avisoCarga('estado-comparador', TEXTOS[MODO].fallo, () => anadir(codigo));
     if (!ELEGIDOS.length) pintar();
   } finally {
-    PENDIENTES.delete(codigo); pintarElegidos();
+    if (generacion === GENERACION) { PENDIENTES.delete(codigo); pintarElegidos(); }   // de otra generación, cambiarModo ya limpió
   }
 }
 
@@ -390,7 +411,8 @@ async function iniciar() {
     : modo === 'islas'
     ? (params.get('i') || '').split(',').filter((c) => INDICE.islas_resumen.some((x) => x.slug === c))
     : (params.get('m') || '').split(',').filter((c) => INDICE.municipios.some((m) => String(m.codmun) === c));
-  for (const c of pedidos.slice(0, MAXIMO)) await anadir(c);
+  // De golpe: uno a uno, un cambio de modo a mitad mandaba los siguientes a la carpeta del modo nuevo.
+  await Promise.all([...new Set(pedidos)].slice(0, MAXIMO).map(anadir));
   if (!ELEGIDOS.length) pintar();
 }
 

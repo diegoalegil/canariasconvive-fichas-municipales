@@ -12,7 +12,6 @@
   font-size: 14px; color: var(--gris);
 }
 
-.d-barra { position: sticky; }
 .d-cuenta { font-size: 12.5px; color: var(--gris); font-variant-numeric: tabular-nums; }
 
 /* La hoja: una A4 con los márgenes dentro, la misma geometría que la ficha suelta. */
@@ -36,7 +35,7 @@
 /* Relleno ajustado: la hoja recorta por lo bajo sin avisar (294,0 de 297 mm medidos). */
 .d-cab {
   background: var(--azul); color: #fff; padding: 2.4mm 6mm; margin-bottom: 1.6mm; flex: none;
-  position: relative;   /* la dirección de la guía va en su esquina, como en la ficha suelta */
+  position: relative;   /* la placa de los logotipos va en su esquina, como en la ficha suelta (estilos.css, .placa-papel) */
 }
 .d-titular { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; padding-right: 47mm; }   /* sitio para la placa de los logotipos (estilos.css) */
 .d-migas { font-size: 6.5pt; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--azul-sobre); }
@@ -90,6 +89,9 @@
 }
 
 /* ---------------------------------------------------------- en pantalla --- */
+/* Las listas de cada hoja conservan sus columnas en el móvil: la regla de
+   pantalla de 700 px las ponía a una y la hoja de Tenerife se recortaba. */
+.hoja .lista-mun { columns: var(--cols, 2); }
 /* Las hojas de 210 mm no caben en un móvil: el desplazamiento lateral queda en su contenedor. */
 @media screen and (max-width: 820px) {
   #dossier { overflow-x: auto; -webkit-overflow-scrolling: touch; }

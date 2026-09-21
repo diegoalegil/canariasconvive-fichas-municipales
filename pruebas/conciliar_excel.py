@@ -30,8 +30,9 @@ if not RUTA.exists():
 try:
     import openpyxl  # noqa: E402
 except ImportError:
-    print("omitida · falta openpyxl (pip install -r requirements.txt, o ejecutar con el python3 que lo tenga)")
-    sys.exit(0)
+    # Con el libro a mano, no poder leerlo es un fallo: la conciliación tiene que correr antes de publicar.
+    print("FALLA · está el libro pero falta openpyxl: pip install -r requirements.txt, o ejecutar con el python3 que lo tenga (/usr/bin/python3)")
+    sys.exit(1)
 
 W = openpyxl.load_workbook(RUTA, read_only=True, data_only=True)
 F = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((RAIZ / "web/datos/mun").glob("*.json"))]

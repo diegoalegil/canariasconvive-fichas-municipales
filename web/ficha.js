@@ -1,11 +1,11 @@
-/* Ficha municipal e insular: gráficos en SVG generado a mano, sin librerías.
+/* Ficha de municipio, isla, provincia y Canarias: gráficos en SVG generado a mano, sin librerías.
    Dos reglas de Pedro para todo el fichero: paleta azul (ningún color de alerta
    sobre personas) y la ficha muestra datos sin interpretarlos. La ficha de una
    isla usa los mismos gráficos; lo que cambia lo dice `entidad(f)`. */
 
 const C = {
   azul: '#185FA5', azulMedio: '#2E75B6', azulClaro: '#85B7EB', azulPalido: '#B5D4F4',
-  negro: '#1A1A1A', gris: '#5F5E5A', gris40: '#82817C', rejilla: '#D9D9D9',
+  negro: '#1A1A1A', gris: '#5F5E5A', grisEje: '#82817C', rejilla: '#D9D9D9',
 };
 const TONOS = [C.azulPalido, C.azulClaro, C.azul];       // escala de menor a mayor
 const TONOS_ORIGEN = ['#185FA5', '#6FA6D8', '#B5D4F4'];  // lugar de nacimiento
@@ -74,9 +74,9 @@ function pasoEvolucion(rango, objetivo = 5) {
    de pantalla deja las letras ilegibles). Caja útil de la A4: 190 mm, retícula
    de doce columnas. */
 const MM = 96 / 25.4;                 // píxeles CSS por milímetro
-const HOJA = 190, HUECO = 2, PAD = 3;
+const HOJA = 190, HUECO = 1.8, PAD = 3;   // HUECO es el `gap` de `.rejilla` en el bloque print de estilos.css
 let IMPRIMIENDO = false;
-/** El dossier dibuja las 88 fichas a medida de hoja. */
+/** El dossier dibuja las 98 fichas a medida de hoja. */
 function modoHoja(v) { IMPRIMIENDO = v; }
 
 /** Ancho interior de una tarjeta de `cols` columnas, en píxeles CSS. */
@@ -130,7 +130,7 @@ function suavizar(xs, ys, muestras = 240) {
 /** Mapa de situación. `foco` es el código INE del municipio destacado o una
  *  función sobre el rasgo (la isla entera); `conLimites` dibuja las divisiones
  *  municipales (el del archipiélago va sin ellas). */
-function mapa(geo, foco, ambito, w, h, conLimites) {
+function mapa(geo, foco, ambito, w, h, conLimites, titulo = 'Situación en Canarias') {
   const rasgos = geo.features.filter(ambito);
   // `foco` es un código de municipio o una función que dice si el rasgo va
   // destacado; si devuelve un color, va de ese color (las dos provincias).
@@ -167,15 +167,10 @@ function mapa(geo, foco, ambito, w, h, conLimites) {
       base += `<path d="${d}" ${terr}${conLimites ? ` data-codmun="${f.properties.codmun}"` : ''} fill="${C.azulClaro}" stroke="${trazo}" stroke-width="${conLimites ? (IMPRIMIENDO ? 1.2 : 0.7) : 0.5}"/>`;
     }
   }
-  return abrirSVG(w, h, typeof foco === 'function' ? 'Situación en Canarias' : 'Situación del municipio', false)
+  return abrirSVG(w, h, titulo, false)
     + base + destacado + '</svg>';
 }
 
-/** Los mapas de la ficha y del dossier: [rótulo del pie, filtro, puesto, con
- *  límites, foco, cuenta]. El tercero dice «en la comarca» (con el nombre real
- *  salían pies como «en Oeste»); en El Hierro la comarca es la isla y no hay
- *  tercero. Por encima del municipio va uno solo, el territorio en Canarias,
- *  con su puesto o su peso; sin puesto, el pie dice cuántos hay (`cuenta`). */
 /** El pie de un mapa: puesto y peso; solo el peso (la provincia, que no
  *  compite con la otra); o cuántos territorios se ven (`cuenta`). */
 function pieMapa(r, tit, cuenta) {
@@ -187,28 +182,33 @@ function pieMapa(r, tit, cuenta) {
 /** Si un rasgo del mapa pertenece a la isla o a la provincia de la ficha. */
 const esSuyo = (f) => f.tipo === 'isla' ? (g) => g.properties.isla === f.nombre : (g) => PROVINCIA_DE[g.properties.isla] === f.nombre;
 
+/** Los mapas de la ficha y del dossier: [rótulo del pie, filtro, puesto, con
+ *  límites, foco, cuenta, rótulo para el lector de pantalla]. El tercero dice «en la comarca» (con el nombre real
+ *  salían pies como «en Oeste»); en El Hierro la comarca es la isla y no hay
+ *  tercero. Por encima del municipio va uno solo, el territorio en Canarias,
+ *  con su puesto o su peso; sin puesto, el pie dice cuántos hay (`cuenta`). */
 function nivelesMapas(f) {
   const ent = entidad(f);
   if (ent.canarias) {
     // Las dos provincias, cada una de su tono (el mismo que en la lista de al lado).
     // Sin pie: la lista de las dos provincias va justo debajo.
     const tono = Object.fromEntries(f.provincias.map((p, k) => [p.nombre, TONOS_PROVINCIA[k]]));
-    return [['provincias', () => true, null, false, (g) => tono[PROVINCIA_DE[g.properties.isla]] || C.azul]];
+    return [['provincias', () => true, null, false, (g) => tono[PROVINCIA_DE[g.properties.isla]] || C.azul, null, 'Las dos provincias en el mapa de Canarias']];
   }
   if (ent.agregada) {
     // La isla (o la provincia) en Canarias con su puesto o su peso y, en
     // pantalla, la isla sola con sus términos municipales (sin puesto: el pie
     // dice cuántos son). En la hoja solo va el primero: la lista está al lado.
     // La provincia lleva el suyo junto a la lista de municipios (`pintarMapas`).
-    const niveles = [['en Canarias', () => true, f.rankings.canarias, false, esSuyo(f)]];
-    if (!IMPRIMIENDO && ent.isla) niveles.push(['municipios', esSuyo(f), null, true, () => false, f.municipios.length]);
+    const niveles = [['en Canarias', () => true, f.rankings.canarias, false, esSuyo(f), null, `Situación de la ${ent.isla ? 'isla' : 'provincia'} en Canarias`]];
+    if (!IMPRIMIENDO && ent.isla) niveles.push(['municipios', esSuyo(f), null, true, () => false, f.municipios.length, 'Términos municipales de la isla']);
     return niveles;
   }
   const niveles = [
-    ['en Canarias', () => true, f.rankings.canarias, false, f.codmun],
-    [`en ${f.isla}`, (g) => g.properties.isla === f.isla, f.rankings.isla, true, f.codmun],
+    ['en Canarias', () => true, f.rankings.canarias, false, f.codmun, null, 'Situación del municipio en Canarias'],
+    [`en ${f.isla}`, (g) => g.properties.isla === f.isla, f.rankings.isla, true, f.codmun, null, 'Situación del municipio en la isla'],
   ];
-  if (comarcaDe(f)) niveles.push(['en la comarca', (g) => g.properties.comarca === f.comarca, f.rankings.comarca, true, f.codmun]);
+  if (comarcaDe(f)) niveles.push(['en la comarca', (g) => g.properties.comarca === f.comarca, f.rankings.comarca, true, f.codmun, null, 'Situación del municipio en la comarca']);
   return niveles;
 }
 
@@ -216,11 +216,22 @@ function nivelesMapas(f) {
 /** Señalar una fila de una lista destaca su trazado en los mapas que llevan el
  *  mismo atributo (`codmun` en el mapa con límites, `isla` o `provincia` en
  *  todos), y al revés; al salir de la lista o de los mapas se suelta. */
+const CONEXIONES_LISTA = new Set();   // los escuchadores de las listas; se sueltan en cada pintado (`soltarListas`)
+/** Los contenedores persisten entre fichas: sin esto, cada pintado sumaba
+ *  escuchadores que retenían los mapas y las filas anteriores, también los de
+ *  listas que la ficha nueva ya no lleva. */
+function soltarListas() {
+  for (const c of CONEXIONES_LISTA) c.abort();
+  CONEXIONES_LISTA.clear();
+}
 function conectarLista(idLista, atributo, idMapas = 'mapas') {
   const lista = document.getElementById(idLista);
   const mapas = document.getElementById(idMapas);
   const trazos = [...mapas.querySelectorAll(`path[data-${atributo}]`)];
   if (!lista || !trazos.length) return;
+  const conexion = new AbortController();
+  CONEXIONES_LISTA.add(conexion);
+  const opciones = { signal: conexion.signal };
   const filas = [...lista.querySelectorAll(`li[data-${atributo}]`)];
   const original = new Map(trazos.map((t) => [t, t.getAttribute('fill')]));
   const marcar = (valor) => {
@@ -228,13 +239,13 @@ function conectarLista(idLista, atributo, idMapas = 'mapas') {
     filas.forEach((li) => li.classList.toggle('foco', !!valor && li.dataset[atributo] === valor));
   };
   filas.forEach((li) => {
-    li.addEventListener('pointerenter', () => marcar(li.dataset[atributo]));
-    li.addEventListener('focusin', () => marcar(li.dataset[atributo]));
+    li.addEventListener('pointerenter', () => marcar(li.dataset[atributo]), opciones);
+    li.addEventListener('focusin', () => marcar(li.dataset[atributo]), opciones);
   });
-  trazos.forEach((t) => t.addEventListener('pointerenter', () => marcar(t.dataset[atributo])));
-  lista.addEventListener('pointerleave', () => marcar(null));
-  lista.addEventListener('focusout', () => marcar(null));
-  mapas.addEventListener('pointerleave', () => marcar(null));
+  trazos.forEach((t) => t.addEventListener('pointerenter', () => marcar(t.dataset[atributo]), opciones));
+  lista.addEventListener('pointerleave', () => marcar(null), opciones);
+  lista.addEventListener('focusout', () => marcar(null), opciones);
+  mapas.addEventListener('pointerleave', () => marcar(null), opciones);
 }
 
 /** Una lista de territorios de mayor a menor población, cada uno con su barra
@@ -246,14 +257,14 @@ function listaTerritorios(items, clave, ruta, cols, tonos = null) {
   const max = items[0].poblacion;
   return `<ol class="lista-mun" style="--cols:${cols}">` + items.map((x, i) => `
     <li data-${clave}="${esc(String(clave === 'codmun' ? x.codmun : x.nombre))}" style="--w:${(x.poblacion / max * 100).toFixed(1)}%">
-      <a href="${rutaWeb(ruta(x))}">${tonos ? `<i class="tono" style="background:${tonos[i]}"></i>` : `<em>${i + 1}</em>`} ${esc(x.nombre)}</a>
+      <a${IMPRIMIENDO ? '' : ` href="${rutaWeb(ruta(x))}"`}>${tonos ? `<i class="tono" style="background:${tonos[i]}"></i>` : `<em>${i + 1}</em>`} ${esc(x.nombre)}</a>
       <b>${nf(x.poblacion)}</b><span>${pct(x.peso, 1)}</span>
     </li>`).join('') + '</ol>';
 }
 /** Los municipios de la isla o de la provincia; el reparto en columnas lo decide cuántos son (y el papel). */
 function listaMunicipios(f) {
   const n = f.municipios.length;
-  const cols = IMPRIMIENDO ? (n > 40 ? 5 : n > 20 ? 4 : n > 5 ? 3 : 2) : (n > 40 ? 3 : n > 12 ? 2 : 1);
+  const cols = IMPRIMIENDO ? (n > 20 ? 4 : n > 5 ? 3 : 2) : (n > 40 ? 3 : n > 12 ? 2 : 1);
   return listaTerritorios(f.municipios, 'codmun', (m) => `m/${m.codmun}.html`, cols);
 }
 /** Las islas de la provincia o de Canarias. */
@@ -299,7 +310,9 @@ function graficoEvolucion(ev, w, h, sufijo = '') {
   // El eje temporal va de cinco en cinco años: cuadra con el último dato, 2025.
   let ejeX = '';
   for (let a = Math.ceil(X[0] / 5) * 5; a <= X[X.length - 1]; a += 5) {
-    ejeX += `<text x="${px(a).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
+    // El año que cae en el origen se ancla hacia dentro: centrado se tocaba con el «0» del eje vertical.
+    const enOrigen = px(a) <= m.l + 1;
+    ejeX += `<text x="${(px(a) - (enOrigen ? 2 : 0)).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="${enOrigen ? 'start' : 'middle'}" font-size="${fe}" fill="${C.gris}">${a}</text>`;
   }
 
   EVOLUCION = { X, Y, px, py, w, m };
@@ -370,6 +383,7 @@ function graficoExtranjero(ext, w, h) {
 
   let barras = '', etiqueta = '', ejeX = '';
   const feEtiqueta = P ? 9 : 13;
+  const ultimoAnio = vivos[vivos.length - 1][0];
   vivos.forEach(([a, v], i) => {
     const ultima = i === vivos.length - 1;
     barras += `<rect x="${(px(i) - bw / 2).toFixed(1)}" y="${py(v).toFixed(1)}" width="${bw.toFixed(1)}" `
@@ -386,7 +400,9 @@ function graficoExtranjero(ext, w, h) {
               + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
               + `paint-order="stroke fill">${nf(v, 1)}${UNI}%</text>`;
     }
-    if (a % 5 === 0 || ultima) {
+    // Los múltiplos de 5 y el último año; el múltiplo que quede a menos de tres
+    // años del último no se rotula (con 2026 se leerá …2020, 2026; hoy, …2020, 2025).
+    if (ultima || (a % 5 === 0 && ultimoAnio - a >= 3)) {
       ejeX += `<text x="${px(i).toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${fe}" fill="${C.gris}">${a}</text>`;
     }
   });
@@ -508,7 +524,7 @@ function construirPiramide(p, w, h, vistaFija = null, rotulo = 'Municipio', prop
     return out;
   };
   const ejeInicial = (fija || vistas[0]).eje;
-  // Sin id cuando la vista es fija: el dossier dibuja 88 pirámides en un documento.
+  // Sin id cuando la vista es fija: el dossier dibuja 98 pirámides en un documento.
   const rejilla = `<g${fija ? '' : ' id="eje-piramide"'}>${ejeSVG(ejeInicial)}</g>`;
 
   // ---- barras, glifos y edades ----
@@ -630,8 +646,8 @@ function graficoComponentes(c, w, h) {
 
   let rejilla = '', ejeY = '';
   for (let k = -topeNeg / paso; k <= topePos / paso; k++) {
-    const v = k * paso;
-    rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? C.gris40 : C.rejilla}"/>`;
+    const v = k * paso || 0;   // sin lado negativo, k arranca en -0 y nf(-0) escribiría «-0»
+    rejilla += `<line x1="${m.l}" y1="${py(v).toFixed(1)}" x2="${w - m.r}" y2="${py(v).toFixed(1)}" stroke="${v === 0 ? C.grisEje : C.rejilla}"/>`;
     const esTope = v === topePos || v === -topeNeg;
     const hastaTope = v > 0 ? topePos - v : topeNeg + v;
     if (k === 0 || esTope || (k % cadaRotulo === 0 && hastaTope >= cadaRotulo * paso)) {
@@ -647,7 +663,7 @@ function graficoComponentes(c, w, h) {
       barras += `<rect x="${(x + s * bw / 2 - bw / 2 + s * .6).toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" `
               + `width="${bw.toFixed(1)}" height="${Math.abs(y1 - y0).toFixed(1)}" fill="${col}" rx="1"/>`;
     });
-    if (a % cadaAnio === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${P ? 6 : 9.5}" fill="${C.gris}">${a}</text>`;
+    if (a % cadaAnio === 0) ejeX += `<text x="${x.toFixed(1)}" y="${h - (P ? 4 : 8)}" text-anchor="middle" font-size="${P ? 6.5 : 9.5}" fill="${C.gris}">${a}</text>`;   // en papel, el mismo cuerpo que los demás ejes
   });
 
   let marcas = '';
@@ -655,7 +671,7 @@ function graficoComponentes(c, w, h) {
     const i = A.indexOf(an.anio);
     if (i < 0) continue;
     const x = m.l + i * ancho + ancho / 2;
-    marcas += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${h - m.b}" stroke="${C.gris40}" stroke-width="1" stroke-dasharray="2 3"/>`;
+    marcas += `<line x1="${x.toFixed(1)}" y1="${m.t}" x2="${x.toFixed(1)}" y2="${h - m.b}" stroke="${C.grisEje}" stroke-width="1" stroke-dasharray="2 3"/>`;
   }
 
   return abrirSVG(w, h, 'Crecimiento vegetativo y saldo migratorio por año')
@@ -687,12 +703,6 @@ function anilloOrigen(valores, radio = 74, grosor = 30) {
 
 /* ------------------------------------------------------------ tabla oculta -- */
 /** Los datos de un gráfico en una tabla solo para lectores de pantalla. */
-function tablaOculta(titulo, cabeceras, filas) {
-  return `<div class="oculto"><table><caption>${esc(titulo)}</caption>`
-    + `<thead><tr>${cabeceras.map((c) => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead>`
-    + `<tbody>${filas.map((f) => `<tr>${f.map((v, i) => i ? `<td>${v}</td>` : `<th scope="row">${v}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-}
-
 /* ------------------------------------------------------------ cifras clave -- */
 /** Las cuatro celdas: la cifra, lo que es y el pie que la sitúa (la edad
  *  media no lleva pie). */
@@ -790,6 +800,24 @@ function leyendaPiramide(vista) {
        + (vista.sinMarco ? '' : `<span><i class="llave hueca"></i>${esc(vista.rotNegro)}</span>`);
 }
 
+/** La pestaña activa como tabla para el lector de pantalla, colocada como nodo
+ *  propio al final de #g-piramide: el SVG y su caché de nodos no se tocan. */
+function tablaPiramide(P, vista) {
+  const figura = document.getElementById('g-piramide');
+  if (!figura) return;
+  const cabeceras = ['Edad', vista.rotH, vista.rotM];
+  if (!vista.sinMarco) cabeceras.push(`${vista.rotNegro}, hombres`, `${vista.rotNegro}, mujeres`);
+  const filas = P.edades.map((edad, k) => {
+    const fila = [`${esc(edad)} años`, `${pctFila(vista.relleno.H[k])}${UNI}%`, `${pctFila(vista.relleno.M[k])}${UNI}%`];
+    if (!vista.sinMarco) fila.push(`${pctFila(vista.negro.H[k])}${UNI}%`, `${pctFila(vista.negro.M[k])}${UNI}%`);
+    return fila;
+  });
+  const plantilla = document.createElement('template');
+  plantilla.innerHTML = tablaOculta(`Población por sexo y grupo de edad, en porcentaje · ${vista.etiqueta}`, cabeceras, filas);
+  figura.querySelector(':scope > .oculto')?.remove();
+  figura.appendChild(plantilla.content.firstElementChild);
+}
+
 /** Transición a la pestaña `i`: interpola el ancho del relleno azul y el largo
  *  del marco negro con un easeOut de grado `grado` (3 entre pestañas, 4 entre
  *  municipios, donde el recorrido puede ser de pocos píxeles). */
@@ -803,6 +831,7 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   document.getElementById('leyenda-piramide').innerHTML = leyendaPiramide(v);
   fuentesFicha(i, ENT);   // cada pestaña dibuja una tabla distinta del ISTAC
+  if (!IMPRIMIENDO) tablaPiramide(P, v);
   // El eje cambia fundiéndose mientras las barras se mueven.
   const eje = document.querySelector('#g-piramide #eje-piramide');
   if (eje) {
@@ -884,10 +913,11 @@ addEventListener('visibilitychange', () => {
 // llega después de medir, se recolocan con la definitiva.
 document.fonts?.addEventListener('loadingdone', () => { if (PIRAMIDE?.senalar && FILA != null) PIRAMIDE.senalar(FILA); });
 
-/** Los mapas del entorno. La geometría (258 KB) llega después que la ficha:
+/** Los mapas del entorno. La geometría (207 KB) llega después que la ficha:
  *  mientras no está, cada mapa es un hueco del mismo tamaño con su pie, y se
  *  dibuja en cuanto llega (`GEO_LISTA`), sin que la página salte. */
 function pintarMapas(f) {
+  soltarListas();
   const ent = entidad(f);
   const el = (id) => document.getElementById(id);
   const wMapa = IMPRIMIENDO
@@ -900,13 +930,12 @@ function pintarMapas(f) {
   const mapas = el('mapas');
   mapas.classList.toggle('dos', !ent.agregada && niveles.length === 2);
   mapas.classList.toggle('isla', ent.agregada);
-  mapas.classList.toggle('sin-geo', !GEO);
-  mapas.innerHTML = niveles.map(([tit, filtro, r, lim, foco, cuenta], k) => {
+  mapas.innerHTML = niveles.map(([tit, filtro, r, lim, foco, cuenta, titulo], k) => {
     // La isla sola (o las islas de la provincia) va en una caja más cuadrada.
     const h = ent.agregada && k ? Math.round(wMapa * (IMPRIMIENDO ? 0.6 : ent.isla ? 0.52 : 0.5)) : hMapa;
     return `
     <figure class="mapa">
-      ${GEO ? mapa(GEO, foco, filtro, wMapa, h, lim) : `<div class="mapa-hueco" style="width:${wMapa}px;height:${h}px" aria-hidden="true"></div>`}
+      ${GEO ? mapa(GEO, foco, filtro, wMapa, h, lim, titulo) : `<div class="mapa-hueco" style="width:${wMapa}px;height:${h}px" aria-hidden="true"></div>`}
       ${(() => { const pie = pieMapa(r, tit, cuenta); return pie ? `<figcaption class="mapa-pie">${pie}</figcaption>` : ''; })()}
     </figure>`;
   }).join('');
@@ -916,7 +945,7 @@ function pintarMapas(f) {
     const w = Math.max(180, anchoDe('mapa-provincia', 340) - 8), h = Math.round(w * 0.5);
     el('mapa-provincia').innerHTML = `
     <figure class="mapa">
-      ${GEO ? mapa(GEO, () => false, esSuyo(f), w, h, true) : `<div class="mapa-hueco" style="width:${w}px;height:${h}px" aria-hidden="true"></div>`}
+      ${GEO ? mapa(GEO, () => false, esSuyo(f), w, h, true, 'Términos municipales de la provincia') : `<div class="mapa-hueco" style="width:${w}px;height:${h}px" aria-hidden="true"></div>`}
       <figcaption class="mapa-pie"><b>${f.municipios.length}</b><span>municipios</span></figcaption>
     </figure>`;
   }
@@ -1078,8 +1107,10 @@ function pintar(f) {
 /* Los tres gráficos que pueden crecer para llenar su tarjeta (`igualarGraficos`);
    `extra` son los píxeles de más sobre su altura normal. */
 function dibujarEvolucion(f, w, extra = 0) {
+  const ev = f.evolucion;
   document.getElementById('g-evolucion').innerHTML =
-    graficoEvolucion(f.evolucion, w, (IMPRIMIENDO ? mm(27) : acotar(w * 0.42, 190, 260)) + extra);
+    graficoEvolucion(ev, w, (IMPRIMIENDO ? mm(27) : acotar(w * 0.42, 190, 260)) + extra)
+    + (IMPRIMIENDO ? '' : tablaOculta('Habitantes por año', ['Año', 'Habitantes'], ev.anios.map((a, i) => [a, nf(ev.valores[i])])));
 }
 function dibujarExtranjero(f, w, extra = 0) {
   const ext = f.extranjero;
@@ -1117,8 +1148,8 @@ function igualarGraficos(f) {
     if (!svg || libre < 6) continue;
     const alto = svg.height.baseVal.value;
     dibujar(f, anchoDe(id, figura.clientWidth), Math.round(Math.min(libre, alto * 0.66)));
+    if (id === 'g-evolucion') conectarLecturaEvolucion();   // el gráfico nuevo necesita su lectura
   }
-  conectarLecturaEvolucion();   // el gráfico de evolución se ha vuelto a dibujar
 }
 
 const INDICES_FICHA = ['C10', 'C11', 'C17', 'C14'];
@@ -1177,10 +1208,12 @@ function marcadoresFila(P, actual, i, vista) {
   return out;
 }
 
-/** Pone la cifra en dos líneas (la del marco negro debajo de la de la barra). */
+/** Pone la cifra en dos líneas (la del marco negro debajo de la de la barra).
+ *  Sin marco (la pirámide de Canarias) no hay segunda cifra: se queda como está. */
 function apilarEtiqueta(t) {
   const fe = +t.dataset.fe, x = t.getAttribute('x');
   const ts = t.querySelector('tspan');
+  if (!ts) { t.dataset.apilada = '1'; return; }
   ts.textContent = ts.dataset.valor;
   ts.setAttribute('x', x); ts.setAttribute('dy', (fe * 1.1).toFixed(1));
   t.setAttribute('y', (+t.getAttribute('y') - fe * 0.56).toFixed(1));
@@ -1192,7 +1225,9 @@ function apilarEtiqueta(t) {
  *  salir hasta `margen` del dibujo, sobre el relleno de la tarjeta) pasa a dos
  *  líneas y, si tampoco cabe, dentro de la barra pegada a la punta. */
 function colocarEtiquetas(grupo, w) {
-  const margen = w < 430 ? 12 : 20;
+  // Hasta 20 px fuera del dibujo, pero nunca más allá del relleno de la tarjeta (15 px en el móvil).
+  const cuerpo = grupo.closest('.cuerpo');
+  const margen = Math.min(w < 430 ? 12 : 20, cuerpo ? parseFloat(getComputedStyle(cuerpo).paddingLeft) - 1 : 20);
   for (const t of grupo.querySelectorAll('text[data-sg]')) {
     const sg = +t.dataset.sg, x = +t.getAttribute('x');
     const cabe = () => { const l = t.getBBox().width; return sg < 0 ? x - l >= -margen : x + l <= w + margen; };
@@ -1286,6 +1321,7 @@ function conectarLecturaEvolucion() {
   const svg = document.querySelector('#g-evolucion svg');
   const salida = document.getElementById('lectura-evolucion');
   if (!svg || !salida || !EVOLUCION) return;
+  salida.textContent = '';   // la lectura era de la ficha anterior
   const { X, Y, px, py } = EVOLUCION;
   const guia = svg.querySelector('#guia-evolucion');
   const linea = guia.querySelector('line'), punto = guia.querySelector('circle');
@@ -1346,7 +1382,9 @@ function conectarCompartir() {
       await navigator.clipboard.writeText(url);
       rotulo.textContent = 'Enlace copiado';
       b.classList.add('confirmado');   // en móvil el rótulo va oculto: se enseña un momento
-      setTimeout(() => { rotulo.textContent = original; b.classList.remove('confirmado'); }, 2200);
+      const estado = document.getElementById('estado-copiar');   // el botón conserva su nombre: se anuncia aparte
+      estado.textContent = 'Enlace copiado';
+      setTimeout(() => { rotulo.textContent = original; b.classList.remove('confirmado'); estado.textContent = ''; }, 2200);
     } catch {
       window.prompt('Copia el enlace para compartir:', url);   // sin permiso de portapapeles
     }
@@ -1445,6 +1483,7 @@ function conectarIndices() {
     c.classList.toggle('tenue', !!amb && c.dataset.ambito !== amb);
   });
   cont.tabIndex = 0;
+  cont.setAttribute('role', 'group');   // sin rol, aria-label no vale sobre un div
   cont.setAttribute('aria-label', 'Información geodemográfica. Flechas para señalar un ámbito en los cuatro índices.');
   cont.addEventListener('keydown', (e) => {
     const lista = ambitos();
@@ -1548,6 +1587,8 @@ function presIr(paso) {
   document.querySelectorAll('#presentacion .pres-diapo').forEach((d, k) => d.classList.toggle('activa', k === capa));
   document.getElementById('pres-contador').textContent = `${paso} / 6`;
   if (capa === 2) presMostrar(paso === 3 ? 0 : 1, capaAntes === 2);
+  const titulo = document.querySelector('#presentacion .pres-diapo.activa h1, #presentacion .pres-diapo.activa h2')?.textContent || '';
+  document.getElementById('pres-anuncio').textContent = `Diapositiva ${paso} de 6: ${titulo}`;
 }
 
 function cerrarPresentacion() {
@@ -1580,7 +1621,7 @@ function abrirPresentacion() {
     <div class="pres-reparto">${o.categorias.map((cat, k) => `<div><i style="background:${TONOS_ORIGEN[k]}"></i><span>${esc(cat)}</span><b>${nf(vals[k], 1)}${UNI}%</b></div>`).join('')}</div></div>`;
   const capas = [
     `<div class="pres-fila"><div><p class="pres-kicker">${esc(R.migas)}</p><h1>${esc(f.nombre)}</h1>
-      <p class="pres-hab"><b>${nf(f.poblacion)}</b><span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
+      <p class="pres-hab"><b>${nf(f.poblacion)}</b> <span>habitantes</span></p></div><div class="pres-anio">${f.anio}</div></div>
      <div class="pres-cifras">
       <div><b>${signo}${nf(Math.abs(c.tvma), 1)}<span>${UNI}%</span></b><i>Variación media anual</i><em>Serie ${ev.anio_base}–${ev.anio_fin}</em></div>
       <div><b>${nf(c.edad_media, 1)}<span>${UNI}años</span></b><i>Edad media</i><em></em></div>
@@ -1589,7 +1630,7 @@ function abrirPresentacion() {
      <div class="pres-logos">${logotipos()}</div>`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
-     <p class="pres-fuente">${esc(textoFuente('evolucion'))}</p>`,
+     <p class="pres-fuente">${esc(textoFuente(claveEvolucion(ENT)))}</p>`,
     `<h2 id="pres-titulo-pir">Estructura de la población · ${esc(P.vistas[0].etiqueta)}</h2>
      <div class="pres-pir"><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1200" height="750"')}</figure>
      <div class="leyenda" id="pres-leyenda"></div><p class="pres-fuente" id="pres-fuente-pir">${esc(textoFuente('piramide'))}</p></div>`,
@@ -1609,7 +1650,7 @@ function abrirPresentacion() {
   cont.innerHTML = `<div class="pres-escenario">${capas.map((h, k) => `<section class="pres-diapo${k === 0 ? ' activa' : ''}">${h}</section>`).join('')}</div>
     <button class="pres-zona izq" type="button" aria-label="Anterior"></button><button class="pres-zona der" type="button" aria-label="Siguiente"></button>
     <button class="pres-cerrar" type="button" aria-label="Salir de la presentación">${icono('cerrar', 20)}</button>
-    <span class="pres-contador" id="pres-contador">1 / 6</span>`;
+    <span class="pres-contador" id="pres-contador">1 / 6</span><span class="oculto" id="pres-anuncio" aria-live="polite"></span>`;
   // inert deja el fondo fuera del teclado; aria-hidden lo deja fuera del lector de pantalla donde inert no existe.
   PRES.fondo = [...document.body.children].map((e) => [e, e.inert, e.getAttribute('aria-hidden')]);
   PRES.fondo.forEach(([e]) => { e.inert = true; e.setAttribute('aria-hidden', 'true'); });
@@ -1725,7 +1766,7 @@ async function iniciar() {
   document.getElementById('btn-presentar').addEventListener('click', abrirPresentacion);
   conectarCompartir();
 
-  // La geometría de los mapas pesa 258 KB y no bloquea la ficha: se pide a la
+  // La geometría de los mapas pesa 207 KB y no bloquea la ficha: se pide a la
   // vez que el índice y los mapas se dibujan cuando llega. Si falla, se ofrece
   // reintentar sin tocar el resto de la ficha.
   const pedirGeo = () => leerJSON('datos/geo/municipios.json').then((geo) => {
@@ -1745,7 +1786,7 @@ async function iniciar() {
   }
   avisoCarga('estado-ficha');   // la ficha aún no está: el aviso de los mapas, si lo hay, sale al pintarla
 
-  for (const p of INDICE.provincias || []) {
+  for (const p of INDICE.provincias) {
     for (const slug of p.islas) PROVINCIA_DE[(INDICE.islas_resumen.find((i) => i.slug === slug) || {}).nombre] = p.nombre;
   }
 
@@ -1754,9 +1795,9 @@ async function iniciar() {
   const sel = document.getElementById('sel-municipio');
   sel.innerHTML = `<optgroup label="Canarias">
       <option value="canarias">Canarias · todo el archipiélago</option>
-      ${(INDICE.provincias || []).map((p) => `<option value="provincia:${p.slug}">Provincia de ${esc(p.nombre)}</option>`).join('')}
+      ${INDICE.provincias.map((p) => `<option value="provincia:${p.slug}">Provincia de ${esc(p.nombre)}</option>`).join('')}
     </optgroup>` + Object.entries(INDICE.islas).map(([isla, muns]) => {
-    const i = (INDICE.islas_resumen || []).find((x) => x.nombre === isla);
+    const i = INDICE.islas_resumen.find((x) => x.nombre === isla);
     return `<optgroup label="${esc(isla)}">`
       + (i ? `<option value="isla:${i.slug}">${esc(isla)} · toda la isla</option>` : '')
       + muns.map((n) => {
@@ -1774,8 +1815,8 @@ async function iniciar() {
   const pedidoCan = params.has('canarias') || /\/r\/canarias\.html$/.test(location.pathname);
   let inicial = '38038';
   if (pedidoCan) inicial = 'canarias';
-  else if (pedidoProv && (INDICE.provincias || []).some((p) => p.slug === pedidoProv)) inicial = `provincia:${pedidoProv}`;
-  else if (pedidoIsla && (INDICE.islas_resumen || []).some((i) => i.slug === pedidoIsla)) inicial = `isla:${pedidoIsla}`;
+  else if (pedidoProv && INDICE.provincias.some((p) => p.slug === pedidoProv)) inicial = `provincia:${pedidoProv}`;
+  else if (pedidoIsla && INDICE.islas_resumen.some((i) => i.slug === pedidoIsla)) inicial = `isla:${pedidoIsla}`;
   else if (INDICE.municipios.some((m) => String(m.codmun) === pedidoMun)) inicial = pedidoMun;
   sel.value = inicial;
   sel.addEventListener('change', () => cargar(sel.value));

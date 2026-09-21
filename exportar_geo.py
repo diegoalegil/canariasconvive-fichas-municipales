@@ -17,7 +17,7 @@ SALIDA = Path(__file__).parent / "web" / "datos"
 # 200 px de ancho: a escala de archipiélago 1 px son ~2,5 km, y a escala de
 # comarca unos 50 m. 60 m mantiene el detalle a la escala mayor.
 TOLERANCIA = 60
-DECIMALES = 0          # metros enteros: el error es < 1 px a cualquier escala
+DECIMALES = 0          # metros enteros: el error es < 1 px a cualquier escala (y sin «.0»: 46 KB menos)
 
 
 def _norm(s):
@@ -113,6 +113,12 @@ def _simplificar(pts, tol):
     return [p for p, g in zip(pts, guardar) if g]
 
 
+def _coord(v):
+    """Una coordenada redondeada a DECIMALES; entera si son cero, para que el JSON no escriba «.0»."""
+    r = round(v, DECIMALES)
+    return int(r) if DECIMALES == 0 else r
+
+
 def _limpiar(anillo, tol):
     """Simplifica un anillo y lo cierra. None si degenera en menos de 4 puntos."""
     a = _simplificar(anillo, tol)
@@ -120,7 +126,7 @@ def _limpiar(anillo, tol):
         return None
     if a[0] != a[-1]:
         a.append(a[0])
-    return [[round(x, DECIMALES), round(y, DECIMALES)] for x, y in a]
+    return [[_coord(x), _coord(y)] for x, y in a]
 
 
 # ----------------------------------------------------------------- carga ---
@@ -169,7 +175,7 @@ def main():
                 "nombre": nombre,
                 "isla": ISLA_DE[nombre],
                 "comarca": COMARCA_DE[nombre],
-                "bbox": [min(xs), min(ys), max(xs), max(ys)],
+                "bbox": [_coord(min(xs)), _coord(min(ys)), _coord(max(xs)), _coord(max(ys))],
             },
             "geometry": {"type": "MultiPolygon", "coordinates": limpios},
         })

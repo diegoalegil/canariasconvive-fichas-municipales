@@ -180,8 +180,12 @@ select {
   border-bottom: 1px solid var(--linea);
   color: var(--azul);
 }
+/* Los iconos los pone JavaScript (montarIconos): hasta que llegan, un hueco del
+   mismo tamaño evita que el rótulo y el botón salten. */
+.rotulo[data-ico]:not(:has(> .ico))::before { content: ""; flex: none; width: 26px; height: 26px; margin-top: 1px; }
+.btn[data-ico]:not(:has(> .ico))::before { content: ""; flex: none; width: 15px; height: 15px; }
 .rotulo .ico { margin-top: 1px; }
-.rotulo h2 {
+.rotulo h2, .rotulo h3 {
   font-size: 17px; font-weight: 600; letter-spacing: -.005em;
   line-height: 1.25; color: var(--negro);
 }
@@ -201,7 +205,7 @@ select {
   background: var(--azul); border-bottom: none;
   padding: 18px var(--e-5); color: #fff;
 }
-.tarjeta.destacada .rotulo h2 { color: #fff; }
+.tarjeta.destacada .rotulo h2, .tarjeta.destacada .rotulo h3 { color: #fff; }
 .tarjeta.destacada .rotulo p { color: var(--azul-sobre); }
 
 /* -------------------------------------------------------- cifras clave ----- */
@@ -355,7 +359,7 @@ select {
 .anillos { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 26px; }
 .anillos.uno { grid-template-columns: minmax(200px, 320px); justify-content: center; }
 .anillo { text-align: center; }
-.anillo h3 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
+.anillo h3, .anillo h4 { font-size: 12.5px; font-weight: 700; margin-bottom: 3px; }
 .anillo svg { margin: 0 auto; }
 .reparto { display: grid; gap: 5px; margin-top: var(--e-3); font-size: 11.5px; }
 .reparto div { display: grid; grid-template-columns: 11px 1fr auto; gap: var(--e-2); align-items: center; }
@@ -438,7 +442,7 @@ select {
 }
 .buscador {
   position: relative;
-  width: 320px; display: flex; align-items: center; gap: var(--e-3);
+  width: 390px;   /* el texto de ayuda cabe entero */ display: flex; align-items: center; gap: var(--e-3);
   background: var(--fondo); border: 1px solid var(--linea);
   border-radius: var(--r-2); padding: 0 var(--e-4); height: 46px;
   color: var(--gris);
@@ -475,6 +479,9 @@ select {
 .desplegable .toda span { display: block; font-weight: 700; }
 .desplegable .toda em { display: block; font-size: 11.5px; color: var(--azul-sobre); white-space: normal; }
 .desplegable .toda:hover, .desplegable .toda:focus { background: var(--azul-medio); color: #fff; box-shadow: none; }
+/* Con foco (o el ratón), la barra de las demás opciones pero en blanco; y la cifra en blanco, que en azul claro no llegaba al contraste. */
+.desplegable .toda:hover, .desplegable .toda:focus, .desplegable .toda.activa { box-shadow: inset 3px 0 0 #fff; }
+.desplegable .toda:hover em, .desplegable .toda:focus em, .desplegable .toda.activa em { color: #fff; }
 .isla-menu .desplegable { height: 292px; }
 
 /* ------------------------------------------------------- archipiélago ------ */
@@ -581,6 +588,7 @@ select {
 .frac .num { padding: 0 .8em .3em; }
 .frac .den { padding: .3em .8em 0; border-top: 2px solid var(--azul); }
 .frm .coda { font-weight: 600; white-space: nowrap; }
+.frm .cor { display: inline-flex; align-items: center; gap: .25em; }   /* los corchetes abrazan la fracción y el exponente (guia.js, TVMA) */
 .frm sup { align-self: flex-start; font-size: .7em; line-height: 1; margin-left: -.35em; }   /* el exponente, arriba */
 
 /* ---------------------------------------------------------- comparador ----- */
@@ -640,9 +648,9 @@ select {
 .cmp-col p { font-size: 12px; color: var(--gris); margin: 3px 0 var(--e-3); }
 .cmp-col p b { color: var(--negro); font-weight: 700; font-size: 15px; }
 .cmp-col svg { margin: 0 auto; }
-/* Los tres desplegables caben en una fila con la marca: anchos fijos (el nombre elegido se recorta). */
+/* Los dos desplegables caben en una fila con la marca: anchos fijos (el nombre elegido se recorta). */
 .cmp-barra .marca { margin-right: 0; }
-.cmp-barra select { width: 175px; min-width: 0; }
+.cmp-barra select { width: 180px; min-width: 0; }
 @media (max-width: 1100px) { .cmp-barra .marca span { display: none; } }
 .cmp-barra .btn-liso { margin-left: auto; }
 
@@ -670,7 +678,6 @@ select {
   /* La tabla se apila y cada valor lleva escrito su municipio; la cabecera
      queda solo para el lector de pantalla. */
   .cmp-tabla, .cmp-tabla tbody, .cmp-tabla tr, .cmp-tabla th { display: block; width: auto; }
-  .cmp-tabla td.cmp-val { display: grid; width: auto; }
   .cmp-tabla thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .cmp-rot { border-bottom: 0; padding: var(--e-4) 0 var(--e-2); }
   .cmp-val {
@@ -684,7 +691,7 @@ select {
     font-size: 12px; font-weight: 600; color: var(--gris);
     letter-spacing: 0; font-variant-numeric: normal;
   }
-  .cmp-val em { grid-column: 2; text-align: right; margin-top: 0; }
+  .cmp-val em { text-align: right; margin-top: 0; }
   .cmp-elegidos-caja { flex-direction: column; align-items: flex-start; }
   .cmp-apilada { grid-template-columns: 1fr auto; }
   .cmp-apilada svg { grid-column: 1 / -1; }
@@ -747,6 +754,9 @@ select {
   .buscador { width: 100%; }
 }
 @media (max-width: 460px) {
+  /* El rótulo de provincia: la cuenta de islas y habitantes entera, en una segunda línea (recortada salía «4 isl…»). */
+  .provincia-cab { flex-wrap: wrap; }
+  .provincia-cab > span { flex-basis: 100%; white-space: normal; overflow: visible; text-overflow: clip; order: 1; }
   /* Los tres logotipos caben en una fila hasta 320 px de ancho. */
   .tapa-marca .placa { gap: 14px; padding: 8px 12px; }
   .tapa-marca img { height: 28px; }
@@ -762,6 +772,9 @@ select {
 }
 @media (max-width: 620px) {
   .marca span { display: none; }
+  /* Comparador: el grupo Municipios · Islas · Provincias baja bajo el título (a 320 px se pisaban). */
+  .titular:has(.cmp-modo) { flex-wrap: wrap; }
+  .cmp-modo { justify-content: flex-start; }
   /* En móvil los botones de la barra se quedan en su icono (el nombre accesible va en aria-label). */
   .barra .btn-liso span { display: none; }
   .barra .btn-liso.confirmado span { display: inline; }
@@ -849,7 +862,7 @@ body.presentando { overflow: hidden; }
 .pres-anio { font-size: 96px; font-weight: 700; color: var(--azul-anio); letter-spacing: -.03em; line-height: 1; }
 .pres-hab { margin-top: 40px; }
 .pres-hab b { font-size: 64px; font-weight: 400; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.pres-hab span { font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-left: 16px; }
+.pres-hab span { font-size: 22px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gris); margin-left: 12px; }
 .pres-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px; margin-top: 72px; border-top: 3px solid var(--azul); padding-top: 40px; }
 .pres-cifras b { display: block; font-size: 72px; font-weight: 600; color: var(--azul); letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
 .pres-cifras b span { font-size: .42em; }
@@ -871,6 +884,7 @@ body.presentando { overflow: hidden; }
 .pres-indices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 120px; }
 .pres-indices .indice-tit { margin-bottom: 24px; }
 .pres-indices .indice-tit b { font-size: 34px; }
+.pres-indices-isla .indice-tit b { font-size: 30px; }   /* «Reemplazo laboral» en una línea: las cuatro escaleras arrancan a la misma altura */
 .pres-indices .indice-tit em { font-size: 20px; }
 .pres-indices .escala { gap: 16px; }
 .pres-indices .peldano span { font-size: 20px; min-height: 0; }
@@ -900,6 +914,10 @@ body.presentando { overflow: hidden; }
 @media print {
   #presentacion { display: none !important; }
   .fantasma, .aviso-carga { display: none !important; }
+  /* La guía y el comparador no tienen maqueta de papel; impresos a mano, que se lean. */
+  .guia-indice { display: none; }
+  .cabecera .cmp-intro, .cabecera .cmp-cuenta { color: var(--azul-sobre); }
+  .cabecera .cmp-ficha b { color: #fff; }
   /* La fuente de cada gráfico sí se imprime, en el cuerpo más pequeño de la hoja;
      los tres logotipos van en una placa blanca centrada a la derecha de la cabecera. */
   .fuente-grafico { margin: .6mm 0 0; font-size: 6pt; line-height: 1.2; color: var(--gris); }
@@ -948,11 +966,11 @@ body.presentando { overflow: hidden; }
   }
   .rotulo { padding: 1.6mm 3mm 1mm; border-bottom: 0; gap: 1.6mm; }
   .rotulo .ico { width: 3.4mm; height: 3.4mm; }
-  .rotulo h2 { font-size: 8.5pt; }
+  .rotulo h2, .rotulo h3 { font-size: 8.5pt; }
   .rotulo p { font-size: 6.5pt; margin-top: .3mm; }
   .cuerpo { padding: 0 3mm 1.2mm; }
   .tarjeta.destacada .rotulo { background: transparent; color: var(--azul); padding: 1.6mm 3mm 1mm; }
-  .tarjeta.destacada .rotulo h2 { color: var(--negro); }
+  .tarjeta.destacada .rotulo h2, .tarjeta.destacada .rotulo h3 { color: var(--negro); }
   .tarjeta.destacada .rotulo p { color: var(--gris); }
 
   /* Cifras clave: filete azul superior y cuatro columnas, sin caja. */
@@ -970,7 +988,7 @@ body.presentando { overflow: hidden; }
 
   /* Ficha de isla: el mapa cede sitio a la lista de municipios (3/9 en vez de
      5/7), los índices van a dos columnas dentro de su tarjeta y la lista, en el
-     cuerpo más pequeño de la hoja y sin la columna del peso, que no cabe. */
+     cuerpo más pequeño de la hoja, con la columna del peso a 4,8 pt. */
   .tarjeta.entorno-isla { grid-column: span 3; }
   .tarjeta.municipios-isla { grid-column: span 9; }
   /* La lista de municipios de la provincia no va en la hoja: el índice del dossier la tiene. */
@@ -978,7 +996,7 @@ body.presentando { overflow: hidden; }
   /* Canarias: las dos provincias debajo del mapa piden una tarjeta algo más ancha. */
   .tarjeta.entorno-canarias { grid-column: span 4; }
   .tarjeta.municipios-canarias { grid-column: span 8; }
-  #g-provincias:not(:empty) { margin-top: 1.5mm; }
+  #g-provincias:not(:empty), .lista-provincias { margin-top: 1.5mm; }
   .lista-mun .tono { width: 1.6mm; height: 1.6mm; margin-right: .8mm; }
   .anillos.uno { grid-template-columns: 1fr; justify-items: center; }
   .indices-isla { columns: 2; column-gap: 3mm; }
@@ -1013,7 +1031,7 @@ body.presentando { overflow: hidden; }
   .escala { gap: 1.4mm; }
 
   .anillos { grid-template-columns: repeat(2, 1fr); gap: 4mm; }
-  .anillo h3 { font-size: 7pt; }
+  .anillo h3, .anillo h4 { font-size: 7pt; }
   .reparto { gap: .5mm; margin-top: 1.2mm; font-size: 6.5pt; }
   .nota { font-size: 6.5pt; margin-top: 1.4mm; }
 }

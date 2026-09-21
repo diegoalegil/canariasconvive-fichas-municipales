@@ -3,16 +3,21 @@
    los enunciados son los de Pedro. */
 
 /* ------------------------------------------------------------- fórmulas --- */
-/** División con barra horizontal; `coda` es lo que va detrás (× 100). */
+/** La barra de dividir, sola. */
+function quebrado(arriba, abajo) {
+  return `<span class="frac"><span class="num">${esc(arriba)}</span><span class="den">${esc(abajo)}</span></span>`;
+}
+/** División con barra horizontal; `coda` es lo que va detrás (× 100). Cada
+ *  fórmula se lee en palabras (role="img" con su aria-label). */
 function fraccion(arriba, abajo, coda = '') {
-  return `<span class="frm">
-    <span class="frac"><span class="num">${esc(arriba)}</span><span class="den">${esc(abajo)}</span></span>
+  return `<span class="frm" role="img" aria-label="${esc(arriba)} dividido entre ${esc(abajo)}${coda ? ', por cien' : ''}">
+    ${quebrado(arriba, abajo)}
     ${coda ? `<span class="coda">${esc(coda)}</span>` : ''}
   </span>`;
 }
 /** Resta, para los dos componentes del cambio. */
 function resta(a, b) {
-  return `<span class="frm"><span>${esc(a)}</span><span class="coda">\u2212</span><span>${esc(b)}</span></span>`;
+  return `<span class="frm" role="img" aria-label="${esc(a)} menos ${esc(b)}"><span>${esc(a)}</span><span class="coda">\u2212</span><span>${esc(b)}</span></span>`;
 }
 
 /* ----------------------------------------------------------- indicadores --- */
@@ -20,8 +25,10 @@ const INDICADORES = [
   {
     id: 'tvma', ico: 'variacion', nombre: 'Variación media anual',
     unidad: 'Se expresa en porcentaje anual',
-    mide: 'Ritmo constante al que habría crecido la población cada año para pasar de la cifra inicial a la final. n es el número de años transcurridos.',
-    formula: `<span class="frm" role="img" aria-label="Población final dividida por población inicial, elevada a uno partido por n; menos uno, por cien">[${fraccion('Población final', 'Población inicial')}<sup>1/n</sup> − 1] × 100</span>`,
+    mide: 'Ritmo constante al que habría crecido la población cada año para pasar de la cifra inicial a la final.',
+    nota: 'n es el número de años transcurridos.',   // solo en la guía, que es donde se ve la n; el dossier imprime la definición sin fórmula
+    // Los corchetes abrazan la fracción y el exponente; el × 100 va en el mismo peso que en las demás.
+    formula: `<span class="frm" role="img" aria-label="Población final dividida por población inicial, elevada a uno partido por n; menos uno, por cien"><span class="cor">[${quebrado('Población final', 'Población inicial')}<sup>1/n</sup> − 1]</span><span class="coda">× 100</span></span>`,
   },
   {
     id: 'envejecimiento', ico: 'edad', nombre: 'Índice de envejecimiento',
@@ -85,7 +92,7 @@ function pintarGuia() {
         <div><h2>${esc(x.nombre)}</h2><p>${esc(x.unidad)}</p></div>
       </header>
       <div class="cuerpo">
-        <p class="guia-mide">${esc(x.mide)}</p>
+        <p class="guia-mide">${esc(x.mide)}${x.nota ? ` ${esc(x.nota)}` : ''}</p>
         ${x.formula ? `<div class="guia-formula">${x.formula}</div>` : ''}
       </div>
     </section>`).join('');

@@ -56,6 +56,9 @@ cuatro cabeceras y la placa de `ficha.html`, y ejecutar
 Hacen falta `pandas`, `numpy`, `openpyxl` y, para las tarjetas, `Pillow`
 (`pip install -r requirements.txt`). El notebook necesita además `geopandas`;
 estos scripts no: la geometría se lee del GeoPackage con `sqlite3`.
+`generar_tarjetas.py` necesita macOS: compone las tarjetas con Avenir Next
+del sistema (en otro sistema, añadir en `FAMILIAS` la ruta de una tipografía
+TTF instalada); si no la encuentra, se detiene antes de reescribir nada.
 
 ```bash
 python3 exportar_datos.py    # Excel      -> web/datos/mun/<codINE>.json, isla/<isla>.json, provincia/<provincia>.json, canarias.json + indice.json
@@ -85,26 +88,27 @@ así hay que mirarlo, no etiquetarlo a ciegas. La única excepción que corrige 
 mismo, avisando, es la de dos islas con las columnas cambiadas (ver Los
 datos).
 
-La URL pública está en un solo sitio, `sitio.json`: de ahí salen las canónicas
-y las etiquetas `og:` de las cinco páginas, los envoltorios de `web/m/`, el
-enlace de vuelta de las páginas de aviso y `web/config.js`, que se la da al
-JavaScript para el botón de compartir. En `sitio.json` van también los
-orígenes que pueden enmarcar la web (`origenes_iframe`). Mudar el sitio de
-alojamiento es cambiar ese fichero y volver a ejecutar `generar_tarjetas.py`;
-`pruebas/invariantes.py` ensaya esa mudanza con una URL ficticia y comprueba
-que no queda ninguna referencia al dominio anterior.
+La URL pública está en un solo sitio, `sitio.json`: de ahí salen las
+canónicas y las etiquetas `og:` de las cinco páginas, los envoltorios de
+`web/m/`, `web/i/`, `web/p/` y `web/r/`, el enlace de vuelta de las páginas
+de aviso y `web/config.js`, que se la da al JavaScript para el botón de
+compartir. En `sitio.json` van también los orígenes que pueden enmarcar la
+web (`origenes_iframe`). Mudar el sitio de alojamiento es cambiar ese fichero
+y volver a ejecutar `generar_tarjetas.py`; `pruebas/invariantes.py` ensaya
+esa mudanza con una URL ficticia y comprueba que no queda ninguna referencia
+al dominio anterior.
 
 ## Qué hay
 
 ```
 exportar_datos.py    Excel -> 88 JSON municipales, 7 insulares, 2 provinciales y el de Canarias (unos 4 KB cada uno) + indice.json
-exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 252 KB)
+exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 207 KB)
 generar_tarjetas.py  las 99 tarjetas de vista previa, los envoltorios de web/m/, web/i/, web/p/ y web/r/, y web/config.js
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook; las dos provincias
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública, los orígenes que pueden enmarcar la web y los tres logotipos, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
-pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; y medir-papel.cjs, las medidas de la A4 y del dossier
+pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
 web/index.html       portada: buscador, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
@@ -141,7 +145,7 @@ grupos de edad de las hojas `C8M` (0-14, 15-64, 65 y más) y `C13M` (15-19,
 | Índice | Celda | Definición | Escala en la ficha |
 |---|---|---|---|
 | C10 Envejecimiento | `C10M!C27` | (65 y más) / (0-14) | razón |
-| C11 Juventud | `C11M!C27` | (0-14) / (15-64) | el libro guarda la razón; la ficha la multiplica por cien |
+| C11 Juventud | `C11M!C27` | (0-14) / (15-64) | el libro guarda la razón; el exportador la multiplica por cien |
 | C17 Dependencia | `C17M!C27` | (0-14 y 65 y más) / (15-64) × 100 | por cien |
 | C14 Reemplazo laboral | `C14M!C27` | (15-19) / (60-64) × 100 | por cien |
 
@@ -150,8 +154,9 @@ grupos de edad de las hojas `C8M` (0-14, 15-64, 65 y más) y `C13M` (15-19,
 
 **Ojo con juventud.** No es el porcentaje de menores de 15 sobre la población
 —eso sería un 10,3 % en Santa Cruz— sino menores de 15 por cada cien personas
-de 15 a 64, que da 15,0. La ficha lo rotula con un `%` que puede inducir a esa
-lectura; la guía lo advierte de forma expresa.
+de 15 a 64, que da 15,0. La ficha lo rotula con un `%` que puede inducir a
+esa lectura; la guía lo define como menores de 15 por cada cien personas de
+15 a 64, con su fórmula.
 
 **Cifras clave: cuatro.** Variación media anual, edad media, mujeres y
 hombres, en municipios y en islas. La edad media no está en el libro: se
@@ -253,16 +258,17 @@ directo a la web no se puede impedir ni conviene: es público.
 
 **Política de contenido.** Cada página lleva una `Content-Security-Policy`
 por `<meta>` (GitHub Pages no admite cabeceras): solo scripts, datos y
-tipografía de la propia web, ningún objeto ni formulario, y nada en línea,
-ni manejadores ni scripts (los envoltorios `m/` e `i/` permiten solo su
-script de redirección, por la huella sha256 que `generar_tarjetas.py`
-calcula). Los estilos en línea sí se permiten: los gráficos los llevan.
-`pruebas/invariantes.py` comprueba que las siete páginas y los envoltorios
-la llevan y que no queda ningún manejador en línea, y la batería fallaría
-con cualquier recurso que la política bloquease. Las acciones del workflow
-van fijadas por commit, con la versión en el comentario.
+tipografía de la propia web, ningún objeto ni formulario, y nada en línea, ni
+manejadores ni scripts (los envoltorios `m/`, `i/`, `p/` y `r/` permiten solo
+su script de redirección, por la huella sha256 que `generar_tarjetas.py`
+calcula). Los estilos en línea sí se permiten: los gráficos los llevan;
+ninguna página usa `<base>`, así que `base-uri` va a `'none'`.
+`pruebas/invariantes.py` comprueba que las siete páginas y los envoltorios la
+llevan y que no queda ningún manejador en línea, y la batería fallaría con
+cualquier recurso que la política bloquease. Las acciones del workflow van
+fijadas por commit, con la versión en el comentario.
 
-**La ficha no espera a los mapas.** La geometría de los mapas pesa 252 KB y
+**La ficha no espera a los mapas.** La geometría de los mapas pesa 207 KB y
 se pide a la vez que el índice; la ficha se pinta con sus 4 KB en cuanto
 llegan, con un hueco del tamaño de cada mapa y su pie, y los mapas se
 dibujan en cuanto llega la geometría, sin que nada salte. Si falla, la
@@ -366,7 +372,7 @@ encima del máximo; por encima del 40 % (doce municipios) se rotulan los
 múltiplos de 10 y el tope, sin el múltiplo anterior si queda pegado. La cifra
 del último año se coloca por encima de la línea de Canarias cuando esta pasa
 por ahí. Para el lector de pantalla, una tabla oculta lleva la serie entera;
-la de componentes del cambio, igual.
+la de componentes, la evolución y la pirámide (la pestaña activa), igual.
 
 **Componentes del cambio.** Crecimiento vegetativo y saldo migratorio desde
 2002, que es donde arranca la serie del saldo; el eje temporal va cada dos
@@ -477,8 +483,12 @@ anillos de origen extranjero van de un solo azul, porque es una sola
 magnitud, y de mayor a menor. Con el mismo código se comparan hasta tres
 islas (`comparar.html?i=tenerife,gran-canaria`) o las dos provincias
 (`comparar.html?provincias`, que las carga las dos de golpe; `?p=las-palmas`
-deja una): un conmutador en la cabecera pasa de municipios a islas o a
-provincias y vacía la comparación, porque los ámbitos no se mezclan nunca.
+deja una, y la cuenta dice «de 2», que son las que hay): un conmutador en la
+cabecera pasa de municipios a islas o a provincias y vacía la comparación,
+porque los ámbitos no se mezclan nunca. Las pirámides llevan, para el lector
+de pantalla, una tabla oculta con las mismas cifras; lo ya elegido se apaga
+en el desplegable; y la cuenta («2 de 3 · 1 cargando») es una región de
+estado.
 
 **Un solo orden de islas y de provincias**, de oeste a este, que fija
 `exportar_datos.py` en `indice.json` y heredan la portada, los selectores de
@@ -516,10 +526,12 @@ es una A4 y nada más, con la fuente de cada gráfico al pie de su tarjeta y, a
 la derecha de la cabecera azul, una placa blanca con los tres logotipos
 (Pedro). Los límites municipales de los mapas van más gruesos en papel; los
 pies de los mapas, los rótulos de los índices y las notas van a 6,5 pt, y la
-línea de fuente de cada gráfico, la letra más pequeña de la hoja, a 6 pt (a
-6,5 la hoja de isla del dossier se salía). Medido en la versión publicada:
-las 88 fichas miden 271,7 mm de los 281 disponibles (272,6 en El Pinar y
-Frontera, por su nota de 2007), y la hoja más alta del dossier, 292,4 de 297.
+línea de fuente de cada gráfico, el texto más pequeño de la hoja municipal,
+a 6 pt (a 6,5 la hoja de isla del dossier se salía); dentro de los gráficos,
+los ejes y los años van a 4,875 pt. Medido en la
+versión publicada: las 88 fichas miden 271,6 mm de los 281 disponibles (272,5
+en El Pinar y Frontera, por su nota de 2007), y la hoja más alta del dossier,
+292,1 de 297.
 Las medidas salen de `pruebas/medir-papel.cjs`, que recorre las 98 fichas en
 la A4 y las 101 hojas del dossier con la altura libre.
 
@@ -528,24 +540,29 @@ tarjeta del mapa cede sitio a la lista de municipios (3/9 de la retícula en
 vez de 4/8) y lleva solo el mapa de Canarias, la lista va en cuatro columnas
 para Tenerife y Gran Canaria (tres o dos para las demás) con sus tres
 cifras, y los índices van a dos columnas dentro de su tarjeta. Las siete
-miden 275,6 mm; la letra más pequeña, la de esa lista, 5,2 pt. La de
+miden entre 275,2 y 275,5 mm (Tenerife); en esa lista el nombre y la cifra
+de habitantes van a 5,2 pt, y el ordinal y el peso a 4,8, el texto más
+pequeño de la hoja. La de
 Canarias mide 262,3 mm (la tarjeta de sus provincias es algo más ancha, 4/8,
 para que el nombre de Santa Cruz de Tenerife quepa en una línea) y las dos de
-provincia, 271,5: en el papel la provincia lista sus islas, no sus
+provincia, 271,4: en el papel la provincia lista sus islas, no sus
 municipios, que ya están en el índice del dossier.
 
 El dossier (`dossier.html`) compone las 101 hojas —portada, guía de uso,
 índice, Canarias y, por cada provincia, su ficha seguida de las de sus islas,
 cada una con una hoja por municipio— con las reglas de impresión de
 `estilos.css`, que copia en caliente, y los mismos gráficos que la ficha, con
-la misma placa en la cabecera de cada hoja y el nombre a 17 pt, como en la
-ficha suelta (a 19 pt, con la placa al lado, «Santa María de Guía de Gran
-Canaria» pasaba a dos líneas y la hoja se salía). La ficha de la provincia y
-la de la isla hacen de portada de su grupo, y el índice lleva la hoja de
-Canarias, de cada provincia, de cada isla y de cada municipio (la segunda
-provincia abre columna). Las hojas de isla miden 291,8 mm de 297; la de
-Canarias, 276,5; las de provincia, 285,5. Las 98 fichas se piden a la vez y
-lo que falle se vuelve a pedir hasta dos veces antes de dar el error.
+la misma placa en la cabecera de cada hoja, las listas de territorios sin
+enlaces (en papel no sirven y en pantalla eran objetivos de 9 px), la hoja de
+guía con las definiciones sin fórmula (por eso omite la «n» de la variación
+media anual) y el nombre a 17 pt, como en la ficha suelta (a 19 pt, con la
+placa al lado, «Santa María de Guía de Gran Canaria» pasaba a dos líneas y la
+hoja se salía). La ficha de la provincia y la de la isla hacen de portada de
+su grupo, y el índice lleva la hoja de Canarias, de cada provincia, de cada
+isla y de cada municipio (la segunda provincia abre columna). Las hojas de
+isla miden 291,6 mm de 297; la de Canarias, 278,1; las de provincia, 285,2.
+Las 98 fichas se piden a la vez y lo que falle se vuelve a pedir hasta dos
+veces antes de dar el error.
 
 ## Verificación
 
@@ -553,10 +570,15 @@ La batería está en `pruebas/` y corre antes de cada publicación (la acción d
 GitHub no despliega si falla):
 
 ```bash
-python3 -m pip install -r requirements.txt   # una vez
-npm ci && npx playwright install chromium     # una vez
+python3 -m pip install -r requirements.txt       # una vez
+npm ci && npx playwright install chromium webkit  # una vez
 npm test
 ```
+
+`python3` tiene que ser el que lleve `pandas` y `openpyxl`; si el del PATH
+no es ese (en este Mac es el de Homebrew, que no deja instalar paquetes
+fuera de un entorno virtual), `PYTHON=/usr/bin/python3 npm test`. Hace falta
+Node 20 o superior (la acción usa 22).
 
 - `pruebas/invariantes.py` (solo biblioteca estándar): 88 municipios con
   código INE entero y su geometría; cada pirámide suma su población y las 88
@@ -581,8 +603,8 @@ npm test
   cabeceras y la placa del papel); las cinco cargan la misma versión de
   recursos y ningún recurso de terceros; ningún texto atribuye los datos al
   padrón; y una mudanza a una URL ficticia no deja rastro del dominio
-  anterior. - `pruebas/conciliar_excel.py`: 3.790 comparaciones contra el
-  libro, celda a celda —población, series, origen extranjero con el decimal
+  anterior.
+- `pruebas/conciliar_excel.py`: 3.790 comparaciones contra el libro, celda a celda —población, series, origen extranjero con el decimal
   que se muestra, componentes con sus anomalías, los cuatro índices en los
   tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el lugar de
   nacimiento en los 88 municipios; lo mismo en las siete islas contra las
@@ -590,8 +612,10 @@ npm test
   municipios y los años que el libro trae cambiados contados aparte; Canarias
   contra las hojas «R»; y cada provincia contra la suma de sus islas—.
   Necesita el Excel en `~/Downloads` (o en la ruta que se le pase) y
-  `openpyxl`; si falta cualquiera de los dos, se omite avisando. No corre en
-  GitHub porque el libro no está en el repositorio. - `pruebas/web.test.cjs` (Playwright, dieciocho casos): la última selección
+  `openpyxl`; sin el libro se omite avisando, que es lo que pasa en GitHub,
+  donde el libro no está; con el libro y sin `openpyxl` falla, porque en la
+  máquina que publica la conciliación tiene que correr.
+- `pruebas/web.test.cjs` (Playwright, dieciocho casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -657,18 +681,22 @@ npm test
   su grupo con la hoja de cada municipio en el índice, la pirámide de
   Canarias sin marco, la placa en cada hoja y sin hojas desbordadas.
 
-En GitHub corre en Chromium. En local, `MOTOR=webkit npm run test:web` pasa
-los mismos casos en el motor de Safari, salvo el de papel (`page.pdf` solo
-existe en Chromium); cubre, entre otras cosas, que Safari no da el foco a un
-botón al pulsarlo con el ratón, y sin él la presentación no devolvería el
-foco ni las listas de isla recibirían las teclas. Lo que la batería no cubre:
-los diálogos de impresión reales, un móvil físico, el `<iframe>` de WordPress
-(probado a mano desde otro origen: la ficha pinta y cambia su dirección sin
-error) y los rastreadores de vista previa. Dos herramientas más, fuera de la
-batería: `npm run medir` (`pruebas/medir-papel.cjs`) mide cuánto ocupa cada
-ficha en la A4 y cada hoja del dossier contra una web servida (por defecto,
-`http://localhost:8140/`), y `npm run humo` (`pruebas/humo.cjs`) recorre la
-web publicada tras cada despliegue: política de contenido y versión de
+Unas dieciséis aserciones llevan cifras del dato de 2025 (Puerto del Rosario
+«+3,1 %», los pesos de las listas del dossier, el eje de Tenerife…): con cada libro
+nuevo hay que refrescarlas después de exportar; las de La Oliva y Güímar se
+derivan del JSON y no. En GitHub corre en Chromium. En local, `MOTOR=webkit
+npm run test:web` pasa los mismos casos en el motor de Safari, salvo el de
+papel (`page.pdf` solo existe en Chromium); cubre, entre otras cosas, que
+Safari no da el foco a un botón al pulsarlo con el ratón, y sin él la
+presentación no devolvería el foco ni las listas de isla recibirían las
+teclas. Lo que la batería no cubre: los diálogos de impresión reales, un
+móvil físico, el `<iframe>` de WordPress (probado a mano desde otro origen:
+la ficha pinta y cambia su dirección sin error) y los rastreadores de vista
+previa. Dos herramientas más, fuera de la batería: `npm run medir`
+(`pruebas/medir-papel.cjs`) mide cuánto ocupa cada ficha en la A4 y cada hoja
+del dossier contra una web servida (por defecto, `http://localhost:8140/`), y
+`npm run humo` (`pruebas/humo.cjs`), que se lanza a mano después de cada
+publicación, recorre la web publicada: política de contenido y versión de
 recursos en las cinco páginas, los tres logotipos, los sobres, el comparador,
 la 404 y el dossier, sin errores de consola. Después de publicar conviene
 pasar `m/38038.html` por el depurador de compartir de Facebook o pegarlo en
@@ -703,8 +731,13 @@ anclas y el foco se colocan por debajo de la barra pegajosa, cuya altura real
 se mide. El contorno de foco de los gráficos no depende solo de
 `:focus-visible`; sobre la fila azul de la lista de municipios el contorno es
 blanco, y la pastilla de color de la provincia mayor (del mismo azul que la
-barra) lleva un anillo blanco para no fundirse con ella. Los avisos de carga
-y de error son regiones de estado en las cinco páginas. axe-core (WCAG 2.2
+barra) lleva un anillo blanco para no fundirse con ella; con foco, «Toda la
+isla» lleva la barra blanca y su cifra en blanco. Los avisos de carga y de
+error son regiones de estado en las cinco páginas, como «Enlace copiado», la
+cuenta del comparador, cuántos territorios encuentra el buscador y el cambio
+de diapositiva de la presentación; el bloque de índices con teclado es un
+grupo con nombre, cada fórmula de la guía se lee en palabras y los mapas
+dicen qué son. axe-core (WCAG 2.2
 AA) no señala ninguna violación en las cinco páginas a 320 y 1280 px, con
 desplegables, presentación y comparador abiertos, con una excepción que es
 decisión de Pedro: las cifras del lugar de nacimiento en el comparador van
@@ -761,21 +794,37 @@ cambiar el origen en los dos sitios del fragmento de arriba.
 
 **Sin GitHub, dentro del propio alojamiento.** La web es estática: no
 necesita servidor de aplicaciones ni base de datos, así que puede vivir en
-una carpeta del Plesk de canariasconvive.com (por ejemplo
-`httpdocs/fichas/`, que sería `https://canariasconvive.com/fichas/`) subida
-por el gestor de archivos o por SFTP, sin GitHub ni intermediarios. El
-procedimiento es el mismo: cambiar `sitio.json` a esa URL, ejecutar
-`generar_tarjetas.py`, pasar la batería en local y copiar `web/` entera.
-Lo que se pierde sin GitHub es la publicación automática con las pruebas
-delante: cada actualización de datos es exportar, probar y volver a copiar
-la carpeta a mano. Meter el código «dentro» de WordPress (en una página con
-el editor, o como plugin) no compensa: son cinco páginas, catorce scripts y
-hojas de estilo y doscientos ficheros de datos que WordPress y Divi
-reescribirían o servirían mal; la carpeta aparte y, si se quiere dentro de
-una página del sitio, el `<iframe>` de arriba es la integración limpia.
-Como repositorio, el código puede seguir en GitHub (en una cuenta de equipo
-de la empresa, con la misma acción de pruebas) aunque el alojamiento sea el
-Plesk: las dos cosas son independientes.
+una carpeta del Plesk de canariasconvive.com (por ejemplo `httpdocs/fichas/`,
+que sería `https://canariasconvive.com/fichas/`) subida por el gestor de
+archivos o por SFTP, sin GitHub ni intermediarios. El procedimiento es el
+mismo: cambiar `sitio.json` a esa URL, ejecutar `generar_tarjetas.py`, pasar
+la batería en local y copiar `web/` entera. En el Plesk hay que declarar la
+página de error (`ErrorDocument 404 /fichas/404.html` en un `.htaccess`
+dentro de `fichas/`, o en «Documentos de error» del panel) y comprobarlo
+abriendo `/fichas/no-existe.html`; si WordPress captura las rutas, la suya es
+la que sale. Lo que se pierde sin GitHub es la publicación automática con las
+pruebas delante: cada actualización de datos es exportar, probar y volver a
+copiar la carpeta a mano. Meter el código «dentro» de WordPress (en una
+página con el editor, o como plugin) no compensa: son cinco páginas, nueve
+scripts y dos hojas de estilo, un centenar de ficheros de datos y otros
+doscientos entre tarjetas y sobres, que WordPress y Divi reescribirían o
+servirían mal; la carpeta aparte y, si se quiere dentro de una página del
+sitio, el `<iframe>` de arriba es la integración limpia. Como repositorio, el
+código puede seguir en GitHub (en una cuenta de equipo de la empresa, con la
+misma acción de pruebas) aunque el alojamiento sea el Plesk: las dos cosas
+son independientes.
+
+**Pasar el repositorio a una organización de GitHub.** Crear la
+organización (plan gratuito: repositorios públicos con Pages y Actions),
+transferir el repositorio desde Settings › General › Transfer ownership
+(GitHub redirige la dirección antigua del repositorio, pero no la de la
+web), activar Pages en el repositorio transferido (Settings › Pages, origen
+«GitHub Actions») y, en local, cambiar `url_publica` en `sitio.json` a
+`https://<organización>.github.io/canariasconvive-fichas-municipales/`,
+ejecutar `generar_tarjetas.py`, pasar la batería (`invariantes.py` ensaya la
+mudanza) y hacer push: la primera acción publica en la dirección nueva. Los
+enlaces que ya circulen a la dirección antigua dejan de funcionar; conviene
+repartir la nueva a Pedro y a Alexis.
 
 ## Pendiente
 
