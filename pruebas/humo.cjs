@@ -27,9 +27,11 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   page.on('response', (r) => { if (r.status() >= 400 && !/favicon|no-existe/.test(r.url())) consola.push(`HTTP ${r.status()} ${r.url()}`); });
   const logosDe = (sel) => page.locator(sel).evaluateAll((is) => is.map((i) => i.alt + (i.complete && i.naturalWidth > 0 ? '' : ' (no carga)')));
 
-  // Las cinco páginas: política de contenido y versión de recursos.
+  // Las cinco páginas: política de contenido y versión de recursos. Cada una
+  // termina sus descargas antes de pasar a la siguiente: marcharse a mitad
+  // corta las peticiones y la portada anota un «Failed to fetch» que no es suyo.
   for (const p of ['index.html', 'ficha.html?municipio=38038', 'comparar.html', 'guia.html', 'dossier.html']) {
-    const respuesta = await page.goto(base + p);
+    const respuesta = await page.goto(base + p, { waitUntil: 'networkidle', timeout: 180000 });
     ok(respuesta.ok(), `${p} responde ${respuesta.status()}`);
     ok(await page.locator('meta[http-equiv="Content-Security-Policy"]').count() === 1, `${p} lleva su política de contenido`);
     ok(await page.evaluate((v) => [...document.scripts].filter((s) => s.src).every((s) => s.src.endsWith(`?v=${v}`)), version), `${p} carga los recursos v=${version}`);
