@@ -14,9 +14,11 @@ hojas, se contrastan con la suma de sus islas (el libro trajo Lanzarote y Fuerte
 2021 a 2025 hasta que Pedro lo corrigió el 16/9/2026; si volviera a pasar, el
 exportador lo corrige y aquí se cuentan los años corregidos)."""
 import json
+import math
 import sys
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP
+from fractions import Fraction
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -48,6 +50,29 @@ def check(a, b, donde):
 def mostrado(v):
     """Un decimal con el redondeo de la web (Intl, half-expand sobre el valor decimal)."""
     return str(Decimal(repr(float(v))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+
+def reparto_valido(publicado, vals):
+    """¿Cumple el reparto por lugar de nacimiento la regla de Pedro (22/9/2026)?
+    Un decimal y 100,0 justo; «Extranjero» con el redondeo de siempre, el del
+    último dato del gráfico de origen extranjero; Canarias y Resto de España por
+    el mayor resto, contado con aritmética exacta sobre las personas del libro
+    y no con el exportador: cada una es su décima por abajo o por arriba, y si
+    solo sube una, es la de mayor resto. En un empate exacto de restos vale
+    cualquiera de las dos, así que la prueba no depende del desempate."""
+    if len(publicado) != 3 or abs(sum(publicado) - 100) > 1e-9:
+        return False
+    if publicado[2] != round(vals[2] / sum(vals) * 100, 1):
+        return False
+    total = sum(Fraction(v) for v in vals)
+    exactas = [Fraction(v) * 1000 / total for v in vals[:2]]          # en décimas
+    suelos = [math.floor(e) for e in exactas]
+    dadas = [round(p * 10) for p in publicado[:2]]
+    if any(d not in (s, s + 1) or (d == s + 1 and e == s) for d, s, e in zip(dadas, suelos, exactas)):
+        return False
+    sube = [d > s for d, s in zip(dadas, suelos)]
+    restos = [e - s for e, s in zip(exactas, suelos)]
+    return sube[0] == sube[1] or restos[sube.index(True)] >= restos[sube.index(False)]
 
 
 def series(hoja):
@@ -107,7 +132,7 @@ for f in F:
     filas = list(W["C25M"].values)
     col = filas[0].index(mun)
     vals = filas[2][col:col + 3]
-    check(f["origen"]["municipio"], [round(v / sum(vals) * 100, 1) for v in vals], f"origen:{mun}")
+    check(reparto_valido(f["origen"]["municipio"], vals), True, f"origen:{mun}:{f['origen']['municipio']}")
 
 # ---- islas: las hojas «I», celda a celda ------------------------------------
 FI = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((RAIZ / "web/datos/isla").glob("*.json"))]
@@ -160,7 +185,7 @@ for f in FI:
     filas = list(W["C25I"].values)
     col = filas[0].index(isla)
     vals = filas[2][col:col + 3]
-    check(f["origen"]["isla"], [round(v / sum(vals) * 100, 1) for v in vals], f"isla_origen:{isla}")
+    check(reparto_valido(f["origen"]["isla"], vals), True, f"isla_origen:{isla}:{f['origen']['isla']}")
 
 # ---- Canarias: las hojas «R», celda a celda --------------------------------
 FC = json.loads((RAIZ / "web/datos/canarias.json").read_text(encoding="utf-8"))
@@ -186,7 +211,7 @@ for campo, hoja in [("", "C23R"), ("extranjera_", "C24R")]:
     for k, d in [("hombres", 0), ("mujeres", 1)]:
         check(FC["piramide"][campo + k], [r[2 + d] for r in filas[2:23]], f"canarias_piramide:{campo}{k}")
 vals = list(W["C25R"].values)[2][1:4]
-check(FC["origen"]["canarias"], [round(v / sum(vals) * 100, 1) for v in vals], "canarias_origen")
+check(reparto_valido(FC["origen"]["canarias"], vals), True, f"canarias_origen:{FC['origen']['canarias']}")
 check([i["nombre"] for i in FC["islas"]], [g["nombre"] for g in sorted(FI, key=lambda g: -g["poblacion"])], "canarias_islas")
 for i in FC["islas"]:
     check(i["peso"], round(i["poblacion"] / FC["poblacion"] * 100, 2), f"canarias_isla_peso:{i['nombre']}")
@@ -219,7 +244,7 @@ for f in FP:
             check(f["piramide"][campo + k], suma, f"provincia_piramide:{prov}:{campo}{k}")
     filas = list(W["C25I"].values)
     vals = [sum(filas[2][filas[0].index(i) + j] for i in nombres) for j in range(3)]
-    check(f["origen"]["provincia"], [round(v / sum(vals) * 100, 1) for v in vals], f"provincia_origen:{prov}")
+    check(reparto_valido(f["origen"]["provincia"], vals), True, f"provincia_origen:{prov}:{f['origen']['provincia']}")
     # Los índices, con las fórmulas del libro sobre la pirámide sumada (invariantes.py
     # comprueba la fórmula; aquí, que Canarias y sus islas son las de las hojas).
     for c, idx in f["indices"].items():

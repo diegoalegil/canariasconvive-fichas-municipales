@@ -455,7 +455,13 @@ al menor. Se probó antes un mapa grande del archipiélago con pestañas y un
 panel; Diego prefirió las tarjetas, más limpias y del mismo tamaño.
 
 **Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
-otro, con el reparto escrito debajo.
+otro, con el reparto escrito debajo. Las tres cifras llevan un decimal y suman
+100,0 justo (Pedro, 22/9): redondeadas por separado daban 99,9 o 100,1 en 34
+fichas y en la referencia de Canarias. «Extranjero» conserva su redondeo, que
+es el último dato del gráfico de origen extranjero, y la décima que sobra o
+falta la absorbe Canarias o Resto de España por el mayor resto
+(`reparto_cien`, en `exportar_datos.py`). La guía ya no dice que «suma cien»:
+el anillo lo enseña.
 
 **La fuente bajo cada gráfico.** Una línea «Fuente: …» al pie de cada gráfico,
 en pantalla, en la hoja y en el dossier, con la redacción que fijó Pedro para
@@ -595,9 +601,10 @@ Node 20 o superior (la acción usa 22).
   su lista de islas de mayor a menor, y sus envoltorios `p/` y `r/` con
   tarjeta; la TVMA es la de la serie sin redondeo intermedio; el último dato
   de origen extranjero se muestra igual que el del lugar de nacimiento y el
-  regional es el de `indice.json`; los repartos suman cien; los cuatro
-  índices están en los tres ámbitos; cada fuente de gráfico lleva el año de
-  referencia; las islas van de oeste a este; los 88 envoltorios llevan la
+  regional es el de `indice.json`; cada reparto por lugar de nacimiento suma
+  100,0 justo y la referencia de Canarias es la misma en las 98 fichas; los
+  cuatro índices están en los tres ámbitos; cada fuente de gráfico lleva el
+  año de referencia; las islas van de oeste a este; los 88 envoltorios llevan la
   población y el año de `indice.json`, su tarjeta `og` y la URL de
   `sitio.json` (igual que las canónicas y `og:` de las cinco páginas, la
   descripción de la portada, que lleva el año y el arranque de la serie, y

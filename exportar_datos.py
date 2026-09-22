@@ -344,6 +344,25 @@ def r2(v, dec=2):
     return float(v) if dec is None else round(float(v), dec)
 
 
+def reparto_cien(pct):
+    """Lugar de nacimiento con un decimal y sumando 100,0 (Pedro, 22/9/2026):
+    redondeados por separado, los tres daban 99,9 o 100,1 en 35 repartos.
+    «Extranjero» conserva su redondeo, que es el último dato de la serie de
+    origen extranjero (invariantes.py lo exige), y las décimas que quedan se
+    reparten entre Canarias y Resto de España por el mayor resto."""
+    if any(v is None or not np.isfinite(v) for v in pct):
+        return [r2(v, 1) for v in pct]
+    ext = round(float(pct[2]), 1)
+    decimas = [float(v) * 10 for v in pct[:2]]
+    suelo = [math.floor(d) for d in decimas]
+    faltan = round(1000 - ext * 10) - sum(suelo)
+    if not 0 <= faltan <= 2:
+        raise SystemExit(f"lugar de nacimiento {pct}: las décimas no cuadran ({faltan})")
+    for k in sorted(range(2), key=lambda k: suelo[k] - decimas[k])[:faltan]:
+        suelo[k] += 1
+    return [suelo[0] / 10, suelo[1] / 10, ext]
+
+
 def serie_json(anios, valores, dec=3):
     """Empareja años y valores descartando huecos."""
     x, y = _sin_nulos(anios, valores)
@@ -532,8 +551,8 @@ for mun in MUNICIPIOS:
 
         "origen": {
             "categorias": CAT_ORIGEN,
-            "municipio": [r2(v, 1) for v in ORIGEN_M.get(mun, [np.nan] * 3)],
-            "canarias": [r2(v, 1) for v in ORIGEN_R["Canarias"]],
+            "municipio": reparto_cien(ORIGEN_M.get(mun, [np.nan] * 3)),
+            "canarias": reparto_cien(ORIGEN_R["Canarias"]),
         },
     }
 
@@ -683,8 +702,8 @@ def ficha_agregada(tipo, nombre, poblacion, serie_pob, serie_ext, h, m, hx, mx,
 
         "origen": {
             "categorias": CAT_ORIGEN,
-            **propio([r2(v, 1) for v in origen]),
-            "canarias": [r2(v, 1) for v in ORIGEN_R["Canarias"]],
+            **propio(reparto_cien(origen)),
+            "canarias": reparto_cien(ORIGEN_R["Canarias"]),
         },
     }
 

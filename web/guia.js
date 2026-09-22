@@ -68,7 +68,7 @@ const INDICADORES = [
   },
   {
     id: 'nacimiento', ico: 'nacimiento', nombre: 'Lugar de nacimiento',
-    unidad: 'Se expresa en porcentaje y suma cien',
+    unidad: 'Se expresa en porcentaje',
     mide: 'De cada cien habitantes, cuántos nacieron en Canarias, cuántos en el resto de España y cuántos en el extranjero.',
     formula: fraccion('Nacidos en cada lugar', 'Total de habitantes', '× 100'),
   },

@@ -33,6 +33,11 @@ def mostrado(v, dec=1):
     """Lo que escribe la web con `nf(v, dec)`: half-expand sobre el valor decimal."""
     return str(Decimal(repr(float(v))).quantize(Decimal(1).scaleb(-dec), rounding=ROUND_HALF_UP))
 
+
+def suma_cien(v):
+    """El lugar de nacimiento, con un decimal, suma 100,0 justo (Pedro, 22/9/2026)."""
+    return isinstance(v, list) and all(isinstance(x, (int, float)) for x in v) and abs(sum(v) - 100) < 0.05
+
 RAIZ = Path(__file__).resolve().parent.parent
 WEB = RAIZ / "web"
 fallos = []
@@ -124,7 +129,7 @@ for m in municipios:
     tvma = 100 * ((serie[ev["anio_fin"]] / serie[ev["anio_base"]]) ** (1 / n) - 1)
     comprobar(abs(tvma - f["cifras"]["tvma"]) < 1e-9, f"{f['nombre']}: TVMA {f['cifras']['tvma']} no es la de la serie ({tvma:.6f}); ¿redondeo intermedio?")
     origen = f["origen"]["municipio"]
-    comprobar(all(isinstance(v, (int, float)) for v in origen) and abs(sum(origen) - 100) <= 0.15, f"{f['nombre']}: el lugar de nacimiento es {origen}")
+    comprobar(suma_cien(origen), f"{f['nombre']}: el lugar de nacimiento es {origen} y no suma 100,0")
     comprobar(abs(f["cifras"]["pct_hombres"] + f["cifras"]["pct_mujeres"] - 100) <= 0.15, f"{f['nombre']}: hombres + mujeres no suman 100")
     comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
               f"{f['nombre']}: edad media {f['cifras'].get('edad_media')} y la pirámide da {edad_de(p):.3f}")
@@ -186,7 +191,7 @@ for i in islas_resumen:
     ultimo = next((v for v in reversed(f["extranjero"]["isla"]) if v is not None), None)
     comprobar(ultimo is not None and mostrado(ultimo) == mostrado(f["origen"]["isla"][2]),
               f"{i['nombre']}: origen extranjero {ultimo} en la serie y {f['origen']['isla'][2]} en el lugar de nacimiento (C22I sin conciliar con C25I)")
-    comprobar(abs(sum(f["origen"]["isla"]) - 100) <= 0.15, f"{i['nombre']}: el lugar de nacimiento es {f['origen']['isla']}")
+    comprobar(suma_cien(f["origen"]["isla"]), f"{i['nombre']}: el lugar de nacimiento es {f['origen']['isla']} y no suma 100,0")
     comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
               f"{i['nombre']}: edad media {f['cifras'].get('edad_media')} y la pirámide de la isla da {edad_de(p):.3f}")
     comprobar(f["rankings"]["canarias"]["total"] == len(islas_resumen), f"{i['nombre']}: el puesto no es entre las {len(islas_resumen)} islas")
@@ -235,7 +240,7 @@ def comprobar_ambito(f, quien, clave, islas_suyas, envoltorio, consulta, contien
     ultimo = next((v for v in reversed(f["extranjero"][clave]) if v is not None), None)
     comprobar(ultimo is not None and mostrado(ultimo) == mostrado(f["origen"][clave][2]),
               f"{quien}: origen extranjero {ultimo} en la serie y {f['origen'][clave][2]} en el lugar de nacimiento")
-    comprobar(abs(sum(f["origen"][clave]) - 100) <= 0.15, f"{quien}: el lugar de nacimiento es {f['origen'][clave]}")
+    comprobar(suma_cien(f["origen"][clave]), f"{quien}: el lugar de nacimiento es {f['origen'][clave]} y no suma 100,0")
     comprobar(isinstance(f["cifras"].get("edad_media"), (int, float)) and abs(edad_de(p) - f["cifras"]["edad_media"]) <= 0.05 + 1e-9,
               f"{quien}: edad media {f['cifras'].get('edad_media')} y la pirámide da {edad_de(p):.3f}")
     # Los componentes son la suma de los de sus islas en cada año con todos los datos.
@@ -295,6 +300,12 @@ if ruta.exists():
               f"Canarias: la evolución tiene que llevar los mismos años que las de isla (desde 2000), no {f['evolucion']['anios'][0]}–{f['evolucion']['anios'][-1]}")
     comprobar_ambito(f, "Canarias", "canarias", islas_resumen, WEB / "r/canarias.html", "canarias",
                      f"{len(islas_resumen)} islas y {len(municipios)} municipios")
+
+# La referencia de Canarias en el lugar de nacimiento es una sola en las 98 fichas y suma 100,0.
+_refs_canarias = {tuple(json.loads(r.read_text(encoding="utf-8"))["origen"]["canarias"])
+                  for r in [WEB / "datos/canarias.json", *(WEB / "datos").glob("*/*.json")] if r.parent.name != "geo"}
+comprobar(len(_refs_canarias) == 1 and suma_cien(list(next(iter(_refs_canarias)))),
+          f"el lugar de nacimiento de Canarias tiene que ser uno solo en todas las fichas y sumar 100,0: {sorted(_refs_canarias)}")
 
 # La geometría lleva los mismos 88 municipios, con el mismo código INE.
 geo = json.loads((WEB / "datos/geo/municipios.json").read_text(encoding="utf-8"))
