@@ -389,15 +389,25 @@ function graficoExtranjero(ext, w, h) {
     barras += `<rect x="${(px(i) - bw / 2).toFixed(1)}" y="${py(v).toFixed(1)}" width="${bw.toFixed(1)}" `
             + `height="${(h - m.b - py(v)).toFixed(1)}" fill="${ultima ? C.azul : C.azulClaro}" rx="1.5"/>`;
     if (ultima) {
-      // La cifra va sobre la barra y, si la línea de Canarias pasa por ahí, sobre
-      // la línea; se pinta después de ella y nunca por encima del borde.
+      // La cifra va justo encima de su barra (Pedro): si la línea de Canarias
+      // pasa por encima de la barra, la cifra se arrima a la barra para caber
+      // debajo de la línea en vez de subirse a ella, y si ni arrimada cabe se
+      // queda sobre la barra y el halo blanco le abre paso. Se pinta después de
+      // la línea y nunca por encima del borde.
       const medioAncho = (`${nf(v, 1)}${UNI}%`.length * feEtiqueta * 0.55) / 2 + 2;
       const xq = px(i);
+      const altoCifra = feEtiqueta * 0.72 + (P ? 1.2 : 1.6) + 1;   // las cifras y su halo sobre la línea base
       const yLinea = Math.min(Infinity, ...trazoCan.filter(([j]) => Math.abs(px(j) - xq) <= medioAncho).map(([, c]) => py(c)));
-      const y = Math.max(feEtiqueta, Math.min(py(v), yLinea) - (P ? 4 : 8));
+      let y = py(v) - (P ? 4 : 8);
+      if (yLinea < py(v) && yLinea > y - altoCifra) y = Math.min(yLinea + altoCifra, py(v) - (P ? 1.5 : 3));
+      y = Math.max(feEtiqueta, y);
+      // Cuando la línea pasa por la cifra (cuatro fichas rozan el valor de
+      // Canarias), el halo se ensancha para que no asome un trozo de línea
+      // entre los dígitos.
+      const cruza = yLinea >= y - altoCifra && yLinea <= y + (P ? 2 : 3);
       etiqueta = `<text x="${xq.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" `
               + `font-size="${feEtiqueta}" font-weight="700" fill="${C.negro}" `
-              + `stroke="#FFFFFF" stroke-width="${P ? 2.4 : 3.2}" stroke-linejoin="round" `
+              + `stroke="#FFFFFF" stroke-width="${cruza ? (P ? 4.2 : 6) : (P ? 2.4 : 3.2)}" stroke-linejoin="round" `
               + `paint-order="stroke fill">${nf(v, 1)}${UNI}%</text>`;
     }
     // Los múltiplos de 5 y el último año; el múltiplo que quede a menos de tres

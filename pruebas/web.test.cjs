@@ -3,7 +3,7 @@
    estables, errores visibles con reintento, portada (cifras junto al título,
    desplegables de isla del mismo alto y dentro de la pantalla, Escape),
    rótulos que no se pisan en el móvil, eje de origen extranjero de 5 en 5 y
-   la cifra final sobre la línea de Canarias, teclado tras redibujar e
+   la cifra final justo encima de su barra, teclado tras redibujar e
    imprimir, nada señalado en la hoja impresa, El Hierro sin mapa repetido,
    foco de la presentación, leyenda de la pirámide, redondeo único, la ficha
    de cada isla (sus municipios, los índices de las siete y el mismo
@@ -266,8 +266,8 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.locator('#g-evolucion').focus();
   await page.keyboard.press('Home'); await page.keyboard.press('ArrowRight');
   assert.match(await page.locator('#lectura-evolucion').textContent(), /^1998/);
-  // Origen extranjero: eje de 5 en 5 (Pedro), la cifra del último año por encima de la
-  // línea de Canarias (Hermigua la llevaba atravesada) y, por encima del 40 %, rótulos cada 10.
+  // Origen extranjero: eje de 5 en 5 (Pedro), la cifra del último año justo encima de
+  // su barra y, por encima del 40 %, rótulos cada 10.
   const ejeExtranjero = () => page.locator('#g-extranjero svg text').evaluateAll((ts) => {
     const pct = ts.map((t) => t.textContent.replace(/\s/g, '')).filter((t) => t.endsWith('%'));
     return { eje: pct.filter((t) => !t.includes(',')).join(' '), ultimo: pct.find((t) => t.includes(',')) };
@@ -277,13 +277,20 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Hermigua');
   await espera(400);
   assert.deepEqual(await ejeExtranjero(), { eje: '0% 5% 10% 15% 20% 25%', ultimo: '20,3%' });
-  const cruce = await page.evaluate(() => {
-    const svg = document.querySelector('#g-extranjero svg'), t = [...svg.querySelectorAll('text')].find((x) => x.textContent.includes(',')), r = t.getBoundingClientRect();
-    const m = svg.querySelector('polyline').getScreenCTM();
-    return svg.querySelector('polyline').getAttribute('points').split(' ').map((p) => p.split(',').map(Number))
-      .filter(([x, y]) => { const px = m.a * x + m.e, py = m.d * y + m.f; return px >= r.left && px <= r.right && py >= r.top && py <= r.bottom; }).length;
+  // La cifra del último año va pegada a su barra, no subida a la línea de Canarias
+  // (Pedro, 22/9); donde la línea pasa rozando, la cifra se arrima más y el halo se
+  // ensancha para que no asome un trozo de línea entre los dígitos.
+  const cifraFinal = () => page.evaluate(() => {
+    const svg = document.querySelector('#g-extranjero svg');
+    const t = [...svg.querySelectorAll('text')].find((x) => x.textContent.includes(','));
+    const barra = [...svg.querySelectorAll('rect')].pop();
+    return { hueco: +(+barra.getAttribute('y') - +t.getAttribute('y')).toFixed(1), halo: +t.getAttribute('stroke-width') };
   });
-  assert.equal(cruce, 0, 'la línea de Canarias no pasa por la cifra');
+  assert.deepEqual(await cifraFinal(), { hueco: 8, halo: 3.2 }, 'la cifra, justo encima de su barra');
+  await page.selectOption('#sel-municipio', '38053');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Villa de Mazo');
+  await espera(400);
+  assert.deepEqual(await cifraFinal(), { hueco: 3, halo: 6 }, 'con la línea de Canarias rozando, la cifra sigue sobre su barra y el halo abre paso');
   await page.selectOption('#sel-municipio', '38001');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Adeje');
   await espera(400);

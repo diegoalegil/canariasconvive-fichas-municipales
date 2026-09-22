@@ -370,9 +370,12 @@ y la línea de Canarias como referencia, con su último valor en la leyenda. El
 eje va de 5 en 5, como pidió Pedro, con el tope en el múltiplo justo por
 encima del máximo; por encima del 40 % (doce municipios) se rotulan los
 múltiplos de 10 y el tope, sin el múltiplo anterior si queda pegado. La cifra
-del último año se coloca por encima de la línea de Canarias cuando esta pasa
-por ahí. Para el lector de pantalla, una tabla oculta lleva la serie entera;
-la de componentes, la evolución y la pirámide (la pestaña activa), igual.
+del último año va justo encima de su barra (Pedro, 22/9): si la línea de
+Canarias pasa rozando por ahí (Alajeró, El Paso, Villa de Mazo y la provincia
+de Las Palmas), la cifra se arrima a la barra y el halo blanco se ensancha
+para abrirle paso, en vez de subirse a la línea. Para el lector de pantalla,
+una tabla oculta lleva la serie entera; la de componentes, la evolución y la
+pirámide (la pestaña activa), igual.
 
 **Componentes del cambio.** Crecimiento vegetativo y saldo migratorio desde
 2002, que es donde arranca la serie del saldo; el eje temporal va cada dos
@@ -624,7 +627,7 @@ Node 20 o superior (la acción usa 22).
   origen», la lectura con teclado tras redibujar e imprimir, la franja
   fijada, «< 0,01 %» y la cifra de la fila más larga junto a la punta y nunca
   en la base, el eje de origen extranjero con el tope rotulado y la cifra
-  final libre de la línea de Canarias, las tablas ocultas, el mismo tono para
+  final justo encima de su barra, las tablas ocultas, el mismo tono para
   el mismo valor, el ordinal con punto, las anclas por debajo de la barra, El
   Hierro con dos mapas; la ficha que pinta sin esperar a la geometría (hueco
   por mapa con su pie, mapas al llegar, aviso con reintento si fallan), las
