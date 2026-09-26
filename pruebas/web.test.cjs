@@ -1275,7 +1275,10 @@ test('papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias c
   const comp = (await json(path.join(WEB, 'datos/mun/38038.json'))).componentes;
   const ultimoAnio = Math.max(...comp.anios.filter((a, i) => comp.vegetativo[i] != null || comp.migratorio[i] != null));
   assert.ok(guiaDossier.includes(`hasta ${ultimoAnio}`), 'la guía del dossier calcula el último año de los componentes');
-  for (const t of ['Variación media anual', 'Lugar de nacimiento', 'Población a 1 de enero', sitio.url_publica.replace(/^https?:\/\//, '').replace(/\/$/, ''), 'GRAFCAN']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
+  for (const t of ['Variación media anual', 'Lugar de nacimiento', 'Población a 1 de enero', 'GRAFCAN']) assert.ok(guiaDossier.includes(t), `la guía del dossier no dice «${t}»`);
+  // Ni la guía ni el resto del dossier enseñan la dirección de la web (hoy, la de GitHub Pages).
+  const direccion = sitio.url_publica.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  assert.ok(!(await page.locator('#dossier').textContent()).includes(direccion.split('/')[0]), `el dossier no enseña «${direccion}»`);
   assert.ok(!guiaDossier.includes('Edad media') && !guiaDossier.includes('Elaboración propia'), 'la guía del dossier no dice edad media ni elaboración propia');
   assert.ok(!guiaDossier.includes('adrón'), 'la guía del dossier no atribuye los datos al padrón');
   assert.ok(!guiaDossier.includes('mueven mucho'), 'la guía del dossier no orienta la lectura');

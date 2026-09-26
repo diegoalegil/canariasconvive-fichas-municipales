@@ -5,8 +5,6 @@
    a este y municipios por orden alfabético. */
 
 let IDX = null, GEOD = null;
-// La dirección de la web, en la guía del dossier (sin protocolo, para teclearla).
-const DIRECCION_WEB = URL_PUBLICA_SITIO.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /* ----------------------------------------------------------- una ficha ---- */
 /** La tarjeta del entorno: los mapas del municipio o, por encima de él, el
@@ -137,8 +135,6 @@ function hojaGuia(fichas, pagina) {
   const anios = ['vegetativo', 'migratorio'].flatMap((clave) => fichas.flatMap((f) =>
     f.componentes.anios.filter((a, i) => f.componentes[clave][i] != null)));
   const anioComp = anios.length ? Math.max(...anios) : IDX.anio - 1;
-  // Partida solo en las barras: un guion al final de línea se teclearía mal desde el papel.
-  const web = DIRECCION_WEB.split('/').map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join('/');
   const definicion = (x) => `<p><b>${esc(x.nombre)}.</b> ${esc(x.mide)}${x.unidad ? ` ${esc(x.unidad)}.` : ''}</p>`;
   return `<article class="hoja hoja-texto">
     <h2 class="d-titulo">Cómo usar este dossier</h2>
@@ -157,8 +153,7 @@ function hojaGuia(fichas, pagina) {
            persona, con independencia de su nacionalidad.</p>
         <h3>Las fuentes</h3>
         <p>ISTAC (población, movimiento natural y migraciones) y GRAFCAN (límites
-           municipales). Cada gráfico lleva la suya al pie. Las fichas interactivas están en
-           <b>${web}</b>.</p>
+           municipales). Cada gráfico lleva la suya al pie.</p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>

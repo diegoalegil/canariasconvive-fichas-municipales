@@ -92,7 +92,9 @@ La URL pública está en un solo sitio, `sitio.json`: de ahí salen las
 canónicas y las etiquetas `og:` de las cinco páginas, los envoltorios de
 `web/m/`, `web/i/`, `web/p/` y `web/r/`, el enlace de vuelta de las páginas
 de aviso y `web/config.js`, que se la da al JavaScript para el botón de
-compartir. En `sitio.json` van también los orígenes que pueden enmarcar la
+compartir. No se escribe a la vista en ninguna pieza (ni el dossier ni el
+cierre del vídeo la enseñan): hoy es la de GitHub Pages, y la batería
+comprueba que el dossier no la lleva. En `sitio.json` van también los orígenes que pueden enmarcar la
 web (`origenes_iframe`). Mudar el sitio de alojamiento es cambiar ese fichero
 y volver a ejecutar `generar_tarjetas.py`; `pruebas/invariantes.py` ensaya
 esa mudanza con una URL ficticia y comprueba que no queda ninguna referencia
