@@ -854,7 +854,8 @@ body.presentando { overflow: hidden; }
 .pres-diapo > * { flex: none; }
 .pres-diapo.activa { opacity: 1; filter: blur(0); visibility: visible; pointer-events: auto;
   transition: opacity .48s cubic-bezier(.22,.61,.36,1), filter .48s cubic-bezier(.22,.61,.36,1), visibility 0s; }
-@media (prefers-reduced-motion: reduce) { .pres-diapo { transition: none; filter: none; } }
+/* Sin movimiento, ni el fundido: la regla de la diapositiva activa, más específica, lo volvía a poner. */
+@media (prefers-reduced-motion: reduce) { .pres-diapo, .pres-diapo.activa { transition: none; filter: none; } }
 .pres-diapo h1 { font-size: 120px; font-weight: 700; letter-spacing: -.03em; line-height: 1; color: var(--azul); margin: 12px 0 0; }
 .pres-diapo h2 { font-size: 44px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 32px; color: var(--negro); }
 .pres-fila { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -910,6 +911,53 @@ body.presentando { overflow: hidden; }
 .pres-zona { position: absolute; top: 0; bottom: 0; width: 22%; background: transparent; border: 0; cursor: pointer; z-index: 2; }
 .pres-zona.izq { left: 0; }
 .pres-zona.der { right: 0; }
+
+/* La presentación en vídeo (video.js): cada fotograma lo pone el reloj, así que
+   las diapositivas cambian sin transición; la raya azul de las cifras se dibuja. */
+#presentacion.video .pres-diapo { transition: none; filter: none; transform-origin: 50% 45%; }
+#presentacion.video .pres-escenario { cursor: pointer; }
+#presentacion.video .pres-cifras { position: relative; border-top-color: transparent; }
+#presentacion.video .pres-cifras::before { content: ''; position: absolute; left: 0; right: 0; top: -3px; height: 3px;
+  background: var(--azul); transform: scaleX(var(--regla, 1)); transform-origin: left center; }
+#presentacion.video #pres-piramide { transform-origin: center 40%; }
+/* El arranque: el archipiélago sobre azul, el territorio en blanco y su nombre. */
+.pres-preludio { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: var(--azul); }
+.pres-preludio svg { position: absolute; left: 0; top: 0; }
+/* Un velo azul bajo el nombre para que se lea sobre las islas. */
+.pres-preludio-velo { position: absolute; inset: 0; background: linear-gradient(20deg, rgba(24, 95, 165, .92) 0%, rgba(24, 95, 165, .6) 32%, rgba(24, 95, 165, 0) 58%); }
+.pres-preludio-texto { position: absolute; left: 120px; right: 120px; bottom: 112px; color: #FFFFFF; }
+.pres-preludio-texto p { font-size: 24px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--azul-sobre); margin: 0 0 18px; }
+.pres-preludio-nombre { font-size: 108px; font-weight: 700; letter-spacing: -.03em; line-height: 1.02; max-width: 1180px; text-wrap: balance; }
+.pres-preludio-nombre .palabra { display: inline-block; white-space: nowrap; }
+.pres-preludio-nombre .letra { display: inline-block; }
+/* El cierre: los tres logotipos, qué es, el territorio y la dirección de su ficha. */
+.pres-salida { position: absolute; inset: 0; z-index: 2; background: var(--papel); visibility: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.pres-salida-logos { display: flex; align-items: center; gap: 56px; margin-bottom: 80px; }
+.pres-salida-logos img { height: 104px; width: auto; display: block; }
+.pres-salida-logos img[data-logo="obiten"] { height: 123px; }
+.pres-salida-logos img[data-logo="juntas"] { height: 138px; }
+.pres-salida-kicker { font-size: 26px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--gris); margin: 0; }
+.pres-salida-nombre { font-size: 104px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04; color: var(--azul); margin: 20px 0 0; max-width: 1600px; text-wrap: balance; }
+.pres-salida-enlace { font-size: 28px; color: var(--gris); margin: 36px 0 0; }
+/* La barrida entre capítulos: dos bandas inclinadas, azul claro delante y azul detrás. */
+.pres-cortinilla { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; visibility: hidden; }
+.pres-cortinilla i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 3100px; }
+.pres-cortinilla i:first-child { background: var(--azul-claro); }
+.pres-cortinilla i:last-child { background: var(--azul); }
+/* Reproducir o pausar y el avance de cada capítulo, abajo al centro. */
+.pres-controles { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 16px; }
+.pres-play { width: 44px; height: 44px; border-radius: var(--r-full); border: 1px solid var(--linea); background: var(--fondo);
+  color: var(--azul); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.pres-play:hover { border-color: var(--azul); }
+.pres-barra { display: flex; gap: 6px; }
+.pres-barra i { display: block; width: 56px; height: 4px; border-radius: 2px; background: var(--linea); overflow: hidden; }
+.pres-barra b { display: block; height: 100%; background: var(--azul); transform: scaleX(0); transform-origin: left center; }
+/* Al grabar el MP4 (pruebas/video.cjs) no se ven los mandos. */
+#presentacion.grabando .pres-controles, #presentacion.grabando .pres-cerrar, #presentacion.grabando .pres-contador,
+#presentacion.grabando .pres-zona { display: none; }
+#presentacion.grabando { cursor: none; }
 
 @media print {
   #presentacion { display: none !important; }

@@ -50,6 +50,11 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   ok(await page.locator('#nombre').textContent() === 'Santa Cruz de Tenerife', 'la ficha de Santa Cruz de Tenerife');
   ok(await page.locator('.fuente-grafico').count() >= 7, 'las fuentes de los gráficos');
   ok(JSON.stringify(await logosDe('.marca img')) === logos, 'los tres logotipos en la cabecera');
+  // Con movimiento, la presentación se reproduce como vídeo (video.js).
+  await page.click('#btn-presentar');
+  await page.waitForSelector('#presentacion.video');
+  ok(await page.evaluate(() => PRES.video != null && PRES.video.duracion > 30), 'la presentación se reproduce como vídeo');
+  await page.keyboard.press('Escape');
   await page.emulateMedia({ media: 'print' });
   ok(JSON.stringify(await logosDe('.placa-papel img')) === logos, 'los tres logotipos en la placa del papel');
   await page.emulateMedia({ media: null });

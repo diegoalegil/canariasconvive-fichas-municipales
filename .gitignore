@@ -11,3 +11,6 @@ venv/
 
 node_modules/
 test-results/
+
+# Los vídeos que graba pruebas/video.cjs (npm run video).
+*.mp4

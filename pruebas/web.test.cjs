@@ -5,7 +5,7 @@
    rótulos que no se pisan en el móvil, eje de origen extranjero de 5 en 5 y
    la cifra final justo encima de su barra, teclado tras redibujar e
    imprimir, nada señalado en la hoja impresa, El Hierro sin mapa repetido,
-   foco de la presentación, leyenda de la pirámide, redondeo único, la ficha
+   foco de la presentación y su vídeo, leyenda de la pirámide, redondeo único, la ficha
    de cada isla (sus municipios, los índices de las siete y el mismo
    desplegable para pasar de la isla al municipio), el comparador de islas,
    la portada con una tarjeta por isla, las 88 fichas y las 7 de isla en una
@@ -714,6 +714,56 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await page.keyboard.press('Escape');
   await espera(150);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar', 'abierta con el ratón, el foco vuelve al botón');
+  assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
+test('ficha: con movimiento, la presentación es un vídeo con pausa, capítulos y el mismo final que las diapositivas', async () => {
+  const { page, contexto, errores } = await abrir('ficha.html?municipio=38038', { ancho: 1920, alto: 1080, movimiento: 'no-preference' });
+  await page.waitForSelector('#fuente-g-origen');
+  await page.waitForFunction(() => GEO);
+  await page.locator('#btn-presentar').click();
+  await page.waitForSelector('#presentacion.video');
+  assert.equal(await page.locator('.pres-barra i').count(), 6, 'un tramo de avance por capítulo');
+  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Pausar', 'arranca solo');
+  await page.keyboard.press(' ');
+  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Reproducir', 'la barra espaciadora lo pausa');
+  // En pausa, → lleva al capítulo siguiente ya completo y se anuncia como una diapositiva.
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await page.locator('#pres-contador').textContent(), '2 / 6');
+  assert.match(await page.locator('#pres-anuncio').textContent(), /^Diapositiva 2 de 6: Evolución de la población/);
+  // Recorrer la pirámide con ↑ lo deja parado y señala el grupo, como en las diapositivas.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowUp');
+  assert.equal(await page.locator('#pres-piramide text[paint-order]').count(), 2);
+  // Cada capítulo acaba con las cifras de la ficha: sin redondeos a medias ni contadores a medio camino.
+  const cifras = await page.evaluate(() => {
+    PRES.video.buscar(finCapitulo(0));
+    const hab = document.querySelector('.pres-hab b').textContent;
+    PRES.video.buscar(finCapitulo(5));
+    const reparto = [...document.querySelectorAll('.pres-anillo')[0].querySelectorAll('.pres-reparto b')].map((b) => b.textContent);
+    return { hab, esperado: nf(FICHA.poblacion), reparto, repartoEsperado: FICHA.origen.municipio.map((v) => nf(v, 1) + ' %') };
+  });
+  assert.equal(cifras.hab, cifras.esperado);
+  assert.deepEqual(cifras.reparto, cifras.repartoEsperado);
+  // Ningún fotograma deja un atributo sin número.
+  const malos = await page.evaluate(() => {
+    const escenario = document.querySelector('.pres-escenario'), fallos = [];
+    for (let t = 0; t <= PRES.video.duracion + 1e-9; t += 0.25) {
+      PRES.video.buscar(t);
+      if (/NaN|Infinity/.test(escenario.innerHTML)) fallos.push(t);
+    }
+    return fallos;
+  });
+  assert.deepEqual(malos, []);
+  // Al final, el cierre con los tres logotipos y el botón para volver a verlo.
+  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Volver a ver');
+  assert.equal(await page.locator('.pres-salida img').count(), 3);
+  assert.ok(await page.locator('.pres-salida').isVisible());
+  await page.keyboard.press('Escape');
+  await espera(150);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar');
+  assert.equal(await page.evaluate(() => PRES.video), null, 'al salir, el vídeo se para');
   assert.deepEqual(errores, []);
   await contexto.close();
 });

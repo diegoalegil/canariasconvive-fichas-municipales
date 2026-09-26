@@ -108,7 +108,7 @@ territorios.py       islas, comarcas y excepciones de nombres, extraídas del no
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública, los orígenes que pueden enmarcar la web y los tres logotipos, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
-pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada
+pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada; video.cjs, el MP4 de la presentación de una ficha
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
 web/index.html       portada: buscador, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
@@ -121,6 +121,7 @@ web/config.js        la URL pública, los orígenes del iframe y los logotipos, 
 web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque, el aviso al enmarcar y los logotipos
 web/datos-ui.js      la fuente de cada gráfico
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; las fichas de municipio, isla, provincia y Canarias
+web/video.js         la presentación en vídeo: los seis capítulos animados, cada fotograma en función del tiempo
 web/portada.js       buscador, banda de Canarias, rótulos de provincia, tarjetas de isla con su desplegable y entrada de la portada
 web/comparar.js      el comparador
 web/guia.js          la guía
@@ -527,6 +528,48 @@ fuentes. Los rótulos dicen la fecha del dato, y la operación estadística qued
 identificada por el enlace de la nota de fuente de cada indicador.
 `invariantes.py` falla si algún texto atribuye los datos al padrón.
 
+## La presentación en vídeo
+
+«Presentar» abre las seis diapositivas de siempre (portada con las cifras
+clave, evolución, pirámide, pirámide según origen, índices y lugar de
+nacimiento con origen extranjero) y, con el movimiento permitido, las
+reproduce como una pieza animada de 36 segundos (`web/video.js`). Arranca con
+el mapa de Canarias sobre azul: el territorio se enciende en blanco y la
+cámara se acerca a él (en la ficha de Canarias no hay acercamiento y las islas
+se encienden de oeste a este) mientras entra su nombre; una barrida diagonal
+en dos azules pasa de un capítulo a otro; las cifras cuentan desde cero, la
+curva de evolución se dibuja con el año y los habitantes en la punta, la
+pirámide crece fila a fila desde el eje y se transforma en la vista según
+origen, las barras de los índices y del origen extranjero se llenan, los
+anillos se trazan, y cierra con los tres logotipos, el territorio y la
+dirección de su ficha. Todo cabe en las 98 fichas: ningún dato está grabado.
+
+Valen las reglas de Pedro: la paleta azul (sin efectos de color ajenos), los
+mismos datos que la ficha sin interpretarlos (la punta de la curva dice un año
+de la serie y su dato, nunca un valor intermedio) y la pirámide sin cifras.
+Cada capítulo termina exactamente como su diapositiva fija, con el mismo texto
+y las mismas cifras; se comprobó en las 98 fichas, en Chromium y en WebKit.
+
+Cada fotograma es una función del tiempo (`fotograma(t)`): al reproducir, el
+reloj avanza con `requestAnimationFrame`; se puede pausar (botón o barra
+espaciadora, también K), las flechas y los laterales saltan de capítulo
+(reproduciendo, desde su comienzo; en pausa, ya completo), ↑ ↓ recorren la
+pirámide como en las diapositivas (el vídeo se para), el tramo de cada
+capítulo avanza abajo y al acabar el botón ofrece volver a verlo. Con
+`prefers-reduced-motion` no se reproduce nada: la presentación son las seis
+diapositivas fijas, sin fundidos.
+
+**Un MP4 de cualquier ficha.** Como cada fotograma depende solo del tiempo,
+`npm run video -- municipio=38038` abre la ficha a 1920×1080, recorre el reloj
+fotograma a fotograma y se los pasa a ffmpeg: sale un MP4 H.264 de 36
+segundos a 30 fotogramas (unos 5,5 MB, en poco más de medio minuto), igual al
+de la web aunque el equipo vaya lento. Vale para `isla=tenerife`,
+`provincia=las-palmas` o `canarias`; con `--base http://localhost:8140/` graba
+la copia local en vez de la publicada, y con `--musica pista.mp3` añade una
+pista de fondo que se repite o se corta a la duración y se funde al final (la
+web no lleva sonido y los derechos de la pista son de quien la ponga). Hace
+falta ffmpeg (`brew install ffmpeg`). Los `.mp4` no se suben al repositorio.
+
 ## Papel
 
 **El PDF se redibuja, no se encoge.** Al imprimir, `beforeprint` vuelve a
@@ -630,7 +673,7 @@ Node 20 o superior (la acción usa 22).
   `openpyxl`; sin el libro se omite avisando, que es lo que pasa en GitHub,
   donde el libro no está; con el libro y sin `openpyxl` falla, porque en la
   máquina que publica la conciliación tiene que correr.
-- `pruebas/web.test.cjs` (Playwright, dieciocho casos): la última selección
+- `pruebas/web.test.cjs` (Playwright, diecinueve casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -661,7 +704,11 @@ Node 20 o superior (la acción usa 22).
   la escalera, nueve fuentes y el enlace al comparador; y la vuelta a la
   forma municipal); los rótulos de evolución, componentes y origen extranjero
   sin pisarse a 320, 375 y 414 px; la presentación modal, que atrapa y
-  devuelve el foco y deja el fondo oculto al lector de pantalla; el cruce sin
+  devuelve el foco y deja el fondo oculto al lector de pantalla; la
+  presentación en vídeo (arranca sola, la barra espaciadora la pausa, → salta
+  de capítulo y se anuncia, ↑ la para en la pirámide, cada capítulo acaba con
+  las cifras de la ficha, ningún fotograma deja un atributo sin número, cierra
+  con los tres logotipos y al salir se para); el cruce sin
   fantasmas; el comparador con tres plazas, sin duplicados, colores fijos,
   tabla semántica con las cinco cifras y sin texto en azul claro, sin
   desbordes a 1280 y 375 px, de mayor a menor por el criterio elegido en
@@ -712,8 +759,8 @@ previa. Dos herramientas más, fuera de la batería: `npm run medir`
 del dossier contra una web servida (por defecto, `http://localhost:8140/`), y
 `npm run humo` (`pruebas/humo.cjs`), que se lanza a mano después de cada
 publicación, recorre la web publicada: política de contenido y versión de
-recursos en las cinco páginas, los tres logotipos, los sobres, el comparador,
-la 404 y el dossier, sin errores de consola. Después de publicar conviene
+recursos en las cinco páginas, los tres logotipos, la presentación en vídeo,
+los sobres, el comparador, la 404 y el dossier, sin errores de consola. Después de publicar conviene
 pasar `m/38038.html` por el depurador de compartir de Facebook o pegarlo en
 un chat de WhatsApp y comprobar que la tarjeta es la del municipio.
 
@@ -741,7 +788,11 @@ lista de municipios es una lista ordenada de enlaces, señalar uno lo destaca
 solo en el mapa de la isla (el de Canarias no responde) y el resaltado se
 suelta al salir; la escalera de índices es una lista ordenada por índice. La
 presentación es un diálogo modal: el resto queda inerte y oculto al lector de
-pantalla, el tabulador no sale y al cerrar el foco vuelve al botón. Las
+pantalla, el tabulador no sale y al cerrar el foco vuelve al botón. El vídeo
+se puede pausar desde el principio (botón con nombre y barra espaciadora),
+cada capítulo se anuncia como una diapositiva y el mapa del arranque y el
+cierre, que repiten lo que ya dice la portada, quedan fuera del lector de
+pantalla. Las
 anclas y el foco se colocan por debajo de la barra pegajosa, cuya altura real
 se mide. El contorno de foco de los gráficos no depende solo de
 `:focus-visible`; sobre la fila azul de la lista de municipios el contorno es

@@ -1529,8 +1529,9 @@ function conectarIndices() {
 /* Seis diapositivas de 1920×1080 a pantalla completa con los mismos datos de la
    ficha. ← → cambian de diapositiva, ↑ ↓ recorren los grupos de edad en la
    pirámide, Esc sale. Las diapositivas 3 y 4 comparten la pirámide, que se
-   transforma entre ellas. */
-const PRES = { abierta: false, paso: 1, fila: null, vista: 0, P: null };
+   transforma entre ellas. Con el movimiento permitido, las seis se reproducen
+   como un vídeo (video.js): ← → saltan de capítulo y la barra espaciadora pausa. */
+const PRES = { abierta: false, paso: 1, fila: null, vista: 0, P: null, video: null };
 const PRES_CAPA = [0, 1, 2, 2, 3, 4];   // diapositiva → capa
 
 function presLeyenda() {
@@ -1592,6 +1593,7 @@ function presMostrar(vista, animar) {
 
 function presIr(paso) {
   paso = acotar(paso, 1, 6);
+  if (PRES.video) { videoIr(paso); return; }
   const capaAntes = PRES_CAPA[PRES.paso - 1], capa = PRES_CAPA[paso - 1];
   PRES.paso = paso;
   document.querySelectorAll('#presentacion .pres-diapo').forEach((d, k) => d.classList.toggle('activa', k === capa));
@@ -1604,6 +1606,7 @@ function presIr(paso) {
 function cerrarPresentacion() {
   if (!PRES.abierta) return;
   PRES.abierta = false;
+  if (PRES.video) detenerVideo();
   cancelAnimationFrame(PRES.animacion);
   document.removeEventListener('keydown', PRES.teclas);
   removeEventListener('resize', PRES.escalar);
@@ -1708,8 +1711,14 @@ function abrirPresentacion() {
       e.preventDefault(); return;
     }
     if (e.key === ' ' && document.activeElement.tagName === 'BUTTON') return;
+    // En el vídeo, recorrer la pirámide lo para con el capítulo completo.
+    if (PRES.video && enPiramide && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) videoQuieto();
     switch (e.key) {
-      case 'ArrowRight': case 'PageDown': case ' ': presIr(PRES.paso + 1); break;
+      case ' ': case 'k': case 'K':
+        if (PRES.video) { alternarVideo(); break; }
+        if (e.key !== ' ') return;
+        presIr(PRES.paso + 1); break;
+      case 'ArrowRight': case 'PageDown': presIr(PRES.paso + 1); break;
       case 'ArrowLeft': case 'PageUp': presIr(PRES.paso - 1); break;
       case 'ArrowUp': if (!enPiramide) return; PRES.fila = PRES.fila == null ? 0 : Math.min(n - 1, PRES.fila + 1); presSenalar(); break;
       case 'ArrowDown': if (!enPiramide) return; PRES.fila = PRES.fila == null ? n - 1 : Math.max(0, PRES.fila - 1); presSenalar(); break;
@@ -1725,6 +1734,9 @@ function abrirPresentacion() {
   cont.querySelector('.pres-zona.der').addEventListener('click', () => presIr(PRES.paso + 1));
   cont.querySelector('.pres-cerrar').addEventListener('click', cerrarPresentacion);
   cont.focus();
+  // Con el movimiento permitido, la presentación se reproduce como un vídeo.
+  PRES.video = null;
+  if (animable() && typeof iniciarVideo === 'function') iniciarVideo(cont);
   // Pantalla completa si el navegador (y el iframe que aloje la ficha) lo permiten.
   if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
 }

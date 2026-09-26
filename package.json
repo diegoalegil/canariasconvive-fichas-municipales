@@ -8,7 +8,8 @@
     "test:excel": "${PYTHON:-python3} pruebas/conciliar_excel.py",
     "test:web": "node --test pruebas/web.test.cjs",
     "medir": "node pruebas/medir-papel.cjs",
-    "humo": "node pruebas/humo.cjs"
+    "humo": "node pruebas/humo.cjs",
+    "video": "node pruebas/video.cjs"
   },
   "engines": { "node": ">=20" },
   "devDependencies": { "playwright": "1.62.1" }
