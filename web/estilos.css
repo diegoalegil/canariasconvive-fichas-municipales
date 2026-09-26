@@ -930,7 +930,7 @@ body.presentando { overflow: hidden; }
 .pres-preludio-nombre { font-size: 108px; font-weight: 700; letter-spacing: -.03em; line-height: 1.02; max-width: 1180px; text-wrap: balance; }
 .pres-preludio-nombre .palabra { display: inline-block; white-space: nowrap; }
 .pres-preludio-nombre .letra { display: inline-block; }
-/* El cierre: los tres logotipos, qué es, el territorio y la dirección de su ficha. */
+/* El cierre: los tres logotipos, qué es y el territorio (sin la dirección de la web). */
 .pres-salida { position: absolute; inset: 0; z-index: 2; background: var(--papel); visibility: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .pres-salida-logos { display: flex; align-items: center; gap: 56px; margin-bottom: 80px; }
@@ -939,7 +939,6 @@ body.presentando { overflow: hidden; }
 .pres-salida-logos img[data-logo="juntas"] { height: 138px; }
 .pres-salida-kicker { font-size: 26px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--gris); margin: 0; }
 .pres-salida-nombre { font-size: 104px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04; color: var(--azul); margin: 20px 0 0; max-width: 1600px; text-wrap: balance; }
-.pres-salida-enlace { font-size: 28px; color: var(--gris); margin: 36px 0 0; }
 /* La barrida entre capítulos: dos bandas inclinadas, azul claro delante y azul detrás. */
 .pres-cortinilla { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; visibility: hidden; }
 .pres-cortinilla i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 3100px; }

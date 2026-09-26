@@ -533,7 +533,8 @@ identificada por el enlace de la nota de fuente de cada indicador.
 «Presentar» abre las seis diapositivas de siempre (portada con las cifras
 clave, evolución, pirámide, pirámide según origen, índices y lugar de
 nacimiento con origen extranjero) y, con el movimiento permitido, las
-reproduce como una pieza animada de 36 segundos (`web/video.js`). Arranca con
+reproduce como una pieza animada de 43,5 segundos (`web/video.js`), en la que
+cada capítulo deja unos dos segundos sus datos quietos a la vista. Arranca con
 el mapa de Canarias sobre azul: el territorio se enciende en blanco y la
 cámara se acerca a él (en la ficha de Canarias no hay acercamiento y las islas
 se encienden de oeste a este) mientras entra su nombre; una barrida diagonal
@@ -541,8 +542,9 @@ en dos azules pasa de un capítulo a otro; las cifras cuentan desde cero, la
 curva de evolución se dibuja con el año y los habitantes en la punta, la
 pirámide crece fila a fila desde el eje y se transforma en la vista según
 origen, las barras de los índices y del origen extranjero se llenan, los
-anillos se trazan, y cierra con los tres logotipos, el territorio y la
-dirección de su ficha. Todo cabe en las 98 fichas: ningún dato está grabado.
+anillos se trazan, y cierra con los tres logotipos y el territorio, sin la
+dirección de la web (la de ahora es la de GitHub Pages y no se enseña). Todo
+cabe en las 98 fichas: ningún dato está grabado.
 
 Valen las reglas de Pedro: la paleta azul (sin efectos de color ajenos), los
 mismos datos que la ficha sin interpretarlos (la punta de la curva dice un año
@@ -561,8 +563,8 @@ diapositivas fijas, sin fundidos.
 
 **Un MP4 de cualquier ficha.** Como cada fotograma depende solo del tiempo,
 `npm run video -- municipio=38038` abre la ficha a 1920×1080, recorre el reloj
-fotograma a fotograma y se los pasa a ffmpeg: sale un MP4 H.264 de 36
-segundos a 30 fotogramas (unos 5,5 MB, en poco más de medio minuto), igual al
+fotograma a fotograma y se los pasa a ffmpeg: sale un MP4 H.264 de 43,5
+segundos a 30 fotogramas (unos 6 MB, en unos cuarenta segundos), igual al
 de la web aunque el equipo vaya lento. Vale para `isla=tenerife`,
 `provincia=las-palmas` o `canarias`; con `--base http://localhost:8140/` graba
 la copia local en vez de la publicada, y con `--musica pista.mp3` añade una

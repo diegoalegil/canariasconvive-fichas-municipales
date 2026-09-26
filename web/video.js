@@ -1,6 +1,6 @@
 /* Presentación en vídeo. Con el movimiento permitido, «Presentar» reproduce los
    seis capítulos de la presentación (las mismas cifras, rótulos y fuentes que
-   las diapositivas fijas) como una pieza animada de 36 segundos. No hay nada
+   las diapositivas fijas) como una pieza animada de 43,5 segundos. No hay nada
    grabado: cada fotograma se calcula con los datos de la ficha abierta, así que
    vale igual para los 88 municipios, las siete islas, las dos provincias y
    Canarias. Cada fotograma es una función del tiempo (`fotograma`): al
@@ -11,14 +11,14 @@
    pirámide sin cifras en reposo. */
 
 // Segundos de cada capítulo (las seis diapositivas). El primero abre con el mapa
-// y el último cierra con los logotipos; el total, 36 s. Cada capítulo deja
-// algo más de un segundo con todo a la vista antes de la barrida.
-const DURACIONES = [7.5, 5.5, 5.5, 3.5, 4.5, 9.5];
+// y el último cierra con los logotipos; el total, 43,5 s. Cada capítulo deja
+// unos dos segundos con todos sus datos a la vista antes de la barrida.
+const DURACIONES = [8.5, 7, 7, 4.5, 6, 10.5];
 const COMIENZOS = DURACIONES.map((_, i) => DURACIONES.slice(0, i).reduce((a, b) => a + b, 0));
 const DURACION = DURACIONES.reduce((a, b) => a + b, 0);
 const CORTINILLA = 0.8;          // barrida diagonal entre capítulos, centrada en el corte
 const FIN_PRELUDIO = 2.6;        // del mapa a la portada, dentro del primer capítulo
-const FIN_DATOS = 6.3;           // del último capítulo al cierre con los logotipos
+const FIN_DATOS = 7.5;           // del último capítulo al cierre con los logotipos
 const EMPUJE = 0.022;            // la cámara se acerca despacio durante cada capítulo
 // Los cortes con barrida: la pirámide pasa de una vista a otra transformándose, sin barrida.
 const CORTES = [FIN_PRELUDIO, COMIENZOS[1], COMIENZOS[2], COMIENZOS[4], COMIENZOS[5], COMIENZOS[5] + FIN_DATOS];
@@ -142,11 +142,10 @@ function prepararEscenas(cont) {
   const salida = document.createElement('div');
   salida.className = 'pres-salida';
   salida.setAttribute('aria-hidden', 'true');
-  const enlace = new URL(ENT.ruta, URL_PUBLICA_SITIO).href.replace(/^https?:\/\//, '');
+  // Sin dirección web: el cierre no enseña dónde está alojada la web.
   salida.innerHTML = `<div class="pres-salida-logos">${logotipos()}</div>
     <p class="pres-salida-kicker">Fichas demográficas municipales</p>
-    <p class="pres-salida-nombre">${esc(f.nombre)}</p>
-    <p class="pres-salida-enlace">${esc(enlace)}</p>`;
+    <p class="pres-salida-nombre">${esc(f.nombre)}</p>`;
   const cortinilla = document.createElement('div');
   cortinilla.className = 'pres-cortinilla';
   cortinilla.setAttribute('aria-hidden', 'true');
@@ -411,7 +410,7 @@ function prepararEscenas(cont) {
     entrada(nac.leyenda, avance(t, 4.4, 0.6), { dy: 12 });
     nac.fuentes.forEach((x, k) => entrada(x, avance(t, 4.6 + k * 0.1, 0.6), { dy: 10 }));
 
-    // El cierre: los tres logotipos, qué es y dónde está la ficha.
+    // El cierre: los tres logotipos, qué es y el territorio.
     salidaPartes.forEach((x, k) => entrada(x, avance(t, FIN_DATOS + 0.3 + k * 0.18, 0.7), { dy: 30, rebote: k === 0 }));
   }
 
