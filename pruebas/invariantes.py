@@ -298,6 +298,18 @@ if ruta.exists():
               "Canarias: la serie propia tiene que ser «canarias» (sin otra clave)")
     comprobar(anios_evolucion_islas == {tuple(f["evolucion"]["anios"])},
               f"Canarias: la evolución tiene que llevar los mismos años que las de isla (desde 2000), no {f['evolucion']['anios'][0]}–{f['evolucion']['anios'][-1]}")
+    # Canarias es la suma de sus siete islas año a año, en habitantes y, en personas, en
+    # origen extranjero. Hasta el libro del 24/9/2026, C1R venía de otra fuente y entre
+    # 2000 y 2020 no cuadraba: Canarias crecía un 36,2 % y sus provincias, 30,5 y 32,8.
+    _islas = [json.loads((WEB / f"datos/isla/{i['slug']}.json").read_text(encoding="utf-8")) for i in islas_resumen]
+    _pob = lambda g: dict(zip(g["evolucion"]["anios"], g["evolucion"]["valores"]))
+    _ext = lambda g, k: {a: v for a, v in zip(g["extranjero"]["anios"], g["extranjero"][k]) if v is not None}
+    _descuadre = [a for a, v in _pob(f).items() if v != sum(_pob(g).get(a, float("nan")) for g in _islas)]
+    comprobar(not _descuadre, f"Canarias: la evolución no es la suma de sus siete islas en {_descuadre}")
+    _descuadre = [a for a, v in _ext(f, "canarias").items()
+                  if not abs(v - sum(_ext(g, "isla").get(a, float("nan")) * _pob(g).get(a, float("nan")) for g in _islas)
+                             / sum(_pob(g).get(a, float("nan")) for g in _islas)) < 1e-9]
+    comprobar(not _descuadre, f"Canarias: el origen extranjero no es el de sus siete islas sumadas en personas en {_descuadre}")
     comprobar_ambito(f, "Canarias", "canarias", islas_resumen, WEB / "r/canarias.html", "canarias",
                      f"{len(islas_resumen)} islas y {len(municipios)} municipios")
 

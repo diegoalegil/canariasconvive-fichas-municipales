@@ -211,9 +211,13 @@ JSON que cada isla suma sus municipios.
 **Canarias sale de las hojas «R»** (`C1R`, `C6R`, `C7R`, `C22R`, `C23R`,
 `C24R`, `C25R` y los índices), con los mismos lectores; el exportador
 comprueba que la población coincide en `C1R`, en la pirámide y en la suma de
-las siete islas. `C1R` arranca en 1971, pero la serie de la ficha se acota a
-los años de las de isla y provincia (desde 2000): con 55 años la curva pierde
-detalle y lo que interesa son los últimos 25. **Las dos provincias no tienen
+las siete islas. `C1R` arranca en 2000, como las de isla y provincia. Hasta
+el libro del 24/9 venía de otra fuente desde 1971 y entre 2000 y 2020 no era
+la suma de las islas: Canarias crecía un 36,2 % y sus provincias un 30,5 y un
+32,8 %. Pedro la rehízo sumando `C1I`, y con ella `C22R`, que es extranjeros
+entre población; ahora Canarias crece un 31,6 %, e `invariantes.py`
+comprueba año a año que Canarias es la suma de sus islas en habitantes y en
+origen extranjero. **Las dos provincias no tienen
 hojas** y se suman desde sus islas (`PROVINCIAS`, en `territorios.py`):
 población, pirámides, componentes y lugar de nacimiento son sumas exactas; la
 serie de origen extranjero se suma en personas (`C22I` por `C1I`) sobre la
@@ -596,7 +600,8 @@ Node 20 o superior (la acción usa 22).
   población e igual a la suma de sus municipios, su lista de municipios de
   mayor a menor, los índices de las siete, el origen extranjero conciliado
   con el lugar de nacimiento y su envoltorio `i/` con tarjeta; las dos
-  provincias y Canarias suman sus islas, sus índices son los de la fórmula
+  provincias y Canarias suman sus islas (Canarias, año a año en habitantes y
+  en origen extranjero), sus índices son los de la fórmula
   del libro sobre su pirámide, sus componentes la suma de los de sus islas,
   su lista de islas de mayor a menor, y sus envoltorios `p/` y `r/` con
   tarjeta; la TVMA es la de la serie sin redondeo intermedio; el último dato
@@ -838,8 +843,9 @@ repartir la nueva a Pedro y a Alexis.
 
 ## Pendiente
 
-- [ ] Subir a la carpeta compartida `DATOS_CANCON` el libro corregido del
-      16/9 (allí sigue el del 7 de agosto). El libro nuevo trae nueve hojas
+- [ ] Subir a la carpeta compartida `DATOS_CANCON` el libro del 24/9, con
+      `C1R` y `C22R` sumadas desde las islas (allí sigue el del 7 de agosto,
+      comprobado el 26/9). El libro trae nueve hojas
       más (`C26`–`C32`, pirámides por año y hojas «P»): preguntar a Pedro si
       son las proyecciones a 2036.
 - [ ] Enseñar a Pedro y a Alexis lo hecho tras la llamada del 16/9: las fichas

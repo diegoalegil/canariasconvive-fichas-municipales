@@ -196,9 +196,10 @@ ORIGEN_R = reparto_origen("C25R")
 ORIGEN_I = reparto_origen("C25I")
 ORIGEN_I_ABS = reparto_origen("C25I", absolutos=True)   # en personas, para sumar las provincias
 
-# Canarias, de las hojas «R». C1R arranca en 1971, pero la ficha acota la serie
-# a los años de las de isla y provincia (C1I, desde 2000): con 55 años la curva
-# pierde detalle y lo que interesa son los últimos 25.
+# Canarias, de las hojas «R». Desde el libro del 24/9/2026, C1R es la suma de C1I
+# y arranca en 2000, como las de isla (antes venía de otra fuente desde 1971 y
+# hasta 2020 no cuadraba con las islas); la ficha se acota igualmente a los años
+# de las islas por si el libro volviera a traer más.
 ANIOS_C1R, SERIE_C1R = serie_completa("C1R")
 ANIOS_C6R, SERIE_C6R = serie_completa("C6R")
 ANIOS_C7R, SERIE_C7R = serie_completa("C7R")
