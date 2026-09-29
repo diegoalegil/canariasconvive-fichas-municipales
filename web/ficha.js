@@ -1529,8 +1529,8 @@ function conectarIndices() {
 /* Seis diapositivas de 1920×1080 a pantalla completa con los mismos datos de la
    ficha. ← → cambian de diapositiva, ↑ ↓ recorren los grupos de edad en la
    pirámide, Esc sale. Las diapositivas 3 y 4 comparten la pirámide, que se
-   transforma entre ellas. Con el movimiento permitido, las seis se reproducen
-   como un vídeo (video.js): ← → saltan de capítulo y la barra espaciadora pausa. */
+   transforma entre ellas. Con el movimiento permitido, cada una se anima al
+   entrar (video.js) y espera a que se pase a la siguiente: nunca pasa sola. */
 const PRES = { abierta: false, paso: 1, fila: null, vista: 0, P: null, video: null };
 const PRES_CAPA = [0, 1, 2, 2, 3, 4];   // diapositiva → capa
 
@@ -1592,8 +1592,9 @@ function presMostrar(vista, animar) {
 }
 
 function presIr(paso) {
-  paso = acotar(paso, 1, 6);
+  // En el vídeo, pasar del sexto enseña el cierre: el paso va sin acotar.
   if (PRES.video) { videoIr(paso); return; }
+  paso = acotar(paso, 1, 6);
   const capaAntes = PRES_CAPA[PRES.paso - 1], capa = PRES_CAPA[paso - 1];
   PRES.paso = paso;
   document.querySelectorAll('#presentacion .pres-diapo').forEach((d, k) => d.classList.toggle('activa', k === capa));
@@ -1701,6 +1702,9 @@ function abrirPresentacion() {
   PRES.escalar();
   addEventListener('resize', PRES.escalar);
   PRES.teclas = (e) => {
+    // En el vídeo, ↑ ↓ completan antes la entrada en curso: justo tras pasar a la
+    // pirámide, la barrida aún no ha cambiado de diapositiva.
+    if (PRES.video && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) videoQuieto();
     const n = P.edades.length, enPiramide = PRES_CAPA[PRES.paso - 1] === 2;
     if (e.key === 'Tab') {
       const botones = [...cont.querySelectorAll('button')];
@@ -1711,14 +1715,8 @@ function abrirPresentacion() {
       e.preventDefault(); return;
     }
     if (e.key === ' ' && document.activeElement.tagName === 'BUTTON') return;
-    // En el vídeo, recorrer la pirámide lo para con el capítulo completo.
-    if (PRES.video && enPiramide && ['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) videoQuieto();
     switch (e.key) {
-      case ' ': case 'k': case 'K':
-        if (PRES.video) { alternarVideo(); break; }
-        if (e.key !== ' ') return;
-        presIr(PRES.paso + 1); break;
-      case 'ArrowRight': case 'PageDown': presIr(PRES.paso + 1); break;
+      case 'ArrowRight': case 'PageDown': case ' ': presIr(PRES.paso + 1); break;
       case 'ArrowLeft': case 'PageUp': presIr(PRES.paso - 1); break;
       case 'ArrowUp': if (!enPiramide) return; PRES.fila = PRES.fila == null ? 0 : Math.min(n - 1, PRES.fila + 1); presSenalar(); break;
       case 'ArrowDown': if (!enPiramide) return; PRES.fila = PRES.fila == null ? n - 1 : Math.max(0, PRES.fila - 1); presSenalar(); break;

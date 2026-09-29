@@ -944,12 +944,8 @@ body.presentando { overflow: hidden; }
 .pres-cortinilla i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 3100px; }
 .pres-cortinilla i:first-child { background: var(--azul-claro); }
 .pres-cortinilla i:last-child { background: var(--azul); }
-/* Reproducir o pausar y el avance de cada capítulo, abajo al centro. */
-.pres-controles { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 3;
-  display: flex; align-items: center; gap: 16px; }
-.pres-play { width: 44px; height: 44px; border-radius: var(--r-full); border: 1px solid var(--linea); background: var(--fondo);
-  color: var(--azul); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
-.pres-play:hover { border-color: var(--azul); }
+/* El avance de cada capítulo, abajo al centro. */
+.pres-controles { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 3; pointer-events: none; }
 .pres-barra { display: flex; gap: 6px; }
 .pres-barra i { display: block; width: 56px; height: 4px; border-radius: 2px; background: var(--linea); overflow: hidden; }
 .pres-barra b { display: block; height: 100%; background: var(--azul); transform: scaleX(0); transform-origin: left center; }

@@ -534,9 +534,10 @@ identificada por el enlace de la nota de fuente de cada indicador.
 
 «Presentar» abre las seis diapositivas de siempre (portada con las cifras
 clave, evolución, pirámide, pirámide según origen, índices y lugar de
-nacimiento con origen extranjero) y, con el movimiento permitido, las
-reproduce como una pieza animada de 43,5 segundos (`web/video.js`), en la que
-cada capítulo deja unos dos segundos sus datos quietos a la vista. Arranca con
+nacimiento con origen extranjero) y, con el movimiento permitido, las anima
+(`web/video.js`): cada diapositiva se anima al entrar y se queda quieta con
+todos sus datos hasta que quien presenta pasa a la siguiente; nunca pasa sola
+(Pedro, 27/9: que prime la claridad al leer los datos). Arranca con
 el mapa de Canarias sobre azul: el territorio se enciende en blanco y la
 cámara se acerca a él (en la ficha de Canarias no hay acercamiento y las islas
 se encienden de oeste a este) mientras entra su nombre; una barrida diagonal
@@ -554,18 +555,21 @@ de la serie y su dato, nunca un valor intermedio) y la pirámide sin cifras.
 Cada capítulo termina exactamente como su diapositiva fija, con el mismo texto
 y las mismas cifras; se comprobó en las 98 fichas, en Chromium y en WebKit.
 
-Cada fotograma es una función del tiempo (`fotograma(t)`): al reproducir, el
-reloj avanza con `requestAnimationFrame`; se puede pausar (botón o barra
-espaciadora, también K), las flechas y los laterales saltan de capítulo
-(reproduciendo, desde su comienzo; en pausa, ya completo), ↑ ↓ recorren la
-pirámide como en las diapositivas (el vídeo se para), el tramo de cada
-capítulo avanza abajo y al acabar el botón ofrece volver a verlo. Con
-`prefers-reduced-motion` no se reproduce nada: la presentación son las seis
+Cada fotograma es una función del tiempo (`fotograma(t)`) sobre un reloj de
+43,5 segundos; en la web, el reloj avanza con `requestAnimationFrame` solo
+durante la entrada de cada capítulo y se para con él completo. → , la barra
+espaciadora, un clic en el escenario o la zona derecha pasan al siguiente
+(a mitad de una entrada, la completan de golpe); ← y la zona izquierda
+vuelven al anterior ya completo, sin animarlo; desde el sexto, un paso más
+enseña el cierre con los logotipos. ↑ ↓ recorren la pirámide como en las
+diapositivas y el tramo de cada capítulo se llena abajo con su entrada. Con
+`prefers-reduced-motion` no se anima nada: la presentación son las seis
 diapositivas fijas, sin fundidos.
 
 **Un MP4 de cualquier ficha.** Como cada fotograma depende solo del tiempo,
 `npm run video -- municipio=38038` abre la ficha a 1920×1080, recorre el reloj
-fotograma a fotograma y se los pasa a ffmpeg: sale un MP4 H.264 de 43,5
+entero de seguido (el MP4 sí pasa solo de un capítulo a otro: es un vídeo),
+fotograma a fotograma, y se los pasa a ffmpeg: sale un MP4 H.264 de 43,5
 segundos a 30 fotogramas (unos 6 MB, en unos cuarenta segundos), igual al
 de la web aunque el equipo vaya lento. Vale para `isla=tenerife`,
 `provincia=las-palmas` o `canarias`; con `--base http://localhost:8140/` graba
@@ -709,9 +713,11 @@ Node 20 o superior (la acción usa 22).
   forma municipal); los rótulos de evolución, componentes y origen extranjero
   sin pisarse a 320, 375 y 414 px; la presentación modal, que atrapa y
   devuelve el foco y deja el fondo oculto al lector de pantalla; la
-  presentación en vídeo (arranca sola, la barra espaciadora la pausa, → salta
-  de capítulo y se anuncia, ↑ la para en la pirámide, cada capítulo acaba con
-  las cifras de la ficha, ningún fotograma deja un atributo sin número, cierra
+  presentación en vídeo (la portada se anima y se para completa sin pasar
+  sola, → anima la siguiente y a mitad la completa, la barra espaciadora
+  también pasa, ← vuelve a la anterior ya completa, ↑ señala el grupo en la
+  pirámide, cada capítulo acaba con las cifras de la ficha, ningún fotograma
+  deja un atributo sin número, desde el sexto un paso más enseña el cierre
   con los tres logotipos y al salir se para); el cruce sin
   fantasmas; el comparador con tres plazas, sin duplicados, colores fijos,
   tabla semántica con las cinco cifras y sin texto en azul claro, sin
@@ -792,9 +798,10 @@ lista de municipios es una lista ordenada de enlaces, señalar uno lo destaca
 solo en el mapa de la isla (el de Canarias no responde) y el resaltado se
 suelta al salir; la escalera de índices es una lista ordenada por índice. La
 presentación es un diálogo modal: el resto queda inerte y oculto al lector de
-pantalla, el tabulador no sale y al cerrar el foco vuelve al botón. El vídeo
-se puede pausar desde el principio (botón con nombre y barra espaciadora),
-cada capítulo se anuncia como una diapositiva y el mapa del arranque y el
+pantalla, el tabulador no sale y al cerrar el foco vuelve al botón. En el vídeo
+nada se mueve sin que lo pida quien presenta (cada entrada dura unos segundos y
+se para, y un paso adelante la completa), cada capítulo se anuncia como una
+diapositiva y el mapa del arranque y el
 cierre, que repiten lo que ya dice la portada, quedan fuera del lector de
 pantalla. Las
 anclas y el foco se colocan por debajo de la barra pegajosa, cuya altura real

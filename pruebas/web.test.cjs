@@ -718,24 +718,34 @@ test('ficha: la presentación es modal, atrapa el foco y lo devuelve al botón',
   await contexto.close();
 });
 
-test('ficha: con movimiento, la presentación es un vídeo con pausa, capítulos y el mismo final que las diapositivas', async () => {
+test('ficha: con movimiento, cada diapositiva se anima al entrar y espera a que se pase a la siguiente', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038', { ancho: 1920, alto: 1080, movimiento: 'no-preference' });
   await page.waitForSelector('#fuente-g-origen');
   await page.waitForFunction(() => GEO);
   await page.locator('#btn-presentar').click();
   await page.waitForSelector('#presentacion.video');
   assert.equal(await page.locator('.pres-barra i').count(), 6, 'un tramo de avance por capítulo');
-  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Pausar', 'arranca solo');
-  await page.keyboard.press(' ');
-  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Reproducir', 'la barra espaciadora lo pausa');
-  // En pausa, → lleva al capítulo siguiente ya completo y se anuncia como una diapositiva.
+  const estado = () => page.evaluate(() => ({ t: VIDEO.t, anima: VIDEO.reproduciendo, contador: document.getElementById('pres-contador').textContent }));
+  // La portada se anima, se para completa y no pasa sola a la siguiente (Pedro, 27/9).
+  await page.waitForFunction(() => !VIDEO.reproduciendo, null, { timeout: 15000 });
+  const parada = await estado();
+  assert.equal(parada.t, await page.evaluate(() => finCapitulo(0)), 'se para con la portada completa');
+  await espera(1200);
+  assert.deepEqual(await estado(), parada, 'quieta: ni avanza ni cambia de diapositiva');
+  // → anima la siguiente; un segundo → a mitad la completa de golpe y se anuncia como diapositiva.
   await page.keyboard.press('ArrowRight');
-  assert.equal(await page.locator('#pres-contador').textContent(), '2 / 6');
+  assert.equal((await estado()).anima, true);
+  await page.keyboard.press('ArrowRight');
+  assert.deepEqual(await estado(), { t: await page.evaluate(() => finCapitulo(1)), anima: false, contador: '2 / 6' });
   assert.match(await page.locator('#pres-anuncio').textContent(), /^Diapositiva 2 de 6: Evolución de la población/);
-  // Recorrer la pirámide con ↑ lo deja parado y señala el grupo, como en las diapositivas.
-  await page.keyboard.press('ArrowRight');
+  // La barra espaciadora también pasa; ↑ en la pirámide señala el grupo, como en las diapositivas.
+  await page.keyboard.press(' ');
   await page.keyboard.press('ArrowUp');
+  assert.equal((await estado()).contador, '3 / 6');
   assert.equal(await page.locator('#pres-piramide text[paint-order]').count(), 2);
+  // ← vuelve a la anterior ya completa, sin animarla, y suelta el grupo señalado.
+  await page.keyboard.press('ArrowLeft');
+  assert.deepEqual(await estado(), { t: await page.evaluate(() => finCapitulo(1)), anima: false, contador: '2 / 6' });
   // Cada capítulo acaba con las cifras de la ficha: sin redondeos a medias ni contadores a medio camino.
   const cifras = await page.evaluate(() => {
     PRES.video.buscar(finCapitulo(0));
@@ -746,7 +756,7 @@ test('ficha: con movimiento, la presentación es un vídeo con pausa, capítulos
   });
   assert.equal(cifras.hab, cifras.esperado);
   assert.deepEqual(cifras.reparto, cifras.repartoEsperado);
-  // Ningún fotograma deja un atributo sin número.
+  // Ningún fotograma del reloj entero (el que graba el MP4) deja un atributo sin número.
   const malos = await page.evaluate(() => {
     const escenario = document.querySelector('.pres-escenario'), fallos = [];
     for (let t = 0; t <= PRES.video.duracion + 1e-9; t += 0.25) {
@@ -756,10 +766,18 @@ test('ficha: con movimiento, la presentación es un vídeo con pausa, capítulos
     return fallos;
   });
   assert.deepEqual(malos, []);
-  // Al final, el cierre con los tres logotipos y el botón para volver a verlo.
-  assert.equal(await page.locator('.pres-play').getAttribute('aria-label'), 'Volver a ver');
-  assert.equal(await page.locator('.pres-salida img').count(), 3);
+  // Desde la sexta, un paso más enseña el cierre con los tres logotipos; de ahí no se pasa.
+  await page.evaluate(() => PRES.video.buscar(finCapitulo(5)));
+  await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(() => !VIDEO.reproduciendo, null, { timeout: 10000 });
+  assert.deepEqual(await estado(), { t: await page.evaluate(() => PRES.video.duracion), anima: false, contador: '6 / 6' });
   assert.ok(await page.locator('.pres-salida').isVisible());
+  assert.equal(await page.locator('.pres-salida img').count(), 3);
+  await page.keyboard.press('ArrowRight');
+  assert.equal((await estado()).anima, false, 'en el cierre no hay más');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal((await estado()).t, await page.evaluate(() => finCapitulo(5)), 'del cierre se vuelve a la sexta completa');
+  assert.ok(!(await page.locator('.pres-salida').isVisible()));
   await page.keyboard.press('Escape');
   await espera(150);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-presentar');

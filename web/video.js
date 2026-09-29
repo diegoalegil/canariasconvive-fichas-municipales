@@ -3,9 +3,9 @@
    las diapositivas fijas) como una pieza animada de 43,5 segundos. No hay nada
    grabado: cada fotograma se calcula con los datos de la ficha abierta, así que
    vale igual para los 88 municipios, las siete islas, las dos provincias y
-   Canarias. Cada fotograma es una función del tiempo (`fotograma`): al
-   reproducir, el reloj avanza con requestAnimationFrame, y pruebas/video.cjs lo
-   recorre fotograma a fotograma para grabar un MP4. Con «reducir movimiento»
+   Canarias. Cada fotograma es una función del tiempo (`fotograma`): en la web
+   cada capítulo se anima al entrar y espera a que se pase al siguiente, y
+   pruebas/video.cjs recorre el reloj de seguido para grabar un MP4. Con «reducir movimiento»
    no arranca y la presentación son las seis diapositivas fijas de ficha.js.
    Las reglas de Pedro valen igual: paleta azul, datos sin interpretar y la
    pirámide sin cifras en reposo. */
@@ -434,7 +434,21 @@ function prepararEscenas(cont) {
 }
 
 /* ------------------------------------------------------------ reloj ------ */
-const VIDEO = { t: 0, reproduciendo: false, raf: 0, marca: 0, capitulo: -1, escenas: null, pasarCortinilla: null, cont: null };
+/* En la web el vídeo no pasa solo de un capítulo a otro (Pedro, 27/9/2026: que
+   prime la claridad al leer los datos). Cada capítulo se anima al entrar y se
+   queda quieto con todos sus datos hasta que se pasa al siguiente (→, barra
+   espaciadora, clic en el escenario o la zona derecha); a mitad de una entrada,
+   ese paso la completa de golpe; hacia atrás, el capítulo aparece ya completo.
+   En el último, un paso más enseña el cierre con los logotipos. El MP4
+   (pruebas/video.cjs) recorre el reloj entero de seguido con PRES.video.buscar. */
+const VIDEO = { t: 0, meta: 0, reproduciendo: false, raf: 0, marca: 0, capitulo: -1, escenas: null, pasarCortinilla: null, cont: null };
+
+/** Hasta dónde se ve un capítulo completo, antes de que llegue la barrida del
+ *  siguiente (en el último, antes del cierre): ahí se para. */
+const finCapitulo = (k) => (k === DURACIONES.length - 1 ? COMIENZOS[k] + FIN_DATOS : COMIENZOS[k] + DURACIONES[k]) - CORTINILLA / 2 - 0.05;
+/** Desde dónde se reproduce la entrada de un capítulo: justo antes de su
+ *  barrida (el primero, desde el mapa). */
+const entradaCapitulo = (k) => (k === 0 ? 0 : COMIENZOS[k] - CORTINILLA / 2);
 
 /** El fotograma del instante `t`: capítulo, escena, cortinilla y barra de progreso. */
 function fotograma(t) {
@@ -452,10 +466,11 @@ function fotograma(t) {
   const empuje = k === 2 || k === 3 ? 0 : EMPUJE * a01((t - COMIENZOS[k] - desde) / (DURACIONES[k] - desde));
   diapo.style.transform = empuje ? `scale(${(1 + empuje).toFixed(5)})` : '';
   VIDEO.pasarCortinilla(t);
+  // Cada tramo de la barra se llena con la entrada de su capítulo; completo, lleno.
   VIDEO.cont.querySelectorAll('.pres-barra b').forEach((b, j) => {
-    b.style.transform = `scaleX(${a01((t - COMIENZOS[j]) / DURACIONES[j]).toFixed(4)})`;
+    const lleno = j < k ? 1 : j > k ? 0 : a01((t - COMIENZOS[j]) / (finCapitulo(j) - COMIENZOS[j]));
+    b.style.transform = `scaleX(${lleno.toFixed(4)})`;
   });
-  botonVideo();   // al llegar al final, también buscando a mano, el botón dice «Volver a ver»
 }
 
 /** Como `presIr` en las diapositivas fijas: capa visible, contador y aviso. */
@@ -480,55 +495,52 @@ function bucle(ahora) {
   if (!VIDEO.reproduciendo) return;
   const dt = Math.min(0.1, (ahora - VIDEO.marca) / 1000);   // tras una pestaña oculta no salta
   VIDEO.marca = ahora;
-  fotograma(VIDEO.t + dt);
-  if (VIDEO.t >= DURACION) { pausarVideo(); return; }
+  fotograma(Math.min(VIDEO.meta, VIDEO.t + dt));
+  if (VIDEO.t >= VIDEO.meta) { pararVideo(); return; }
   VIDEO.raf = requestAnimationFrame(bucle);
 }
-
-function reproducirVideo() {
-  if (VIDEO.t >= DURACION - 1e-3) fotograma(0);
+/** Reproduce desde `desde` hasta `hasta` y se queda quieto ahí. */
+function animarVideo(desde, hasta) {
   if (PRES.fila != null) { PRES.fila = null; presSenalar(); }
+  cancelAnimationFrame(VIDEO.raf);
+  fotograma(desde);
+  VIDEO.meta = hasta;
   VIDEO.reproduciendo = true;
   VIDEO.marca = performance.now();
-  cancelAnimationFrame(VIDEO.raf);
   VIDEO.raf = requestAnimationFrame(bucle);
-  botonVideo();
 }
-function pausarVideo() {
+function pararVideo() {
   VIDEO.reproduciendo = false;
   cancelAnimationFrame(VIDEO.raf);
-  botonVideo();
-}
-const alternarVideo = () => (VIDEO.reproduciendo ? pausarVideo() : reproducirVideo());
-
-function botonVideo() {
-  const b = VIDEO.cont?.querySelector('.pres-play');
-  if (!b) return;
-  const fin = !VIDEO.reproduciendo && VIDEO.t >= DURACION - 1e-3;
-  const etiqueta = VIDEO.reproduciendo ? 'Pausar' : fin ? 'Volver a ver' : 'Reproducir';
-  if (b.getAttribute('aria-label') === etiqueta) return;
-  b.setAttribute('aria-label', etiqueta);
-  b.innerHTML = VIDEO.reproduciendo
-    ? '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="5" y="4" width="3.4" height="12" rx="1" fill="currentColor"/><rect x="11.6" y="4" width="3.4" height="12" rx="1" fill="currentColor"/></svg>'
-    : fin ? '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.6-3.9M14.5 3v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    : '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6.5 4.2v11.6L15.8 10z" fill="currentColor"/></svg>';
 }
 
-/** Hasta dónde se ve un capítulo completo, antes de que llegue la barrida del
- *  siguiente (en el último, antes del cierre). */
-const finCapitulo = (k) => (k === DURACIONES.length - 1 ? COMIENZOS[k] + FIN_DATOS : COMIENZOS[k] + DURACIONES[k]) - CORTINILLA / 2 - 0.05;
-
-/** Ir a un capítulo (las flechas y las zonas laterales): reproduciendo, desde su
- *  comienzo, con la barrida; en pausa, ya completo. */
-function videoIr(paso) {
-  const k = acotar(paso, 1, 6) - 1;
-  fotograma(VIDEO.reproduciendo ? COMIENZOS[k] : finCapitulo(k));
-}
-/** Recorrer la pirámide con ↑ ↓: el vídeo se para con el capítulo completo. */
-function videoQuieto() {
-  if (VIDEO.reproduciendo) pausarVideo();
+/** Paso adelante: completa la entrada en curso o anima la del capítulo
+ *  siguiente; desde el último, el cierre; en el cierre no hay más. */
+function videoSiguiente() {
+  if (VIDEO.reproduciendo) { pararVideo(); fotograma(VIDEO.meta); return; }
   const k = VIDEO.capitulo;
-  if (VIDEO.t < finCapitulo(k) - 0.01) fotograma(finCapitulo(k));
+  if (VIDEO.t >= DURACION - 1e-6) return;
+  if (k < DURACIONES.length - 1) animarVideo(entradaCapitulo(k + 1), finCapitulo(k + 1));
+  else animarVideo(finCapitulo(k), DURACION);
+}
+/** Paso atrás: el capítulo anterior, ya completo (desde el cierre, el último). */
+function videoAnterior() {
+  pararVideo();
+  const k = VIDEO.capitulo;
+  const enCierre = k === DURACIONES.length - 1 && VIDEO.t > finCapitulo(k) + 1e-6;
+  fotograma(finCapitulo(enCierre ? k : Math.max(0, k - 1)));
+}
+/** Las flechas, la barra espaciadora y las zonas laterales (ficha.js, `presIr`). */
+function videoIr(paso) {
+  if (paso > PRES.paso) videoSiguiente();
+  else if (paso < PRES.paso) videoAnterior();
+}
+/** Antes de recorrer la pirámide con ↑ ↓: la entrada en curso se completa (la
+ *  de la diapositiva a la que se va, aunque la barrida aún no haya pasado). */
+function videoQuieto() {
+  if (!VIDEO.reproduciendo) return;
+  pararVideo();
+  fotograma(VIDEO.meta);
 }
 
 /** Arranca el vídeo sobre la presentación recién montada (ficha.js, `abrirPresentacion`). */
@@ -539,20 +551,17 @@ function iniciarVideo(cont) {
   cont.classList.add('video');
   const controles = document.createElement('div');
   controles.className = 'pres-controles';
-  controles.innerHTML = `<button class="pres-play" type="button"></button>
-    <span class="pres-barra" aria-hidden="true">${DURACIONES.map(() => '<i><b></b></i>').join('')}</span>`;
+  controles.innerHTML = `<span class="pres-barra" aria-hidden="true">${DURACIONES.map(() => '<i><b></b></i>').join('')}</span>`;
   cont.append(controles);
-  controles.querySelector('.pres-play').addEventListener('click', alternarVideo);
-  // Un clic en el centro del escenario también pausa y reanuda (los lados cambian de capítulo).
-  cont.querySelector('.pres-escenario').addEventListener('click', alternarVideo);
+  // Un clic en el escenario pasa al capítulo siguiente, como la zona derecha.
+  cont.querySelector('.pres-escenario').addEventListener('click', videoSiguiente);
   PRES.eje.style.transition = 'none';
-  PRES.video = { buscar: (t) => fotograma(t), pausar: pausarVideo, reproducir: reproducirVideo, duracion: DURACION, comienzos: COMIENZOS };
-  fotograma(0);
-  reproducirVideo();
+  PRES.video = { buscar: (t) => fotograma(t), pausar: pararVideo, duracion: DURACION, comienzos: COMIENZOS };
+  animarVideo(0, finCapitulo(0));
 }
 function detenerVideo() {
-  pausarVideo();
+  pararVideo();
   // Las escenas guardan los nodos de la presentación cerrada: se sueltan.
-  Object.assign(VIDEO, { cont: null, escenas: null, pasarCortinilla: null, capitulo: -1, t: 0 });
+  Object.assign(VIDEO, { cont: null, escenas: null, pasarCortinilla: null, capitulo: -1, t: 0, meta: 0 });
   PRES.video = null;
 }
