@@ -423,13 +423,27 @@ ui = (WEB / "datos-ui.js").read_text(encoding="utf-8")
 bloque = re.search(r"const FUENTES_GRAFICOS = \{(.*?)\n\};", ui, re.S)
 graficos = dict(re.findall(r"^\s+(\w+): '([^']*)',$", bloque.group(1), re.M)) if bloque else {}
 anio_ref = str(indice["anio"])
-for clave in ("evolucion", "evolucion_isla", "evolucion_canarias", "municipios", "islas", "extranjero", "mapas", "piramide", "piramide_nacimiento", "indices", "componentes", "nacimiento"):
+# Desde 2021 los datos son del censo anual: toda fuente con el año de referencia
+# lo dice; las cifras oficiales y la explotación del padrón no pasan de 2020.
+for clave in ("evolucion", "evolucion_isla", "evolucion_canarias", "evolucion_provincia", "municipios", "islas", "extranjero", "mapas", "piramide", "piramide_padron",
+              "piramide_nacimiento", "indices", "indices_padron", "componentes", "nacimiento"):
     texto = graficos.get(clave, "")
     comprobar(texto.startswith("ISTAC. ") or texto.startswith("GRAFCAN, "), f"fuente del gráfico «{clave}»: falta o no empieza por el organismo")
     comprobar(texto.endswith("."), f"fuente del gráfico «{clave}»: sin punto final")
     comprobar("-" not in texto, f"fuente del gráfico «{clave}»: los periodos van con raya (–), no con guion")
-    esperado = str(indice["anio"] - 1) if clave == "componentes" else anio_ref
-    comprobar(esperado in texto, f"fuente del gráfico «{clave}» no lleva el año {esperado}: revisar la redacción tras actualizar los datos")
+    if clave.endswith("_padron"):
+        comprobar("padrón" in texto.lower(), f"fuente del gráfico «{clave}»: la de un año anterior es la del padrón")
+    else:
+        esperado = str(indice["anio"] - 1) if clave == "componentes" else anio_ref
+        comprobar(esperado in texto, f"fuente del gráfico «{clave}» no lleva el año {esperado}: revisar la redacción tras actualizar los datos")
+    if anio_ref in texto:
+        comprobar("censo anual" in texto.lower(), f"fuente del gráfico «{clave}»: los datos de {anio_ref} son del censo anual de población")
+    for m in re.finditer(r"(cifras oficiales|padrón)[^.;]*?(\d{4})(?:–(\d{4}))?", texto, re.I):
+        comprobar(int(m.group(3) or m.group(2)) <= 2020, f"fuente del gráfico «{clave}»: {m.group(1)} solo llega a 2020; después es el censo anual")
+# Las tablas de la tarjeta de fuentes (FUENTES_OFICIALES): las cifras oficiales y el padrón, hasta 2020.
+for texto, hasta in re.findall(r"texto: '([^']*)', desde: [^,]+, hasta: (\d{4})", ui):
+    if "padrón" in texto.lower() or "cifras oficiales" in texto.lower():
+        comprobar(int(hasta) <= 2020, f"FUENTES_OFICIALES: «{texto}» solo llega a 2020")
 
 versiones = set()
 RUTAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html", "guia": "guia.html", "dossier": "dossier.html"}
@@ -456,7 +470,8 @@ comprobar(len(versiones) == 1, f"las páginas mezclan versiones de recursos: {so
 for pagina in ("404", "enmarcada"):
     h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
     comprobar('http-equiv="Content-Security-Policy"' in h and "<script" not in h, f"{pagina}.html: sin política de contenido o con script")
-for js in ("portada", "dossier", "ficha", "comparar", "guia", "datos-ui"):
+# El padrón solo se nombra en las fuentes (datos-ui.js), con sus años.
+for js in ("portada", "dossier", "ficha", "comparar", "guia"):
     comprobar("adrón" not in (WEB / f"{js}.js").read_text(encoding="utf-8"), f"{js}.js atribuye los datos al padrón")
 
 # Ensayo de mudanza: con otra URL pública en sitio.json, ¿queda alguna referencia

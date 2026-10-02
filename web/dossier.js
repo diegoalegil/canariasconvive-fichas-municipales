@@ -58,14 +58,14 @@ function hojaFicha(f, pagina) {
       <section class="tarjeta dos-tercios">
         <header class="rotulo">${icono('variacion', 13)}<div><h3>Evolución de la población</h3>
           <p>Habitantes, ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</p></div></header>
-        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + ent.id)}</figure>${fuenteGrafico(claveEvolucion(ent))}</div>
+        <div class="cuerpo"><figure>${graficoEvolucion(ev, wEv, mm(30), '-' + ent.id)}</figure>${fuenteGrafico(claveEvolucion(ent), primerosAnios(f).evolucion)}</div>
       </section>
 
       <section class="tarjeta tercio">
         <header class="rotulo">${icono('extranjero', 13)}<div><h3>Origen extranjero</h3>
           <p>Porcentaje sobre el total de habitantes</p></div></header>
         <div class="cuerpo"><figure>${graficoExtranjero(f.extranjero, wEx, mm(26))}</figure>
-          <div class="leyenda">${leyendaExtranjero(f, 2)}</div>${fuenteGrafico('extranjero')}</div>
+          <div class="leyenda">${leyendaExtranjero(f, 2)}</div>${fuenteGrafico('extranjero', primerosAnios(f).extranjero)}</div>
       </section>
 
       ${tarjetasEntorno(f, ent, R)}
@@ -152,8 +152,9 @@ function hojaGuia(fichas, pagina) {
            Las cifras de origen extranjero y de lugar de nacimiento cuentan dónde nació cada
            persona, con independencia de su nacionalidad.</p>
         <h3>Las fuentes</h3>
-        <p>ISTAC (población, movimiento natural y migraciones) y GRAFCAN (límites
-           municipales). Cada gráfico lleva la suya al pie.</p>
+        <p>ISTAC (población, crecimiento vegetativo y migraciones hasta 2021), INE
+           (migraciones de 2022 a ${anioComp}) y GRAFCAN (límites municipales). Cada gráfico
+           lleva la suya al pie.</p>
       </div>
       <div>
         <h3>Qué mide cada indicador</h3>

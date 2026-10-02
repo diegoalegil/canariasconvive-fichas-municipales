@@ -157,13 +157,13 @@ test('ficha: rótulos por lugar de nacimiento, fuente y datos, teclado tras redi
   assert.equal(await rotulosEje(), '0% 2% 4% 6%');
   assert.equal(await page.locator('#g-piramide line').evaluateAll((ls) => ls.filter((l) => l.getAttribute('y1') === l.getAttribute('y2')).length), 0, 'sin líneas horizontales');
   // La fuente de cada gráfico, con la redacción de Pedro; la de la pirámide sigue a la pestaña.
-  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Censo anual de población, por sexo, edad y lugar de nacimiento, ${indice.anio}.`);
   await page.locator('.vista').nth(0).click();
-  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-piramide').textContent(), `Fuente: ISTAC. Censo anual de población, por sexo y grupos de edad, ${indice.anio}.`);
   assert.equal(await page.locator('.fuente-grafico').count(), 7, 'siete gráficos con fuente; las cifras clave no la llevan');
-  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de los municipios, 1996–${indice.anio}.`);
-  assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, cifras de población ${indice.anio}.`);
-  assert.equal(await page.locator('#fuente-g-indices').textContent(), `Fuente: ISTAC. Población según sexo y edades, ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población, 1996–2020, y censo anual, 2021–${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-mapas').textContent(), `Fuente: GRAFCAN, límites municipales; ISTAC, censo anual de población, ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-indices').textContent(), `Fuente: ISTAC. Censo anual de población, por sexo y edades, ${indice.anio}.`);
   assert.equal(await page.locator('.fuente-grafico').evaluateAll((ps) => ps.filter((p) => p.textContent.includes('Elaboración propia')).length), 0, 'ninguna fuente dice «Elaboración propia»');
   // Sin desplegables de datos en las tarjetas: la fuente cierra la tarjeta.
   assert.equal(await page.locator('.tarjeta details').count(), 0, 'las tarjetas no llevan desplegable');
@@ -408,7 +408,7 @@ test('ficha de isla: sus municipios, los índices de las siete islas y el paso d
   assert.ok(escalera.every((e, i) => !i || e[1] >= escalera[i - 1][1]), 'de menor a mayor');
   assert.deepEqual(escalera.filter((e) => e[2]).map((e) => e[0]), ['Tenerife']);
   assert.equal(await page.locator('.fuente-grafico').count(), 8, 'ocho fuentes: la lista de municipios lleva la suya');
-  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de las islas, 2000–${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población, 2000–2020, y censo anual, 2021–${indice.anio}.`);
   assert.equal(await page.locator('.anillo h3').first().textContent(), 'Isla');
   assert.match(await page.locator('.cifra').nth(1).textContent().then((t) => t.replace(/\s+/g, ' ').trim()), /^\d+,\d años Edad media$/, 'la isla lleva su edad media');
   // Para el lector de pantalla, la pirámide (pestaña activa) y la evolución van también como tabla, como extranjero y componentes.
@@ -508,7 +508,7 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
   assert.equal(escalera.length, 8);
   assert.deepEqual(escalera.filter((e) => e[1]).map((e) => e[0]), ['Canarias']);
   assert.equal(await page.locator('.fuente-grafico').count(), 8);
-  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población de Canarias, 2000–${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-g-evolucion').textContent(), `Fuente: ISTAC. Cifras oficiales de población, 2000–2020, y censo anual, 2021–${indice.anio}.`);
   assert.deepEqual(await page.locator('#g-piramide > .oculto thead th').allTextContents(), ['Edad', 'Hombres españoles', 'Mujeres españolas', 'Extranjeros, hombres', 'Extranjeros, mujeres'], 'la tabla de la pirámide es la de la pestaña activa');
   await page.locator('.vista').nth(0).click(); await espera(900);
   assert.deepEqual(await page.locator('#g-piramide > .oculto thead th').allTextContents(), ['Edad', 'Hombres', 'Mujeres'], 'sin marco, la tabla de la pirámide lleva solo las dos series');
@@ -671,8 +671,8 @@ test('ficha: la pirámide y los índices se consultan por años; «Según origen
     assert.equal(envejecimiento.anio, String(a.anio));
     const i = a.indices.C10, nf2 = (v) => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     assert.deepEqual(envejecimiento.valores, { Municipio: nf2(i.municipio), Isla: nf2(i.isla), Canarias: nf2(i.canarias) }, `${a.anio}: índices del libro`);
-    assert.equal(await page.textContent('#fuente-g-piramide'), `Fuente: ISTAC. Población según sexo y grupos de edad, ${a.anio}.`);
-    assert.equal(await page.textContent('#fuente-g-indices'), `Fuente: ISTAC. Población según sexo y edades, ${a.anio}.`);
+    assert.equal(await page.textContent('#fuente-g-piramide'), `Fuente: ISTAC. Explotación estadística del padrón, por sexo y grupos de edad, ${a.anio}.`);
+    assert.equal(await page.textContent('#fuente-g-indices'), `Fuente: ISTAC. Explotación estadística del padrón, por sexo y edades, ${a.anio}.`);
   }
   // La presentación y el papel son siempre del año de la ficha, sin perder el año elegido.
   await page.click('#btn-presentar');
@@ -681,7 +681,7 @@ test('ficha: la pirámide y los índices se consultan por años; «Según origen
   await page.keyboard.press('Escape');
   await page.waitForSelector('#presentacion', { state: 'detached' });
   await page.evaluate(() => dispatchEvent(new Event('beforeprint')));
-  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Población según sexo y grupos de edad, 2025.', 'la hoja es la de 2025');
+  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Censo anual de población, por sexo y grupos de edad, 2025.', 'la hoja es la de 2025');
   assert.equal(await page.locator('#g-indices .indice-tit em').first().textContent(), '2025');
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('#anios').isVisible(), false, 'en papel no hay botones de año');
@@ -692,7 +692,7 @@ test('ficha: la pirámide y los índices se consultan por años; «Según origen
   await page.click('.vista >> nth=1');
   assert.equal(await pulsados(), '2005 2010 2015 2020 2025*');
   assert.equal(await vistas(), 'false true');
-  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, 2025.');
+  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Censo anual de población, por sexo, edad y lugar de nacimiento, 2025.');
   await page.click('#anios button[data-anio="2010"]');
   assert.equal(await vistas(), 'true false');
   assert.equal(await pulsados(), '2005 2010* 2015 2020 2025');
@@ -740,28 +740,70 @@ test('ficha: la pirámide y los índices se consultan por años; «Según origen
   await c2.close();
 });
 
-test('ficha: las consultas oficiales del territorio en el ISTAC y el INE, solo en pantalla y sin bloquear la ficha', async () => {
+test('ficha: las fuentes y consultas oficiales, con los logotipos del ISTAC y del INE, solo en pantalla y sin bloquear la ficha', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=35007');
   await page.waitForSelector('#sec-consultas:not([hidden])');
   const enlaces = await json(path.join(WEB, 'datos/enlaces.json'));
-  const leer = () => page.locator('.organismo').evaluateAll((os) => os.map((o) => [o.querySelector('h3').textContent,
-    ...[...o.querySelectorAll('a')].map((a) => [a.querySelector('b').textContent, a.querySelector('span').textContent, a.getAttribute('href'), a.target, a.rel])]));
-  assert.deepEqual(await leer(), [
-    ['ISTAC', ['Sus estadísticas en el ISTAC', 'Todos los datos del ISTAC sobre Betancuria, por temas',
-      'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/MUN_BETANCURIA', '_blank', 'noopener']],
-    ['INE', ['Población por sección censal', 'Betancuria y su única sección censal, 2021–2025', enlaces.ine.municipios['35007'].consulta, '_blank', 'noopener'],
-      ['Población por continente de nacimiento', 'Betancuria, 2025', enlaces.ine.continentes['35007'], '_blank', 'noopener']],
+  const leer = () => page.locator('.organismo').evaluateAll((os) => os.map((o) => ({
+    logo: [o.querySelector('img').alt, o.querySelector('img').complete && o.querySelector('img').naturalWidth > 0, o.querySelector('h3 a').href],
+    fuentes: [...o.querySelectorAll('.organismo-fuentes li')].map((l) => [l.querySelector('a').firstChild.textContent, l.querySelector(':scope > span').textContent, l.querySelector('a').href]),
+    consultas: [...o.querySelectorAll('.organismo-consultas a')].map((a) => [a.querySelector('b').textContent, a.querySelector('span').textContent, a.getAttribute('href'), a.target, a.rel]),
+  })));
+  const visor = (id, geo) => `https://www3.gobiernodecanarias.org/istac/statistical-visualizer/visualizer/data.html?resourceType=dataset&agencyId=ISTAC&version=~latest&resourceId=${id}${geo ? `&geo=${geo}` : ''}`;
+  const [istac, ine] = await leer();
+  assert.deepEqual(istac.logo, ['ISTAC, Instituto Canario de Estadística', true, 'https://www.gobiernodecanarias.org/istac/']);
+  assert.deepEqual(ine.logo, ['INE, Instituto Nacional de Estadística', true, 'https://www.ine.es/']);
+  assert.deepEqual(istac.fuentes, [
+    ['Cifras oficiales de población', '1996–2020', visor('E30245A_000002', 'MUN_BETANCURIA')],
+    ['Censo anual de población: sexo y edad', '2021–2025', visor('E30243A_000001', 'MUN_BETANCURIA')],
+    ['Censo anual de población: país de nacimiento', '2021–2025', visor('E30243A_000004', 'MUN_BETANCURIA')],
+    ['Censo anual de población: lugar de nacimiento', '2025', visor('E30243A_000006', 'MUN_BETANCURIA')],
+    ['Explotación del padrón: sexo y edad', '2005–2020', visor('E30260A_000001', 'MUN_BETANCURIA')],
+    ['Explotación del padrón: país de nacimiento', '2000–2020', visor('E30260A_000009', 'MUN_BETANCURIA')],
+    ['Crecimiento vegetativo', '2002–2024', visor('C00042A_000001', 'MUN_BETANCURIA')],
+    ['Variaciones residenciales', '2002–2021', 'https://datos.canarias.es/catalogos/estadisticas/es/dataset/saldo-migratorio-segun-sexos-municipios-por-islas-de-canarias-y-anos'],
   ]);
+  assert.deepEqual(ine.fuentes, [['Migraciones y cambios de residencia', '2022–2024', 'https://www.ine.es/jaxiT3/Tabla.htm?t=69767&L=0']]);
+  assert.deepEqual(istac.consultas, [['Sus estadísticas en el ISTAC', 'Todos los datos del ISTAC sobre Betancuria, por temas',
+    'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/MUN_BETANCURIA', '_blank', 'noopener']]);
+  assert.deepEqual(ine.consultas, [
+    ['Población por sección censal', 'Betancuria y su única sección censal, 2021–2025', enlaces.ine.municipios['35007'].consulta, '_blank', 'noopener'],
+    ['Población por continente de nacimiento', 'Betancuria, 2025', enlaces.ine.continentes['35007'], '_blank', 'noopener'],
+  ]);
+  // Todo se abre en otra pestaña, y lo dice dentro del propio enlace.
+  assert.ok(await page.locator('#sec-consultas a').evaluateAll((as) => as.every((a) => a.target === '_blank' && a.rel === 'noopener'
+    && a.textContent.includes('(se abre en otra pestaña)'))), 'cada enlace, en otra pestaña y avisando');
+  // Las dos columnas empiezan a la par, aunque los logotipos no midan lo mismo.
+  const alturas = await page.locator('.organismo-rotulo').evaluateAll((ps) => ps.map((p) => Math.round(p.getBoundingClientRect().top)));
+  assert.equal(alturas[0], alturas[2], 'los rótulos «Fuentes de esta ficha» a la misma altura');
+  // Frontera empieza en 2008 (segregación de El Pinar) y no tiene la pirámide de 2005: sus fuentes, también.
+  await page.selectOption('#sel-municipio', '38013');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Frontera');
+  assert.equal(await page.textContent('#fuente-g-evolucion'), 'Fuente: ISTAC. Cifras oficiales de población, 2008–2020, y censo anual, 2021–2025.');
+  assert.equal(await page.textContent('#fuente-g-extranjero'), 'Fuente: ISTAC. Padrón, 2008–2020, y censo anual, 2021–2025.');
+  const frontera = await page.locator('.organismo-fuentes li').evaluateAll((ls) => ls.map((l) => l.querySelector(':scope > span').textContent));
+  assert.deepEqual(frontera.slice(0, 6), ['2008–2020', '2021–2025', '2021–2025', '2025', '2010–2020', '2008–2020']);
+  // La isla: su tabla de migraciones del INE y las del ISTAC en la isla; la provincia, sin territorio (el ISTAC no la tiene).
+  await page.selectOption('#sel-municipio', 'isla:tenerife');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Tenerife');
+  assert.equal(await page.locator('.organismo-fuentes a').last().getAttribute('href'), 'https://www.ine.es/jaxiT3/Tabla.htm?t=69766&L=0');
+  assert.match(await page.locator('.organismo-fuentes a').first().getAttribute('href'), /&geo=ISLA_TENERIFE$/);
+  await page.selectOption('#sel-municipio', 'provincia:las-palmas');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Las Palmas');
+  assert.equal(await page.locator('.organismo-fuentes a').last().getAttribute('href'), 'https://www.ine.es/jaxiT3/Tabla.htm?t=69767&L=0');
+  assert.ok(!(await page.locator('.organismo-fuentes a').first().getAttribute('href')).includes('geo='));
+  assert.equal(await page.textContent('#fuente-g-evolucion'), 'Fuente: ISTAC. Cifras oficiales de población, 2000–2020, y censo anual, 2021–2025: suma de sus islas.');
   // Santa Cruz de Tenerife tiene demasiadas secciones para una consulta propia: la tabla de su provincia.
   await page.selectOption('#sel-municipio', '38038');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
-  assert.equal(await page.locator('.organismo a').nth(1).getAttribute('href'), 'https://www.ine.es/jaxiT3/Datos.htm?t=69253');
+  assert.equal(await page.locator('.organismo-consultas a').nth(1).getAttribute('href'), 'https://www.ine.es/jaxiT3/Datos.htm?t=69253');
   // Canarias: las dos provincias, y su identificador del ISTAC.
   await page.selectOption('#sel-municipio', 'canarias');
   await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Canarias');
-  assert.deepEqual(await page.locator('.organismo a').evaluateAll((as) => as.map((a) => a.getAttribute('href'))), [
+  assert.deepEqual(await page.locator('.organismo-consultas a').evaluateAll((as) => as.map((a) => a.getAttribute('href'))), [
     'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/CCAA_CANARIAS',
     'https://www.ine.es/jaxiT3/Datos.htm?t=69237', 'https://www.ine.es/jaxiT3/Datos.htm?t=69253']);
+  assert.equal(await page.locator('.organismo-fuentes a').last().getAttribute('href'), 'https://www.ine.es/jaxiT3/Tabla.htm?t=69762&L=0', 'las migraciones de Canarias, en su tabla');
   await page.emulateMedia({ media: 'print' });
   assert.equal(await page.locator('#sec-consultas').isVisible(), false, 'en papel no hay enlaces');
   await page.emulateMedia({ media: null });
@@ -974,7 +1016,7 @@ test('comparador: tres plazas con respuestas lentas, sin duplicados, colores fij
   assert.equal(await page.locator('table.cmp-tabla th[scope="col"]').count(), 4);
   const claros = await page.locator('#cmp-resultado *').evaluateAll((els) => els.filter((e) => e.childElementCount === 0 && e.textContent.trim() && getComputedStyle(e).color === 'rgb(133, 183, 235)').length);
   assert.equal(claros, 0, 'texto en #85B7EB sobre blanco');
-  assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Población según sexo y grupos de edad, ${indice.anio}.`);
+  assert.equal(await page.locator('#fuente-cmp-piramides').textContent(), `Fuente: ISTAC. Censo anual de población, por sexo y grupos de edad, ${indice.anio}.`);
   assert.equal(await page.locator('#cmp-resultado details').count(), 0, 'el comparador tampoco lleva desplegables');
   for (const ancho of [1280, 375]) {
     await page.setViewportSize({ width: ancho, height: 900 });

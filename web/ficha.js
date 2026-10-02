@@ -843,7 +843,7 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   document.getElementById('leyenda-piramide').innerHTML = leyendaPiramide(v);
-  fuentesFicha(i, ENT, ANIO);   // cada pestaña dibuja una tabla distinta del ISTAC
+  fuentesFicha(i, ENT, ANIO, FICHA);   // cada pestaña dibuja una tabla distinta del ISTAC
   if (!IMPRIMIENDO) tablaPiramide(P, v);
   // El eje cambia fundiéndose mientras las barras se mueven.
   const eje = document.querySelector('#g-piramide #eje-piramide');
@@ -1095,25 +1095,28 @@ function pintar(f) {
   }
   conectarLecturaEvolucion();
   conectarIndices();
-  fuentesFicha(VISTA, ENT, ANIO);
+  fuentesFicha(VISTA, ENT, ANIO, f);
   pintarConsultas(f);
   igualarGraficos(f);
 }
 
 /* ---------------------------------------------------- consultas oficiales -- */
-/* Al pie de la ficha, solo en pantalla, los enlaces a las consultas oficiales de
-   su territorio: en el ISTAC, todas sus estadísticas sobre él; en el INE, del
-   censo anual de población (la operación cuyas cifras son las de la ficha), la
-   población de cada sección censal y la población por continente de
-   nacimiento. Los enlaces los genera y comprueba enlaces_oficiales.py en
-   web/datos/enlaces.json, que llega después que la ficha: sin él la tarjeta no
-   sale. */
+/* Al pie de la ficha, solo en pantalla, una columna por organismo: su
+   logotipo, que lleva a su web; las tablas de las que salen los datos de la
+   ficha, con su enlace (FUENTES_OFICIALES, datos-ui.js); y las consultas
+   oficiales de su territorio: en el ISTAC, todas sus estadísticas sobre él;
+   en el INE, del censo anual de población, la población de cada sección
+   censal y la población por continente de nacimiento. Los enlaces del
+   territorio los genera y comprueba enlaces_oficiales.py en
+   web/datos/enlaces.json, que llega después que la ficha: sin él la tarjeta
+   no sale. */
 let ENLACES = null;
 const ISTAC_TERRITORIO = 'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/';
 const INE_TABLA = 'https://www.ine.es/jaxiT3/Datos.htm?t=';
 const NOMBRE_PROVINCIA = { 35: 'Las Palmas', 38: 'Santa Cruz de Tenerife' };
 
-/** Los enlaces de cada organismo para la ficha: [{ titulo, detalle, href }]. */
+/** Cada organismo con sus fuentes y sus consultas para la ficha:
+ *  { sigla, fuentes: [{ texto, anios, href }], consultas: [{ titulo, detalle, href }] }. */
 function consultasDe(f, ent) {
   const ine = ENLACES.ine, istac = ENLACES.istac;
   // La provincia (35 o 38) de cada ficha, por el código de sus municipios.
@@ -1121,6 +1124,19 @@ function consultasDe(f, ent) {
   const provincias = ent.canarias ? ['35', '38'] : [provDe(ent.tipo === 'municipio' ? f.codmun : f.municipios[0].codmun)];
   const idIstac = ent.canarias ? istac.canarias : ent.isla ? istac.islas[f.slug] : ent.provincia ? istac.provincias[f.slug] : istac.municipios[f.codmun];
   const quien = ent.provincia ? `la provincia de ${f.nombre}` : f.nombre;
+
+  // Las fuentes: las del ISTAC, abiertas en el territorio (la provincia no está en sus tablas).
+  const primeros = { ...primerosAnios(f), anteriores: f.anteriores?.[0]?.anio };
+  const fuentes = (sigla) => FUENTES_OFICIALES[sigla].map((x) => {
+    const desde = typeof x.desde === 'string' ? primeros[x.desde] : x.desde;
+    return {
+    texto: x.texto,
+    anios: desde === x.hasta ? String(x.hasta) : `${desde}–${x.hasta}`,
+    href: x.istac ? `${VISOR_ISTAC}${x.istac}${idIstac && !ent.provincia ? `&geo=${idIstac}` : ''}`
+      : x.ine ? `https://www.ine.es/jaxiT3/Tabla.htm?t=${x.ine[ent.tipo]}&L=0` : x.url,   // la de municipios es tan grande que solo abre su consulta
+    };
+  });
+
   const secciones = (p) => ({
     titulo: 'Población por sección censal',
     detalle: `Los municipios y las secciones censales de la provincia de ${NOMBRE_PROVINCIA[p]}, ${ENLACES.anio}`,
@@ -1137,10 +1153,10 @@ function consultasDe(f, ent) {
     delINE.push({ titulo: 'Población por continente de nacimiento', detalle: `${ent.provincia ? `Provincia de ${f.nombre}` : f.nombre}, ${ENLACES.anio}`, href: continentes });
   }
   return [
-    { sigla: 'ISTAC', nombre: 'Instituto Canario de Estadística', enlaces: idIstac
+    { sigla: 'ISTAC', fuentes: fuentes('ISTAC'), consultas: idIstac
       ? [{ titulo: 'Sus estadísticas en el ISTAC', detalle: `Todos los datos del ISTAC sobre ${quien}, por temas`, href: ISTAC_TERRITORIO + idIstac }] : [] },
-    { sigla: 'INE', nombre: 'Instituto Nacional de Estadística · Censo anual de población', enlaces: delINE },
-  ].filter((o) => o.enlaces.length);
+    { sigla: 'INE', fuentes: fuentes('INE'), consultas: delINE },
+  ];
 }
 
 function pintarConsultas(f) {
@@ -1150,16 +1166,26 @@ function pintarConsultas(f) {
   let organismos = [];
   try { organismos = consultasDe(f, entidad(f)); } catch (e) { console.warn('enlaces.json', e); }
   sec.hidden = !organismos.length;
-  document.getElementById('consultas').innerHTML = organismos.map((o) => `
+  const fuera = '<span class="oculto"> (se abre en otra pestaña)</span>';
+  document.getElementById('sub-consultas').textContent = `Las tablas de las que salen los datos de esta ficha y otras consultas sobre ${f.nombre}`;
+  document.getElementById('consultas').innerHTML = organismos.map((o) => {
+    const org = ORGANISMOS[o.sigla];
+    return `
     <div class="organismo">
-      <h3>${o.sigla}</h3><p>${esc(o.nombre)}</p>
-      <ul>${o.enlaces.map((e) => `
-        <li><a href="${esc(e.href)}" target="_blank" rel="noopener">
-          <b>${esc(e.titulo)}${icono('desplegar', 13, 'ico galon')}</b><span>${esc(e.detalle)}</span>
-          <span class="oculto">(se abre en otra pestaña)</span>
-        </a></li>`).join('')}
+      <h3><a class="organismo-logo" href="${esc(org.web)}" target="_blank" rel="noopener">
+        <img src="${rutaWeb(org.logo)}" alt="${o.sigla}, ${esc(org.nombre)}" data-organismo="${o.sigla}">${fuera}</a></h3>
+      <p class="organismo-rotulo">Fuentes de esta ficha</p>
+      <ul class="organismo-fuentes">${o.fuentes.map((x) => `
+        <li><a href="${esc(x.href)}" target="_blank" rel="noopener">${esc(x.texto)}${fuera}</a> <span>${x.anios}</span></li>`).join('')}
       </ul>
-    </div>`).join('');
+      ${o.consultas.length ? `<p class="organismo-rotulo">Más consultas</p>
+      <ul class="organismo-consultas">${o.consultas.map((e) => `
+        <li><a href="${esc(e.href)}" target="_blank" rel="noopener">
+          <b>${esc(e.titulo)}${icono('desplegar', 13, 'ico galon')}</b><span>${esc(e.detalle)}</span>${fuera}
+        </a></li>`).join('')}
+      </ul>` : ''}
+    </div>`;
+  }).join('');
 }
 
 /* ------------------------------------------------------ estructura por años -- */
@@ -1776,7 +1802,7 @@ function abrirPresentacion() {
      <div class="pres-logos">${logotipos()}</div>`,
     `<h2>Evolución de la población · ${ev.anios[0]}–${ev.anios[ev.anios.length - 1]}</h2>
      <div class="pres-centro">${graficoEvolucion(ev, 800, 320, '-pres').replace('width="100%"', 'width="1600" height="640"')}</div>
-     <p class="pres-fuente">${esc(textoFuente(claveEvolucion(ENT)))}</p>`,
+     <p class="pres-fuente">${esc(textoFuente(claveEvolucion(ENT), null, primerosAnios(f).evolucion))}</p>`,
     `<h2 id="pres-titulo-pir">Estructura de la población · ${esc(P.vistas[0].etiqueta)}</h2>
      <div class="pres-pir"><figure id="pres-piramide">${P.svg.replace('width="100%"', 'width="1200" height="750"')}</figure>
      <div class="leyenda" id="pres-leyenda"></div><p class="pres-fuente" id="pres-fuente-pir">${esc(textoFuente('piramide'))}</p></div>`,
@@ -1787,7 +1813,7 @@ function abrirPresentacion() {
      <p class="pres-fuente">${esc(textoFuente('nacimiento'))}</p></div>
      <div><h2>Origen extranjero</h2>${graficoExtranjero(f.extranjero, 560, 300).replace('width="100%"', 'width="840" height="450"')}
      <div class="leyenda" style="justify-content:flex-start">${leyendaExtranjero(f, 3)}</div>
-     <p class="pres-fuente">${esc(textoFuente('extranjero'))}</p></div></div>`,
+     <p class="pres-fuente">${esc(textoFuente('extranjero', null, primerosAnios(f).extranjero))}</p></div></div>`,
   ];
   const cont = document.createElement('div');
   cont.id = 'presentacion';

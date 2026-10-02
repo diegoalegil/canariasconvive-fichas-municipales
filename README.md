@@ -252,6 +252,28 @@ provinciales desde su pirámide.
 - Frontera y El Pinar no existen antes de 2007: su variación acumulada y su
   TVMA arrancan en 2008, y la etiqueta lo dice.
 
+**Las fuentes**, comprobadas celda a celda contra las tablas publicadas
+(octubre de 2026) y con los enlaces que Pedro dejó en la hoja `INDEX-F` del
+libro como punto de partida. Todas coinciden al cien por cien:
+
+| Datos de la ficha | Operación (organismo, tabla) |
+|---|---|
+| Población 1996–2020 (islas y Canarias desde 2000) | Cifras oficiales de población (ISTAC, `E30245A_000002`), que son las del padrón |
+| Población 2021–2025, pirámide e índices de 2025, lugar de nacimiento 2025 | Censo anual de población (ISTAC, `E30243A_000001` y `E30243A_000006`; el INE lo produce y el ISTAC lo difunde) |
+| Pirámides e índices de 2005, 2010, 2015 y 2020 | Explotación estadística del padrón (ISTAC, `E30260A_000001`) |
+| Origen extranjero 2000–2020 | Explotación estadística del padrón (ISTAC, `E30260A_000009`) |
+| Origen extranjero 2021–2025 | Censo anual de población (ISTAC, `E30243A_000004`) |
+| Crecimiento vegetativo | Estadística del crecimiento vegetativo (ISTAC, `C00042A_000001`) |
+| Saldo migratorio 2002–2021 | Estadística de variaciones residenciales (ISTAC, cubo `E30307A`, en datos.canarias.es) |
+| Saldo migratorio 2022–2024 | Estadística de migraciones y cambios de residencia (INE, tablas 69767, 69766 y 69762) |
+
+Por eso las «Cifras oficiales de población» del ISTAC de 2021 en adelante no
+son las de la ficha (Santa Cruz de Tenerife: 211.957 en 2025 frente a los
+211.498 del censo): la ficha nunca las ha usado para esos años, y las líneas
+de fuente lo dicen. INDEX-F da el padrón hasta 2022 y el INE en el saldo
+migratorio de 2021, pero el libro usa el censo desde 2021 y el ISTAC en el
+saldo de 2021. Las provincias, sin tablas propias, son la suma de sus islas.
+
 **La estructura por años** («Consultas según años o periodos», de la lista
 de mejoras de la dirección, 30/9/2026). El libro trae, además de la pirámide
 de 2025, las de 2005, 2010, 2015 y 2020 de los 88 municipios (`C28M` a
@@ -533,30 +555,38 @@ primera pestaña. Al cambiar de ficha se conserva el año si la nueva lo tiene
 presentación, el vídeo, el dossier y el comparador son siempre del año de la
 ficha; tras imprimir vuelve el año que se había elegido.
 
-**Las consultas oficiales** («Logotipos de INE e ISTAC con enlaces a las
-fuentes» y «Enlaces al INE/ISTAC de principales consultas sobre el
+**Las fuentes y consultas oficiales** («Logotipos de INE e ISTAC con enlaces
+a las fuentes» y «Enlaces al INE/ISTAC de principales consultas sobre el
 municipio», de la lista de mejoras de la dirección). Al pie de la ficha, solo
-en pantalla, la tarjeta «Consultar en el ISTAC y el INE», con los enlaces a
-las consultas oficiales de ese territorio, que se abren en otra pestaña. Del
-ISTAC, la página de su catálogo dedicada al territorio (eTerritorios), con
-todas sus estadísticas por temas; el identificador del territorio no es el
-código INE (`MUN_BETANCURIA`, `ISLA_GOMERA`…) y `enlaces_oficiales.py` lo
-saca de la API del ISTAC y lo comprueba uno a uno. Del INE, el **censo anual
-de población**, que es la operación cuyas cifras coinciden con las de la
-ficha (Santa Cruz de Tenerife, 211.498 en 2025; la revisión del padrón y las
-«Cifras oficiales de población» del ISTAC dan 211.957, y por eso no se
-enlazan): la población de cada sección censal del municipio de 2021 a 2025
-(una consulta con su serie y la de cada sección; Las Palmas de Gran Canaria y
-Santa Cruz de Tenerife tienen demasiadas secciones para la dirección y
-enlazan la tabla de su provincia, igual que las islas y Canarias) y la
-población por continente de nacimiento del municipio o de la provincia, que
-cubre en parte la petición de «origen de las personas extranjeras
-(países/continentes)» mientras el libro no lo traiga. El script comprueba
-cada enlace del INE antes de guardarlo: que la población del municipio sea la
-de su ficha, que sus secciones la sumen y que la tabla de continentes traiga
-su fila con esa población. Los organismos van por su nombre, sin logotipos:
-los suyos tienen sus propias condiciones de uso. Si `enlaces.json` no llega,
-la ficha se pinta igual y la tarjeta no sale.
+en pantalla, la tarjeta «Fuentes y consultas oficiales», con una columna por
+organismo y todo abriéndose en otra pestaña:
+
+- **El logotipo** del ISTAC y del INE, que lleva a la web de cada uno. Son
+  los de sus propias webs (`web/img/logo-istac.svg`, `web/img/logo-ine.svg`),
+  sin tocar sus formas; el del ISTAC es su versión en color para fondo blanco,
+  con los colores de la que usa su web, porque el SVG que publica es el
+  blanco para fondo oscuro.
+- **Fuentes de esta ficha**: cada tabla de la que salen los datos, con sus
+  años y el enlace a ella (`FUENTES_OFICIALES`, en `web/datos-ui.js`; las del
+  ISTAC se abren ya en el territorio de la ficha, con su identificador en el
+  ISTAC). Son las de «Las fuentes», en Los datos.
+- **Más consultas**: del ISTAC, la página de su catálogo dedicada al
+  territorio (eTerritorios), con todas sus estadísticas por temas; del INE,
+  del censo anual de población, la población de cada sección censal del
+  municipio de 2021 a 2025 (una consulta con su serie y la de cada sección;
+  Las Palmas de Gran Canaria y Santa Cruz de Tenerife tienen demasiadas
+  secciones para la dirección y enlazan la tabla de su provincia, igual que
+  las islas y Canarias) y la población por continente de nacimiento del
+  municipio o de la provincia, que cubre en parte la petición de «origen de
+  las personas extranjeras (países/continentes)» mientras el libro no lo
+  traiga.
+
+El identificador del ISTAC no es el código INE (`MUN_BETANCURIA`,
+`ISLA_GOMERA`…): `enlaces_oficiales.py` lo saca de la API del ISTAC y lo
+comprueba uno a uno; y comprueba cada enlace del INE antes de guardarlo (que
+la población del municipio sea la de su ficha, que sus secciones la sumen y
+que la tabla de continentes traiga su fila con esa población). Si
+`enlaces.json` no llega, la ficha se pinta igual y la tarjeta no sale.
 
 **Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
 otro, con el reparto escrito debajo. Las tres cifras llevan un decimal y suman
@@ -568,15 +598,21 @@ falta la absorbe Canarias o Resto de España por el mayor resto
 el anillo lo enseña.
 
 **La fuente bajo cada gráfico.** Una línea «Fuente: …» al pie de cada gráfico,
-en pantalla, en la hoja y en el dossier, con la redacción que fijó Pedro para
-cada uno (`FUENTES_GRAFICOS`, en `web/datos-ui.js`): operación estadística
-del ISTAC y años que cubre, y GRAFCAN en los mapas; sin «Elaboración propia».
-La pirámide cambia de fuente con la pestaña, porque cada una dibuja una tabla
-distinta. Los años son los de la operación de origen (la serie de cifras
-oficiales arranca en 1996 aunque un municipio empiece más tarde), así que no
-se calculan con los datos: se revisan a mano con cada actualización, y
-`pruebas/invariantes.py` avisa si el año de referencia deja de aparecer en
-ellas. Las cifras clave no llevan línea de fuente: no son un gráfico. Nada
+en pantalla, en la hoja y en el dossier (`FUENTES_GRAFICOS`, en
+`web/datos-ui.js`): la operación de la que salen de verdad los datos de ese
+gráfico y los años que toma de cada una, y GRAFCAN en los mapas; sin
+«Elaboración propia». Hasta la v=114 todas decían «ISTAC. Cifras oficiales…»
+o «Población según…» de 1996 o 2000 a 2025, y no era exacto: desde 2021 los
+datos son del censo anual y el saldo migratorio de 2022 a 2024 es del INE
+(«Las fuentes», en Los datos). La pirámide cambia de fuente con la pestaña,
+porque cada una dibuja una tabla distinta, y con el año: la de un año
+anterior es la explotación del padrón. Van cortas, para que en la A4 la fila
+de evolución y origen extranjero siga en una línea (el papel mide lo mismo
+que antes); el nombre completo de cada tabla, con su enlace, está en la
+tarjeta de fuentes. Los años no se calculan con los datos: se revisan a mano
+con cada actualización, y `pruebas/invariantes.py` exige el año de
+referencia, el censo anual donde aparece y que ni las cifras oficiales ni el
+padrón pasen de 2020. Las cifras clave no llevan línea de fuente: no son un gráfico. Nada
 más al pie de la tarjeta. La guía dice qué mide cada indicador y con qué
 cuenta se obtiene, con los enunciados de Pedro y la fórmula de cada uno
 (las dos restas, incluidas), y nada más: ni fechas ni enlaces a los
@@ -799,8 +835,9 @@ Node 20 o superior (la acción usa 22).
   pirámide y los índices por años (cada año, el grupo de 0 a 4 años y los
   índices del libro, las fuentes con su año, «Según origen» y el papel y la
   presentación del año de la ficha, Frontera sin 2005, el año que se conserva
-  al pasar a la isla y el foco en el botón); las consultas oficiales (los
-  enlaces de Betancuria, la tabla provincial para Santa Cruz de Tenerife, las
+  al pasar a la isla y el foco en el botón); las fuentes y consultas
+  oficiales (los dos logotipos, que cargan y llevan a su web, las tablas de
+  Betancuria abiertas en su territorio, sus consultas, las columnas a la par, la tabla provincial para Santa Cruz de Tenerife, las
   dos provincias en Canarias, nada en papel y la ficha entera si no llegan); la
   ficha de isla (se entra por `i/tenerife.html`, la dirección, la canónica y
   las etiquetas `og:` son las suyas, las pestañas dicen «Isla», los 31

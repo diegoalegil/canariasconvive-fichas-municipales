@@ -1,5 +1,5 @@
 # Los enlaces de cada ficha a las consultas oficiales de su territorio en el
-# INE y en el ISTAC («Consultar en el INE y el ISTAC», al pie de la ficha).
+# INE y en el ISTAC («Fuentes y consultas oficiales», al pie de la ficha).
 #
 # INE · Censo anual de población, la operación cuyas cifras son las de la
 # ficha. Lee las dos tablas provinciales del censo por secciones censales (Las

@@ -58,12 +58,14 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   ok(JSON.stringify(await logosDe('.marca img')) === logos, 'los tres logotipos en la cabecera');
   // La pirámide y los índices por años: 2005 y vuelta al año de la ficha.
   await page.click('#anios button[data-anio="2005"]');
-  ok(await page.locator('#fuente-g-piramide').textContent() === 'Fuente: ISTAC. Población según sexo y grupos de edad, 2005.', 'la pirámide de 2005');
+  ok(await page.locator('#fuente-g-piramide').textContent() === 'Fuente: ISTAC. Explotación estadística del padrón, por sexo y grupos de edad, 2005.', 'la pirámide de 2005');
   ok(await page.locator('#g-indices .indice-tit em').first().textContent() === '2005', 'los índices de 2005');
   await page.click('#anios button:last-child');
-  // Las consultas oficiales: el ISTAC y el INE, con sus enlaces.
-  await page.waitForSelector('#sec-consultas:not([hidden])');
-  ok(await page.locator('.organismo h3').allTextContents().then((t) => t.join(' ')) === 'ISTAC INE', 'las consultas del ISTAC y el INE');
+  // Las fuentes y consultas oficiales: los logotipos del ISTAC y el INE, que cargan, y sus enlaces.
+  await page.waitForSelector('#sec-consultas:not([hidden]) img');
+  ok(JSON.stringify(await logosDe('.organismo h3 img')) === JSON.stringify(['ISTAC, Instituto Canario de Estadística', 'INE, Instituto Nacional de Estadística']),
+    'los logotipos del ISTAC y el INE');
+  ok(await page.locator('.organismo-fuentes a').count() === 9, 'las nueve tablas de las que salen los datos');
   // Con movimiento, la presentación se reproduce como vídeo (video.js).
   await page.click('#btn-presentar');
   await page.waitForSelector('#presentacion.video');
