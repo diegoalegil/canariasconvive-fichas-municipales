@@ -6,6 +6,8 @@ Comprueba lo que no puede fallar sin que la ficha mienta: que hay 88
 municipios, 7 islas y 2 provincias, que cada pirámide suma su población, las
 88 suman Canarias, cada isla suma sus municipios y cada provincia (y Canarias)
 sus islas, que los índices provinciales son los de la fórmula del libro, que
+las pirámides de años anteriores cumplen lo mismo (y sus índices, la fórmula),
+que cada ficha tiene sus enlaces al INE y al ISTAC, que
 la TVMA guardada es la de la serie (sin redondeo intermedio), que los repartos
 por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 ámbitos, que cada fuente de gráfico lleva el año de referencia, que los 88
@@ -327,6 +329,92 @@ comprobar(len(codigos_geo) == 88 and set(codigos_geo) == {m["codmun"] for m in m
 # Un solo orden de islas (de oeste a este) para la portada, los selectores y el dossier.
 comprobar(list(indice["islas"]) == ["El Hierro", "La Palma", "La Gomera", "Tenerife", "Gran Canaria", "Fuerteventura", "Lanzarote"],
           f"indice.json: las islas no van de oeste a este: {list(indice['islas'])}")
+
+# La pirámide y los índices de años anteriores (`anteriores`): años crecientes y
+# anteriores al de la ficha, los mismos en todas salvo 2005 en Frontera y El
+# Pinar (aún eran un municipio), 21 grupos, Canarias en porcentaje sumando cien,
+# los índices propios de la fórmula sobre su pirámide y, por encima del
+# municipio, la pirámide como suma de lo que contiene ese año (El Hierro en 2005
+# lleva la Frontera de antes de la segregación, que no tiene ficha: no se suma).
+def leer(ruta):
+    return json.loads((WEB / ruta).read_text(encoding="utf-8"))
+
+
+TODAS = {("municipio", m["codmun"]): leer(f"datos/mun/{m['codmun']}.json") for m in municipios}
+TODAS.update({("isla", i["slug"]): leer(f"datos/isla/{i['slug']}.json") for i in indice["islas_resumen"]})
+TODAS.update({("provincia", p["slug"]): leer(f"datos/provincia/{p['slug']}.json") for p in indice["provincias"]})
+TODAS[("canarias", "canarias")] = leer("datos/canarias.json")
+ANIOS_ANT = [x["anio"] for x in TODAS[("canarias", "canarias")].get("anteriores", [])]
+comprobar(len(ANIOS_ANT) >= 1 and ANIOS_ANT == sorted(ANIOS_ANT) and ANIOS_ANT[-1] < indice["anio"],
+          f"canarias.json: años anteriores {ANIOS_ANT}")
+
+
+def anterior(f, anio):
+    return next((x for x in f.get("anteriores", []) if x["anio"] == anio), None)
+
+
+def suma_piramides(fs, anio):
+    pas = [anterior(g, anio)["piramide"] for g in fs]
+    return [sum(p["hombres"][k] for p in pas) for k in range(21)], [sum(p["mujeres"][k] for p in pas) for k in range(21)]
+
+
+for (tipo, _), f in TODAS.items():
+    sin_2005 = f["nombre"] in ("Frontera", "El Pinar de El Hierro")
+    esperados = [a for a in ANIOS_ANT if not (sin_2005 and a == 2005)]
+    comprobar([x["anio"] for x in f.get("anteriores", [])] == esperados, f"{f['nombre']}: años anteriores {[x['anio'] for x in f.get('anteriores', [])]}, no {esperados}")
+    for x in f.get("anteriores", []):
+        pa, a = x["piramide"], x["anio"]
+        comprobar(all(isinstance(pa.get(k), list) and len(pa[k]) == 21 for k in ("hombres", "mujeres", "canarias_hombres", "canarias_mujeres")),
+                  f"{f['nombre']} {a}: la pirámide no tiene 21 grupos en cada serie")
+        comprobar(abs(sum(pa["canarias_hombres"]) + sum(pa["canarias_mujeres"]) - 100) < 0.05, f"{f['nombre']} {a}: Canarias no suma cien")
+        for cod_ind, esperado in indices_de(pa).items():
+            comprobar(x["indices"].get(cod_ind, {}).get(tipo) == esperado,
+                      f"{f['nombre']} {a}: índice {cod_ind} = {x['indices'].get(cod_ind, {}).get(tipo)}; la pirámide da {esperado}")
+        # Los índices de los demás ámbitos son los de sus propias fichas ese año.
+        can = anterior(TODAS[("canarias", "canarias")], a)["indices"]
+        for cod_ind, d in x["indices"].items():
+            comprobar(d.get("canarias") == can[cod_ind]["canarias"], f"{f['nombre']} {a}: el índice {cod_ind} de Canarias no es el de su ficha")
+            for isla_n, v in d.get("islas", {}).items():
+                suya = next(g for (t, _), g in TODAS.items() if t == "isla" and g["nombre"] == isla_n)
+                comprobar(v == anterior(suya, a)["indices"][cod_ind]["isla"], f"{f['nombre']} {a}: el índice {cod_ind} de {isla_n} no es el de su ficha")
+            if tipo == "municipio":
+                suya = next(g for (t, _), g in TODAS.items() if t == "isla" and g["nombre"] == f["isla"])
+                comprobar(d.get("isla") == anterior(suya, a)["indices"][cod_ind]["isla"], f"{f['nombre']} {a}: el índice {cod_ind} de su isla no es el de su ficha")
+        if tipo == "isla" and not (f["nombre"] == "El Hierro" and a == 2005):
+            suyos = [TODAS[("municipio", m["codmun"])] for m in f["municipios"]]
+            comprobar((pa["hombres"], pa["mujeres"]) == suma_piramides(suyos, a), f"{f['nombre']} {a}: la pirámide no es la suma de sus municipios")
+        if tipo in ("provincia", "canarias"):
+            suyas = [TODAS[("isla", i["slug"])] for i in f["islas"]]
+            comprobar((pa["hombres"], pa["mujeres"]) == suma_piramides(suyas, a), f"{f['nombre']} {a}: la pirámide no es la suma de sus islas")
+            tot = sum(pa["hombres"]) + sum(pa["mujeres"])
+            if tipo == "canarias":
+                comprobar(pa["canarias_hombres"] == [round(v / tot * 100, 3) for v in pa["hombres"]], f"Canarias {a}: la referencia no es su propia pirámide")
+
+# Los enlaces a las consultas oficiales (enlaces.json, de enlaces_oficiales.py):
+# cada ficha tiene su identificador del ISTAC y cada municipio su entrada del
+# INE (su consulta por secciones o, si no cabe, ninguna: enlaza la tabla de su
+# provincia) y su tabla por continentes, como las dos provincias; todas las
+# direcciones son de ine.es o del ISTAC, con https.
+ruta_enlaces = WEB / "datos/enlaces.json"
+comprobar(ruta_enlaces.exists(), "falta web/datos/enlaces.json: ejecutar enlaces_oficiales.py")
+if ruta_enlaces.exists():
+    en = json.loads(ruta_enlaces.read_text(encoding="utf-8"))
+    ine, istac = en["ine"], en["istac"]
+    comprobar(en.get("anio") == indice["anio"], f"enlaces.json es de {en.get('anio')} y las fichas de {indice['anio']}: ejecutar enlaces_oficiales.py")
+    cods = {str(m["codmun"]) for m in municipios}
+    comprobar(set(ine["municipios"]) == cods and set(istac["municipios"]) == cods, "enlaces.json: no están los 88 municipios")
+    comprobar(set(ine["continentes"]) == cods | {"35", "38"}, "enlaces.json: faltan tablas de continentes")
+    comprobar(set(ine["tablas_secciones"]) == {"35", "38"}, "enlaces.json: faltan las tablas de secciones de las dos provincias")
+    comprobar(set(istac["islas"]) == {i["slug"] for i in indice["islas_resumen"]} and set(istac["provincias"]) == {p["slug"] for p in indice["provincias"]}
+              and istac["canarias"] == "CCAA_CANARIAS", "enlaces.json: faltan islas, provincias o Canarias del ISTAC")
+    comprobar(all(re.fullmatch(r"(MUN|ISLA|PROV)_[A-Z0-9_]+", v) for v in [*istac["municipios"].values(), *istac["islas"].values(), *istac["provincias"].values()]),
+              "enlaces.json: identificador del ISTAC con otra forma")
+    sin_consulta = [c for c, v in ine["municipios"].items() if not v["consulta"]]
+    comprobar(len(sin_consulta) <= 2, f"enlaces.json: {len(sin_consulta)} municipios sin consulta por secciones")
+    for c, v in ine["municipios"].items():
+        comprobar(v["secciones"] >= 1 and (v["consulta"] is None or (v["consulta"].startswith("https://www.ine.es/consul/serie.do?") and len(v["consulta"]) <= 2000)),
+                  f"enlaces.json: la consulta del municipio {c} no es del INE o es demasiado larga")
+    comprobar(all(u.startswith("https://www.ine.es/jaxiT3/Datos.htm?t=68538&") for u in ine["continentes"].values()), "enlaces.json: tabla de continentes que no es la del INE")
 
 # La fuente de cada gráfico (FUENTES_GRAFICOS en datos-ui.js) lleva los años de la
 # operación estadística escritos a mano: cuando se actualicen los datos, el año

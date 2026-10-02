@@ -149,6 +149,17 @@ NRX, SRX, _, DRX = preparar("C24R")            # pirámide origen extranjero, Ca
 
 MUNICIPIOS = list(dict.fromkeys(NM.tolist()))
 
+# Pirámides de años anteriores, para consultar la estructura por años: solo
+# municipales, con las mismas 21 edades que C23M (la primera se llama «Menor de
+# 5 años»). Islas, provincias y Canarias se suman desde ellas (`estructura_anios`).
+HOJAS_ANTERIORES = {2005: "C28M", 2010: "C29M", 2015: "C30M", 2020: "C31M"}
+PIR_ANT = {}
+for _anio, _nombre_hoja in HOJAS_ANTERIORES.items():
+    _n, _s, _edades, _d = preparar(_nombre_hoja)
+    if len(_edades) != len(EDADES) or _edades[1:] != EDADES[1:] or "5" not in _edades[0]:
+        raise SystemExit(f"{_nombre_hoja}: los grupos de edad no son los de C23M")
+    PIR_ANT[_anio] = (_n, _s, _d)
+
 
 def piramide(nombres, sexos, datos, entidad):
     """(hombres, mujeres) en absolutos para una entidad. None si no está."""
@@ -279,6 +290,9 @@ for cod in INDICES:
     DATOS_IND[cod] = d
     ANIO_IND[cod] = min(anios)
     print(f"  {cod} · {INDICES[cod][0]}: {len(d['M'])} municipios · {ANIO_IND[cod]}")
+
+# Las mismas hojas año a año, para los años de las pirámides anteriores.
+SERIES_IND = {cod: {niv: serie_completa(cod + niv) for niv in ("M", "I", "R")} for cod in INDICES}
 
 LIBRO.close()
 _CACHE.clear()
@@ -455,10 +469,113 @@ def conciliar_componentes():
 conciliar_extranjero_islas()   # corrige SERIE_C22I sobre la marcha; necesita _por_anio, definida arriba
 conciliar_componentes()
 
-(SALIDA / "mun").mkdir(parents=True, exist_ok=True)
-
 H_CAN, M_CAN = piramide(NR, SR, DR, "Canarias")
 POB_PIR_CAN = H_CAN.sum() + M_CAN.sum()
+
+
+def indices_de_piramide(h, m):
+    """Los cuatro índices con las fórmulas del libro (guia.js) sobre los grupos
+    quinquenales: 0-14 (tres grupos), 15-64 (diez), 65 y más, 15-19 y 60-64."""
+    t = h + m
+    p0, p15, p65 = t[:3].sum(), t[3:13].sum(), t[13:].sum()
+    return {"C10": p65 / p0, "C11": p0 / p15 * 100, "C17": (p0 + p65) / p15 * 100, "C14": t[3] / t[12] * 100}
+
+
+# ------------------------------------------------- estructura por años ---
+# La pirámide y los índices de 2005, 2010, 2015 y 2020 («anteriores» en cada
+# ficha), para consultar la estructura por años. Cada pirámide municipal suma
+# su población de C1M ese año; islas y Canarias se suman desde los municipios
+# y cuadran con C1I y C1R; las provincias, desde sus islas. Los índices de
+# municipios, islas y Canarias se leen del libro y la fórmula sobre la pirámide
+# tiene que reproducirlos (las provincias, sin hojas, se calculan con ella).
+# En 2005 Frontera y El Pinar aún eran uno (la columna «Frontera (hasta 2007)»):
+# ninguno de los dos tiene ese año y El Hierro lo suma con esa columna.
+def _cuadra_con(serie, anio, total, que):
+    anios, valores = serie
+    v = _por_anio(anios, valores).get(anio)
+    if v is None or int(round(v)) != int(round(total)):
+        raise SystemExit(f"{que} {anio}: la pirámide suma {total:.0f} y la población es {v}")
+
+
+def _indice_libro_anio(cod, nivel, nombre, anio, piramide_hm):
+    anios, series = SERIES_IND[cod][nivel]
+    v = _por_anio(anios, series.get(nombre, [])).get(anio)
+    formula = indices_de_piramide(*piramide_hm)[cod]
+    if v is None or round(formula, INDICES[cod][2]) != round(v * INDICES[cod][1], INDICES[cod][2]):
+        raise SystemExit(f"{nombre} {cod} {anio}: la fórmula da {formula:.3f} y el libro {v}")
+    return r2(v * INDICES[cod][1], INDICES[cod][2])
+
+
+def estructura_anios():
+    """{año: {"mun": {municipio: (h, m)}, "isla": {...}, "prov": {...}, "canarias": (h, m),
+    "ind": {(nivel, nombre): {código: valor}}}} de los años anteriores."""
+    out = {}
+    for anio, (n, s, d) in PIR_ANT.items():
+        mun = {}
+        for nombre in [*MUNICIPIOS, *EXCLUIR]:
+            h, m = piramide(n, s, d, nombre)
+            if h is not None and not (np.isnan(h).any() or np.isnan(m).any()):
+                mun[nombre] = (h, m)
+        for nombre, (h, m) in mun.items():
+            if nombre not in EXCLUIR:
+                _cuadra_con((ANIOS_C1, SERIE_C1[nombre]), anio, h.sum() + m.sum(), nombre)
+        isla_de = lambda x: "El Hierro" if x in EXCLUIR else ISLA_DE[x]
+        islas = {i: (sum(hm[0] for x, hm in mun.items() if isla_de(x) == i),
+                     sum(hm[1] for x, hm in mun.items() if isla_de(x) == i)) for i in ISLAS}
+        for i, (h, m) in islas.items():
+            _cuadra_con((ANIOS_C1I, SERIE_C1I[i]), anio, h.sum() + m.sum(), i)
+        can = (sum(hm[0] for hm in islas.values()), sum(hm[1] for hm in islas.values()))
+        _cuadra_con((ANIOS_C1R, SERIE_C1R["Canarias"]), anio, can[0].sum() + can[1].sum(), "Canarias")
+        prov = {p: (sum(islas[i][0] for i in ps), sum(islas[i][1] for i in ps)) for p, ps in PROVINCIAS.items()}
+        ind = {}
+        for nivel, terr in (("M", {x: hm for x, hm in mun.items() if x not in EXCLUIR}), ("I", islas), ("R", {"Canarias": can})):
+            for nombre, hm in terr.items():
+                ind[(nivel, nombre)] = {cod: _indice_libro_anio(cod, nivel, nombre, anio, hm) for cod in INDICES}
+        for p, hm in prov.items():
+            ind[("P", p)] = {cod: r2(v, INDICES[cod][2]) for cod, v in indices_de_piramide(*hm).items()}
+        out[anio] = {"mun": mun, "isla": islas, "prov": prov, "canarias": can, "ind": ind}
+    return out
+
+
+ESTRUCTURA = estructura_anios()
+
+
+def anteriores(h_m, indices_de):
+    """Lo que lleva cada ficha de los años anteriores en que tiene pirámide:
+    `h_m(año)` da su pirámide (o None) e `indices_de(año)`, sus índices como
+    los de la ficha. Canarias, en porcentaje sobre su total, como en la del año."""
+    out = []
+    for anio, e in ESTRUCTURA.items():
+        hm = h_m(anio)
+        if hm is None:
+            continue
+        hc, mc = e["canarias"]
+        tot = hc.sum() + mc.sum()
+        out.append({
+            "anio": anio,
+            "piramide": {
+                "hombres": [int(v) for v in hm[0]],
+                "mujeres": [int(v) for v in hm[1]],
+                "canarias_hombres": [r2(v / tot * 100, 3) for v in hc],
+                "canarias_mujeres": [r2(v / tot * 100, 3) for v in mc],
+            },
+            "indices": indices_de(anio),
+        })
+    return out
+
+
+def indices_anio(anio, propios, islas_indices=()):
+    """Los cuatro índices de un año con la forma de los de la ficha: `propios` es
+    {clave: (nivel, nombre)} de lo que va en sus columnas, además de Canarias y,
+    por encima del municipio, las islas de la escalera."""
+    ind = ESTRUCTURA[anio]["ind"]
+    return {cod: {**{k: ind[niv_nom][cod] for k, niv_nom in propios.items()},
+                  "canarias": ind[("R", "Canarias")][cod],
+                  **({"islas": {i: ind[("I", i)][cod] for i in islas_indices}} if islas_indices else {})}
+            for cod in INDICES}
+
+
+(SALIDA / "mun").mkdir(parents=True, exist_ok=True)
 
 fichas = []
 todas_las_fichas = []
@@ -545,6 +662,10 @@ for mun in MUNICIPIOS:
             for cod in INDICES
         },
 
+        # La pirámide y los índices de 2005, 2010, 2015 y 2020 (sin 2005 en Frontera y El Pinar).
+        "anteriores": anteriores(lambda a: ESTRUCTURA[a]["mun"].get(mun),
+                                 lambda a: indices_anio(a, {"municipio": ("M", mun), "isla": ("I", isla)})),
+
         "componentes": depurar_componentes(combinar({
             "vegetativo": (ANIOS_C6, SERIE_C6[mun]),
             "migratorio": (ANIOS_C7, SERIE_C7.get(mun, [np.nan] * len(ANIOS_C7))),
@@ -590,14 +711,6 @@ def slug_de(nombre):
     return _norm(nombre).replace(" ", "-")
 
 
-def indices_de_piramide(h, m):
-    """Los cuatro índices con las fórmulas del libro (guia.js) sobre los grupos
-    quinquenales: 0-14 (tres grupos), 15-64 (diez), 65 y más, 15-19 y 60-64."""
-    t = h + m
-    p0, p15, p65 = t[:3].sum(), t[3:13].sum(), t[13:].sum()
-    return {"C10": p65 / p0, "C11": p0 / p15 * 100, "C17": (p0 + p65) / p15 * 100, "C14": t[3] / t[12] * 100}
-
-
 def indice_del_libro(cod, nivel, nombre):
     return r2(DATOS_IND[cod][nivel].get(nombre, np.nan) * INDICES[cod][1], INDICES[cod][2])
 
@@ -634,12 +747,13 @@ def extranjero_sumado(islas):
 
 
 def ficha_agregada(tipo, nombre, poblacion, serie_pob, serie_ext, h, m, hx, mx,
-                   vegetativo, migratorio, origen, indices_propios, islas_indices, contenido):
+                   vegetativo, migratorio, origen, indices_propios, islas_indices, contenido, anteriores_):
     """La ficha de una isla, una provincia o Canarias. `serie_*`, `vegetativo` y
     `migratorio` son (años, valores); `origen`, el reparto en porcentaje;
     `indices_propios`, {código: valor ya en su unidad}; `islas_indices`, las
     islas que van en la escalera de los índices; `contenido`, lo que la ficha
-    lista (rankings, municipios, islas, provincias)."""
+    lista (rankings, municipios, islas, provincias); `anteriores_`, la pirámide y
+    los índices de los años anteriores (`anteriores`)."""
     x1, y1 = _sin_nulos(*serie_pob)
     var, a0, a1 = variacion(x1, y1)
     pob_pir = h.sum() + m.sum()
@@ -696,6 +810,8 @@ def ficha_agregada(tipo, nombre, poblacion, serie_pob, serie_ext, h, m, hx, mx,
             for cod in INDICES
         },
 
+        "anteriores": anteriores_,
+
         "componentes": depurar_componentes(combinar({
             "vegetativo": vegetativo,
             "migratorio": migratorio,
@@ -746,7 +862,9 @@ for isla in ORDEN_ISLAS:
             # Sus municipios de mayor a menor población, con el peso en la isla (el
             # mismo que lleva cada ficha municipal en rankings.isla.peso).
             "municipios": resumen_municipios(suyos, POB_I[isla]),
-        })
+        },
+        anteriores(lambda a: ESTRUCTURA[a]["isla"][isla],
+                   lambda a: indices_anio(a, {"isla": ("I", isla)}, ORDEN_ISLAS)))
     escribir_agregada(ficha, "isla")
     fichas_islas.append({"slug": ficha["slug"], "nombre": isla, "poblacion": ficha["poblacion"],
                          "municipios": len(suyos)})
@@ -779,7 +897,9 @@ for prov in ORDEN_PROVINCIAS:
                        "peso": r2(POB_I[i] / pob * 100, 2), "municipios": len(ISLAS[i])}
                       for i in sorted(islas, key=POB_I.get, reverse=True)],
             "municipios": resumen_municipios(suyos, pob),
-        })
+        },
+        anteriores(lambda a: ESTRUCTURA[a]["prov"][prov],
+                   lambda a: indices_anio(a, {"provincia": ("P", prov)}, islas)))
     escribir_agregada(ficha, "provincia")
     fichas_provincias.append({"slug": ficha["slug"], "nombre": prov, "poblacion": ficha["poblacion"],
                               "islas": [slug_de(i) for i in islas], "municipios": len(suyos)})
@@ -805,7 +925,8 @@ ficha_canarias = ficha_agregada(
                    "peso": r2(POB_I[i] / POB_CANARIAS * 100, 2), "municipios": len(ISLAS[i]),
                    "provincia": next(p for p, islas in PROVINCIAS.items() if i in islas)}
                   for i in sorted(ISLAS, key=POB_I.get, reverse=True)],
-    })
+    },
+    anteriores(lambda a: ESTRUCTURA[a]["canarias"], lambda a: indices_anio(a, {}, ORDEN_ISLAS)))
 escribir_agregada(ficha_canarias)
 
 # El último dato regional de origen extranjero, para la portada (sin redondear).
@@ -837,11 +958,16 @@ def _modal(H, M):
     tot = sum(H) + sum(M)
     return max(max(H), max(M)) / tot * 100 if tot else 0.0
 
-_ejes = {"canarias": [], "municipio": []}
+_ejes = {"canarias": [], "municipio": [], "años anteriores": []}
 for f in todas_las_fichas:   # las 88 municipales, las 7 insulares, las 2 provinciales y Canarias
     pi = f["piramide"]
     _ejes["canarias"].append((_eje_automatico(max(_modal(pi["hombres"], pi["mujeres"]),
                                                   max(pi["canarias_hombres"] + pi["canarias_mujeres"]))), f["nombre"]))
+    for _a in f["anteriores"]:
+        pa = _a["piramide"]
+        _ejes["años anteriores"].append((_eje_automatico(max(_modal(pa["hombres"], pa["mujeres"]),
+                                                             max(pa["canarias_hombres"] + pa["canarias_mujeres"]))),
+                                         f"{f['nombre']} ({_a['anio']})"))
     if pi.get("extranjera_hombres"):
         eh, em = pi["extranjera_hombres"], pi["extranjera_mujeres"]
         esph = [max(0, a - b) for a, b in zip(pi["hombres"], eh)]

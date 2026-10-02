@@ -747,6 +747,9 @@ function avisoReposo() {
 }
 let FILA = null;      // grupo de edad señalado en la pirámide, o null
 let FIJADA = false;   // fijado con clic, toque o teclado; global porque cada redibujado reconecta la lectura
+// Año de la pirámide y de los índices: null es el de la ficha; si no, uno de sus
+// `anteriores` (2005, 2010, 2015 y 2020). En papel, siempre el de la ficha.
+let ANIO = null;
 
 // Al cambiar de municipio, cabecera y cuerpos cambian por cruce con desenfoque
 // (`cruce`, comun.js); la pirámide no, sus barras se transforman en `pintar`.
@@ -823,7 +826,7 @@ function tablaPiramide(P, vista) {
     return fila;
   });
   const plantilla = document.createElement('template');
-  plantilla.innerHTML = tablaOculta(`Población por sexo y grupo de edad, en porcentaje · ${vista.etiqueta}`, cabeceras, filas);
+  plantilla.innerHTML = tablaOculta(`Población por sexo y grupo de edad, en porcentaje · ${vista.etiqueta} · ${ANIO ?? FICHA?.anio ?? ''}`, cabeceras, filas);
   figura.querySelector(':scope > .oculto')?.remove();
   figura.appendChild(plantilla.content.firstElementChild);
 }
@@ -840,18 +843,21 @@ function mostrarVista(i, animar = true, dur = 720, grado = 3) {
 
   document.querySelectorAll('.vista').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   document.getElementById('leyenda-piramide').innerHTML = leyendaPiramide(v);
-  fuentesFicha(i, ENT);   // cada pestaña dibuja una tabla distinta del ISTAC
+  fuentesFicha(i, ENT, ANIO);   // cada pestaña dibuja una tabla distinta del ISTAC
   if (!IMPRIMIENDO) tablaPiramide(P, v);
   // El eje cambia fundiéndose mientras las barras se mueven.
   const eje = document.querySelector('#g-piramide #eje-piramide');
+  // Se compara con el eje que hay dibujado (`dibujado`), no con el último pedido:
+  // dos cambios seguidos cancelan el fundido del primero antes de que se dibuje.
   if (eje) {
     clearTimeout(temporizadorEje);
-    const cambia = eje.dataset.eje !== String(v.eje);
+    const dibujar = () => { eje.innerHTML = P.ejeSVG(v.eje); eje.dataset.dibujado = String(v.eje); };
+    const cambia = eje.dataset.dibujado !== String(v.eje);
     if (cambia && animar && animable()) {
       eje.style.opacity = '0';
-      temporizadorEje = setTimeout(() => { eje.innerHTML = P.ejeSVG(v.eje); eje.style.opacity = '1'; }, 260);
+      temporizadorEje = setTimeout(() => { dibujar(); eje.style.opacity = '1'; }, 260);
     } else {
-      if (cambia || !eje.dataset.eje) eje.innerHTML = P.ejeSVG(v.eje);
+      if (cambia) dibujar();
       eje.style.opacity = '1';
     }
     eje.dataset.eje = String(v.eje);
@@ -1064,30 +1070,9 @@ function pintar(f) {
   // La leyenda lleva el valor de Canarias: es la referencia de la barra del municipio.
   el('leyenda-extranjero').innerHTML = leyendaExtranjero(f, 2);
 
-  // La hoja imprime siempre la primera pestaña. Si ya hay una pirámide en
-  // pantalla con la misma geometría no se borra: sus barras se mueven hasta la
-  // forma del municipio nuevo (Canarias, que es la misma, no se mueve).
+  // La hoja imprime siempre la primera pestaña.
   if (IMPRIMIENDO) VISTA = 0;
-  // En pantalla cada fila mide al menos 24 px, que es el objetivo de puntero que
-  // pide la accesibilidad; en la isla la pirámide va algo más alta, para
-  // acompañar a la escalera de los índices.
-  const altoPantalla = Math.max(acotar(wPi * 0.70, 360, ENT.agregada ? 560 : 470), f.piramide.edades.length * 24 + 46);
-  const nueva = construirPiramide(f.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : altoPantalla, null, ENT.rotulo, ENT.canarias);
-  document.querySelectorAll('.vista').forEach((b, k) => { b.textContent = nueva.vistas[k].etiqueta; });
-  const enPantalla = !!(PIRAMIDE && PIRAMIDE.nodos && !IMPRIMIENDO
-    && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && document.querySelector('#g-piramide svg'));
-  if (enPantalla) {
-    Object.assign(PIRAMIDE, { vistas: nueva.vistas, edades: nueva.edades });
-    mostrarVista(VISTA, true, 800, 4);
-  } else {
-    PIRAMIDE = nueva;
-    el('g-piramide').innerHTML = PIRAMIDE.svg;
-    mostrarVista(VISTA, false);
-  }
-
-  el('g-indices').innerHTML = ENT.agregada
-    ? `<div class="indices-isla">${bloqueIndicesIsla(f.indices, INDICES_FICHA, ENT.provincia ? 'Provincia' : f.nombre)}</div>`
-    : bloqueIndices(f.indices, INDICES_FICHA);
+  const enPantalla = pintarEstructura(f, wPi);
 
   dibujarComponentes(f, wCo);
 
@@ -1110,8 +1095,143 @@ function pintar(f) {
   }
   conectarLecturaEvolucion();
   conectarIndices();
-  fuentesFicha(VISTA, ENT);
+  fuentesFicha(VISTA, ENT, ANIO);
+  pintarConsultas(f);
   igualarGraficos(f);
+}
+
+/* ---------------------------------------------------- consultas oficiales -- */
+/* Al pie de la ficha, solo en pantalla, los enlaces a las consultas oficiales de
+   su territorio: en el ISTAC, todas sus estadísticas sobre él; en el INE, del
+   censo anual de población (la operación cuyas cifras son las de la ficha), la
+   población de cada sección censal y la población por continente de
+   nacimiento. Los enlaces los genera y comprueba enlaces_oficiales.py en
+   web/datos/enlaces.json, que llega después que la ficha: sin él la tarjeta no
+   sale. */
+let ENLACES = null;
+const ISTAC_TERRITORIO = 'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/';
+const INE_TABLA = 'https://www.ine.es/jaxiT3/Datos.htm?t=';
+const NOMBRE_PROVINCIA = { 35: 'Las Palmas', 38: 'Santa Cruz de Tenerife' };
+
+/** Los enlaces de cada organismo para la ficha: [{ titulo, detalle, href }]. */
+function consultasDe(f, ent) {
+  const ine = ENLACES.ine, istac = ENLACES.istac;
+  // La provincia (35 o 38) de cada ficha, por el código de sus municipios.
+  const provDe = (cod) => String(cod).slice(0, 2);
+  const provincias = ent.canarias ? ['35', '38'] : [provDe(ent.tipo === 'municipio' ? f.codmun : f.municipios[0].codmun)];
+  const idIstac = ent.canarias ? istac.canarias : ent.isla ? istac.islas[f.slug] : ent.provincia ? istac.provincias[f.slug] : istac.municipios[f.codmun];
+  const quien = ent.provincia ? `la provincia de ${f.nombre}` : f.nombre;
+  const secciones = (p) => ({
+    titulo: 'Población por sección censal',
+    detalle: `Los municipios y las secciones censales de la provincia de ${NOMBRE_PROVINCIA[p]}, ${ENLACES.anio}`,
+    href: INE_TABLA + ine.tablas_secciones[p],
+  });
+  const delINE = [];
+  const propia = ent.tipo === 'municipio' ? ine.municipios[f.codmun] : null;
+  if (propia?.consulta) {
+    const suyas = propia.secciones === 1 ? 'su única sección censal' : `sus ${propia.secciones} secciones censales`;
+    delINE.push({ titulo: 'Población por sección censal', detalle: `${f.nombre} y ${suyas}, ${ENLACES.desde}–${ENLACES.anio}`, href: propia.consulta });
+  } else delINE.push(...provincias.map(secciones));
+  const continentes = ent.tipo === 'municipio' ? ine.continentes[f.codmun] : ent.provincia ? ine.continentes[provincias[0]] : null;
+  if (continentes) {
+    delINE.push({ titulo: 'Población por continente de nacimiento', detalle: `${ent.provincia ? `Provincia de ${f.nombre}` : f.nombre}, ${ENLACES.anio}`, href: continentes });
+  }
+  return [
+    { sigla: 'ISTAC', nombre: 'Instituto Canario de Estadística', enlaces: idIstac
+      ? [{ titulo: 'Sus estadísticas en el ISTAC', detalle: `Todos los datos del ISTAC sobre ${quien}, por temas`, href: ISTAC_TERRITORIO + idIstac }] : [] },
+    { sigla: 'INE', nombre: 'Instituto Nacional de Estadística · Censo anual de población', enlaces: delINE },
+  ].filter((o) => o.enlaces.length);
+}
+
+function pintarConsultas(f) {
+  const sec = document.getElementById('sec-consultas');
+  if (!sec || !ENLACES || IMPRIMIENDO) return;
+  // Un enlaces.json con otra forma no puede romper la ficha: la tarjeta no sale.
+  let organismos = [];
+  try { organismos = consultasDe(f, entidad(f)); } catch (e) { console.warn('enlaces.json', e); }
+  sec.hidden = !organismos.length;
+  document.getElementById('consultas').innerHTML = organismos.map((o) => `
+    <div class="organismo">
+      <h3>${o.sigla}</h3><p>${esc(o.nombre)}</p>
+      <ul>${o.enlaces.map((e) => `
+        <li><a href="${esc(e.href)}" target="_blank" rel="noopener">
+          <b>${esc(e.titulo)}${icono('desplegar', 13, 'ico galon')}</b><span>${esc(e.detalle)}</span>
+          <span class="oculto">(se abre en otra pestaña)</span>
+        </a></li>`).join('')}
+      </ul>
+    </div>`).join('');
+}
+
+/* ------------------------------------------------------ estructura por años -- */
+/** La pirámide y los índices de la ficha en `anio`: los suyos o, si es un año
+ *  anterior, los de `anteriores` (sin la pirámide de origen extranjero, que
+ *  solo existe en el año de la ficha). */
+function estructuraDe(f, anio) {
+  const a = anio == null ? null : (f.anteriores || []).find((x) => x.anio === anio);
+  if (!a) return { piramide: f.piramide, indices: f.indices };
+  return {
+    piramide: { ...f.piramide, ...a.piramide, extranjera_hombres: null, extranjera_mujeres: null },
+    indices: Object.fromEntries(Object.entries(f.indices).map(([cod, d]) => [cod, { ...d, ...a.indices[cod], anio }])),
+  };
+}
+
+/** Los botones de año: los anteriores que tenga la ficha (Frontera y El Pinar
+ *  no tienen 2005, cuando aún eran un municipio) y el suyo. Si son los mismos
+ *  que había, solo cambia el pulsado: el foco no se pierde. */
+function ponerAnios(f) {
+  const cont = document.getElementById('anios');
+  const anios = [...(f.anteriores || []).map((a) => a.anio), f.anio];
+  const elegido = ANIO ?? f.anio;
+  if (cont.dataset.anios !== anios.join()) {
+    cont.dataset.anios = anios.join();
+    cont.innerHTML = anios.map((a) => `<button type="button" data-anio="${a}" aria-pressed="false">${a}</button>`).join('');
+  }
+  cont.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.anio === elegido)));
+}
+
+/** La pirámide y los índices del año elegido. Si ya hay una pirámide en
+ *  pantalla con la misma geometría no se borra: sus barras se mueven hasta la
+ *  forma nueva (otro territorio u otro año; Canarias en el mismo año no se
+ *  mueve). Devuelve si se ha movido. */
+function pintarEstructura(f, wPi) {
+  const el = (id) => document.getElementById(id);
+  if (ANIO != null && !(f.anteriores || []).some((a) => a.anio === ANIO)) ANIO = null;   // la ficha nueva no tiene ese año
+  if (ANIO != null) VISTA = 0;   // «Según origen» solo existe en el año de la ficha
+  const est = estructuraDe(f, ANIO);
+  ponerAnios(f);
+  // En pantalla cada fila mide al menos 24 px, que es el objetivo de puntero que
+  // pide la accesibilidad; en la isla la pirámide va algo más alta, para
+  // acompañar a la escalera de los índices.
+  const altoPantalla = Math.max(acotar(wPi * 0.70, 360, ENT.agregada ? 560 : 470), est.piramide.edades.length * 24 + 46);
+  const nueva = construirPiramide(est.piramide, wPi, IMPRIMIENDO ? ALTO_PIRAMIDE_A4 : altoPantalla, null, ENT.rotulo, ENT.canarias);
+  document.querySelectorAll('.vista').forEach((b, k) => { b.textContent = nueva.vistas[k].etiqueta; });
+  const enPantalla = !!(PIRAMIDE && PIRAMIDE.nodos && !IMPRIMIENDO
+    && PIRAMIDE.w === nueva.w && PIRAMIDE.h === nueva.h && document.querySelector('#g-piramide svg'));
+  if (enPantalla) {
+    Object.assign(PIRAMIDE, { vistas: nueva.vistas, edades: nueva.edades });
+    mostrarVista(VISTA, true, 800, 4);
+  } else {
+    PIRAMIDE = nueva;
+    el('g-piramide').innerHTML = PIRAMIDE.svg;
+    mostrarVista(VISTA, false);
+  }
+
+  el('g-indices').innerHTML = ENT.agregada
+    ? `<div class="indices-isla">${bloqueIndicesIsla(est.indices, INDICES_FICHA, ENT.provincia ? 'Provincia' : f.nombre)}</div>`
+    : bloqueIndices(est.indices, INDICES_FICHA);
+  return enPantalla;
+}
+
+/** Otro año en la pirámide y los índices: las barras se mueven hasta la forma
+ *  de ese año y los índices se cruzan con desenfoque, como al cambiar de
+ *  territorio. Desde «Según origen», la pirámide pasa a la primera pestaña. */
+function cambiarAnio(anio) {
+  if (!FICHA || (ANIO ?? FICHA.anio) === anio) return;
+  const soltar = cruce('.tarjeta.indices > .cuerpo' + (VISTA === 1 ? ', #leyenda-piramide' : ''));
+  ANIO = anio === FICHA.anio ? null : anio;
+  if (!pintarEstructura(FICHA, anchoDe('g-piramide'))) conectarLecturaPiramide();   // rehecha: otra lectura
+  soltar();
+  conectarIndices();
 }
 
 /* Los tres gráficos que pueden crecer para llenar su tarjeta (`igualarGraficos`);
@@ -1254,7 +1374,8 @@ function colocarEtiquetas(grupo, w) {
 function textoLectura(P, vista, i) {
   if (i == null) return '';
   const v = (S, cl) => `${pctFila(S[cl][i])}${UNI}%`;
-  return `${P.edades[i]} años. ${vista.rotH}: ${v(vista.relleno, 'H')}; ${vista.rotM}: ${v(vista.relleno, 'M')}.`
+  // Con un año anterior elegido, la lectura empieza diciéndolo.
+  return `${ANIO != null && P === PIRAMIDE ? `${ANIO}. ` : ''}${P.edades[i]} años. ${vista.rotH}: ${v(vista.relleno, 'H')}; ${vista.rotM}: ${v(vista.relleno, 'M')}.`
        + (vista.sinMarco ? '' : ` ${vista.rotNegro}: hombres ${v(vista.negro, 'H')}, mujeres ${v(vista.negro, 'M')}.`);
 }
 
@@ -1428,9 +1549,20 @@ function entradaContenido() {
       { duration: 640, delay: 40 * i, easing: SUAVE, fill: 'backwards' }));
 }
 
-/** Cambio de pestaña: las barras se transforman y la leyenda se cruza con desenfoque. */
+/** Cambio de pestaña: las barras se transforman y la leyenda se cruza con
+ *  desenfoque. «Según origen» solo existe en el año de la ficha: desde un año
+ *  anterior, la pirámide y los índices vuelven a él. */
 function cambiarVista(i) {
   if (!PIRAMIDE || i === VISTA) return;
+  if (i === 1 && ANIO != null) {
+    const soltar = cruce('#leyenda-piramide, .tarjeta.indices > .cuerpo');
+    ANIO = null;
+    VISTA = 1;
+    if (!pintarEstructura(FICHA, anchoDe('g-piramide'))) conectarLecturaPiramide();
+    soltar();
+    conectarIndices();
+    return;
+  }
   const soltar = cruce('#leyenda-piramide');
   mostrarVista(i);
   soltar();
@@ -1750,14 +1882,16 @@ function montarIconos() {
 }
 
 /* beforeprint llega antes de maquetar la hoja (Ctrl+P y el botón): se redibuja
-   a medida de papel, con la primera pestaña y sin franja señalada, y al
-   terminar se devuelven la pestaña y la franja que había. */
-let VISTA_ANTES = 0, FILA_ANTES = null;
+   a medida de papel, con la primera pestaña del año de la ficha y sin franja
+   señalada, y al terminar se devuelven la pestaña, el año y la franja que había. */
+let VISTA_ANTES = 0, FILA_ANTES = null, ANIO_ANTES = null;
 addEventListener('beforeprint', () => {
   if (!FICHA) return;
   VISTA_ANTES = VISTA;
   FILA_ANTES = FILA;
+  ANIO_ANTES = ANIO;
   FILA = null;
+  ANIO = null;   // la hoja es la del año de la ficha
   IMPRIMIENDO = true;
   pintar(FICHA);
 });
@@ -1766,6 +1900,7 @@ addEventListener('afterprint', () => {
   IMPRIMIENDO = false;
   VISTA = VISTA_ANTES;
   FILA = FILA_ANTES;
+  ANIO = ANIO_ANTES;
   pintar(FICHA);
 });
 
@@ -1798,6 +1933,8 @@ async function iniciar() {
     if (FICHA) avisoReposo();
   });
   const geoEnCamino = pedirGeo();
+  // Los enlaces a las consultas oficiales tampoco la bloquean; si no llegan, no hay tarjeta.
+  leerJSON('datos/enlaces.json').then((e) => { ENLACES = e; if (FICHA) pintarConsultas(FICHA); }).catch(() => {});
   const tardio = setTimeout(() => avisoCarga('estado-ficha', 'Cargando los datos…'), 600);
   try {
     INDICE = await leerJSON('datos/indice.json');
@@ -1843,6 +1980,10 @@ async function iniciar() {
 
   document.querySelectorAll('.vista').forEach((b, i) =>
     b.addEventListener('click', () => cambiarVista(i)));
+  document.getElementById('anios').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-anio]');
+    if (b) cambiarAnio(+b.dataset.anio);
+  });
 
   await cargar(inicial);
   await geoEnCamino;

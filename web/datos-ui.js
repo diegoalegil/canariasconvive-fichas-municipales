@@ -18,15 +18,20 @@ const FUENTES_GRAFICOS = {
   componentes: 'ISTAC. Movimiento natural de la población y estadística de migraciones, 2002–2024.',
   nacimiento: 'ISTAC. Población según lugar de nacimiento, 2025.',
 };
-function textoFuente(clave) { return `Fuente: ${FUENTES_GRAFICOS[clave]}`; }
+/** Con `anio`, la de un año anterior de la pirámide o los índices: la misma
+ *  operación, con su año en lugar del de la ficha. */
+function textoFuente(clave, anio = null) {
+  const texto = FUENTES_GRAFICOS[clave];
+  return `Fuente: ${anio ? texto.replace(/\d{4}\.$/, `${anio}.`) : texto}`;
+}
 function fuenteGrafico(clave) { return `<p class="fuente-grafico">${esc(textoFuente(clave))}</p>`; }
 
 /** Pone o actualiza la línea de fuente al final de `elemento`. */
-function ponerFuente(elemento, id, clave) {
+function ponerFuente(elemento, id, clave, anio = null) {
   if (!elemento || !FUENTES_GRAFICOS[clave]) return;
   let p = document.getElementById(id);
   if (!p) { p = document.createElement('p'); p.id = id; p.className = 'fuente-grafico'; elemento.append(p); }
-  const texto = textoFuente(clave);
+  const texto = textoFuente(clave, anio);
   if (p.textContent !== texto) p.textContent = texto;
 }
 
@@ -37,8 +42,9 @@ const claveEvolucion = (ent) => ent?.canarias ? 'evolucion_canarias' : ent?.agre
  *  con la lista de lo que contiene; nueve en la provincia, que lista también
  *  sus municipios); la pirámide sigue a su pestaña. Las cifras clave no
  *  llevan fuente: no son un gráfico. `ent` es la entidad de la ficha
- *  (`entidad`, ficha.js); las provincias se suman desde las islas. */
-function fuentesFicha(vistaPiramide = 0, ent = null) {
+ *  (`entidad`, ficha.js); las provincias se suman desde las islas. Con
+ *  `anioEstructura`, la pirámide y los índices son de ese año anterior. */
+function fuentesFicha(vistaPiramide = 0, ent = null, anioEstructura = null) {
   const agregada = !!ent?.agregada;
   [['g-evolucion', claveEvolucion(ent)],
    ['g-extranjero', 'extranjero'], ['mapas', 'mapas'],
@@ -47,7 +53,8 @@ function fuentesFicha(vistaPiramide = 0, ent = null) {
    ['g-piramide', vistaPiramide === 1 ? 'piramide_nacimiento' : 'piramide'],
    ['g-indices', 'indices'], ['g-componentes', 'componentes'], ['g-origen', 'nacimiento'],
   ].forEach(([id, clave]) => {
-    if (clave) ponerFuente(document.getElementById(id)?.parentElement, `fuente-${id}`, clave);
+    const anio = id === 'g-piramide' || id === 'g-indices' ? anioEstructura : null;
+    if (clave) ponerFuente(document.getElementById(id)?.parentElement, `fuente-${id}`, clave, anio);
     else document.getElementById(`fuente-${id}`)?.remove();
   });
 }

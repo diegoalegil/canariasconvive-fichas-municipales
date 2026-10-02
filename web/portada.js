@@ -1,6 +1,8 @@
-/* Portada: la banda de Canarias entera, el rótulo de cada provincia y, bajo
-   él, una tarjeta por isla con su silueta, que despliega la lista de fichas de
-   esa isla: primero la isla entera y, debajo, cada municipio. El buscador
+/* Portada: el mapa de Canarias, que se acerca a la isla elegida y abre la
+   ficha del municipio que se pulse; la banda de Canarias entera, el rótulo de
+   cada provincia y, bajo él, una tarjeta por isla con su silueta, que
+   despliega la lista de fichas de esa isla: primero la isla entera y, debajo,
+   cada municipio. El buscador
    encuentra Canarias, provincias, islas y municipios. El orden de provincias e
    islas es el de indice.json (de oeste a este, lo fija exportar_datos.py). Los
    siete desplegables miden lo mismo (`.isla-menu .desplegable` en estilos.css). */
@@ -187,6 +189,283 @@ function montarIslas() {
   });
 }
 
+/* -------------------------------------------------------------- el mapa --- */
+/* Canarias con sus 88 términos municipales y, al lado, un panel con el
+   territorio señalado y el enlace a su ficha. Pulsar una isla acerca el mapa
+   hasta ella, con sus municipios (las demás quedan atenuadas y pulsarlas
+   cambia de isla); pulsar un municipio abre su ficha (con el dedo, el primer
+   toque lo presenta en el panel y el segundo la abre). «Toda Canarias» y
+   Escape vuelven al archipiélago. Con el teclado, el mapa se enfoca y las
+   flechas recorren las islas o los municipios: Enter acerca o abre. Las
+   coordenadas UTM se proyectan a mil unidades de ancho y el acercamiento
+   anima el viewBox. */
+const ANCHO_MAPA = 1000;
+const MAPA = { svg: null, cajas: {}, todo: null, vista: null, raf: 0, isla: null, senalado: null, tocado: null, teclado: null, puntero: null, hasta: 0, vuelta: 0 };
+
+const municipioDe = (codmun) => INDICE.municipios.find((m) => String(m.codmun) === String(codmun));
+const islaDe = (nombre) => INDICE.islas_resumen.find((i) => i.nombre === nombre);
+const provinciaDeIsla = (isla) => INDICE.provincias.find((p) => p.islas.includes(isla.slug));
+const tactil = () => matchMedia('(hover: none)').matches;
+
+/** Lo que el panel dice de un territorio: Canarias (null), una isla o un municipio. */
+function fichaPanel(t) {
+  if (!t) {
+    return {
+      migas: 'Todo el archipiélago', nombre: 'Canarias',
+      datos: `<b>${nf(INDICE.poblacion_canarias)}</b> habitantes · ${INDICE.islas_resumen.length} islas · ${INDICE.municipios.length} municipios`,
+      href: enlaceFicha({ tipo: 'canarias' }), boton: 'Ver la ficha de Canarias',
+      ayuda: 'Pulsa una isla para acercarte a sus municipios.',
+    };
+  }
+  if (t.slug) {
+    const prov = provinciaDeIsla(t);
+    return {
+      migas: prov ? `Provincia de ${prov.nombre}` : '', nombre: t.nombre,
+      datos: `<b>${nf(t.poblacion)}</b> habitantes · ${t.municipios} municipios`,
+      href: enlaceFicha(t), boton: 'Ver la ficha de la isla',
+      ayuda: MAPA.isla === t.nombre
+        ? (tactil() ? 'Toca un municipio para verlo; otro toque abre su ficha.' : 'Pulsa un municipio para abrir su ficha.')
+        : 'Pulsa la isla para acercarte a sus municipios.',
+    };
+  }
+  return {
+    migas: t.isla, nombre: t.nombre,
+    datos: `<b>${nf(t.poblacion)}</b> habitantes`,
+    href: enlaceFicha(t), boton: 'Ver la ficha del municipio',
+    ayuda: tactil() ? 'Otro toque en el mapa también abre su ficha.' : 'Pulsa el municipio para abrir su ficha.',
+  };
+}
+
+/** El panel se monta una vez y después se actualiza en su sitio: si se
+ *  sustituyera, el enlace que tiene el foco (o al que va el tabulador)
+ *  desaparecería y el foco caería al principio de la página. */
+function pintarPanel(t) {
+  const d = fichaPanel(t);
+  const panel = document.getElementById('mapa-panel');
+  if (!panel.firstElementChild) {
+    panel.innerHTML = `
+      <button class="btn btn-liso mapa-volver" type="button" id="mapa-volver" hidden>${icono('desplegar', 14, 'ico galon')}<span>Toda Canarias</span></button>
+      <p class="explorar-migas"></p>
+      <p class="explorar-nombre"></p>
+      <p class="explorar-datos"></p>
+      <a class="btn"><span></span>${icono('desplegar', 14, 'ico galon')}</a>
+      <p class="explorar-ayuda"></p>`;
+  }
+  panel.querySelector('.explorar-migas').textContent = d.migas;
+  panel.querySelector('.explorar-nombre').textContent = d.nombre;
+  panel.querySelector('.explorar-datos').innerHTML = d.datos;
+  const a = panel.querySelector('a.btn');
+  a.setAttribute('href', d.href);
+  a.querySelector('span').textContent = d.boton;
+  panel.querySelector('.explorar-ayuda').textContent = d.ayuda;
+}
+
+/** El territorio que el panel enseña cuando no se señala nada: el municipio
+ *  tocado, la isla de cerca o Canarias. */
+function territorioBase() {
+  if (MAPA.tocado) return municipioDe(MAPA.tocado);
+  return MAPA.isla ? islaDe(MAPA.isla) : null;
+}
+
+/** Señala un territorio en el mapa (una isla de lejos o, de cerca, un
+ *  municipio de la isla elegida u otra isla) y lo presenta en el panel; con
+ *  null, vuelve al territorio base. */
+function senalarEnMapa(objetivo) {
+  const svg = MAPA.svg;
+  svg.querySelectorAll('.senalada, .senalado').forEach((e) => e.classList.remove('senalada', 'senalado'));
+  MAPA.senalado = objetivo;
+  if (objetivo?.codmun) svg.querySelector(`path[data-codmun="${objetivo.codmun}"]`)?.classList.add('senalado');
+  else if (objetivo?.slug) svg.querySelector(`.isla[data-isla="${CSS.escape(objetivo.nombre)}"]`)?.classList.add('senalada');
+  if (!objetivo && MAPA.tocado) svg.querySelector(`path[data-codmun="${MAPA.tocado}"]`)?.classList.add('senalado');
+  pintarPanel(objetivo || territorioBase());
+}
+
+/** Lo que hay bajo el puntero o el dedo: el municipio de la isla elegida o, si
+ *  no, la isla. */
+function objetivoDe(nodo) {
+  const zona = nodo.closest?.('.zona');
+  if (zona) return islaDe(zona.parentNode.dataset.isla);
+  const trazo = nodo.closest?.('path[data-codmun]');
+  if (!trazo) return null;
+  const isla = trazo.parentNode.dataset.isla;
+  return MAPA.isla === isla ? municipioDe(trazo.dataset.codmun) : islaDe(isla);
+}
+
+/** La caja `c` con margen y estirada a la proporción del mapa en pantalla, centrada. */
+function encuadre(c, margen) {
+  const r = MAPA.svg.clientWidth / MAPA.svg.clientHeight || 2.2;
+  let w = c.w * (1 + 2 * margen), h = c.h * (1 + 2 * margen);
+  if (w / h < r) w = h * r; else h = w / r;
+  return [c.x + c.w / 2 - w / 2, c.y + c.h / 2 - h / 2, w, h];
+}
+const encuadreActual = () => MAPA.isla ? encuadre(MAPA.cajas[MAPA.isla], 0.1) : encuadre(MAPA.todo, 0.03);
+const ponerVista = (vb) => { MAPA.vista = vb; MAPA.svg.setAttribute('viewBox', vb.map((v) => v.toFixed(2)).join(' ')); };
+
+/** Lleva el mapa a la vista de ahora: el ancho cambia en escala logarítmica
+ *  (el acercamiento no se precipita al final) y el centro, en línea recta. */
+function moverVista(animar) {
+  cancelAnimationFrame(MAPA.raf);
+  const destino = encuadreActual(), origen = MAPA.vista;
+  if (!animar || !origen || !animable()) { ponerVista(destino); return; }
+  const centro = (v) => [v[0] + v[2] / 2, v[1] + v[3] / 2];
+  const [cx0, cy0] = centro(origen), [cx1, cy1] = centro(destino);
+  const r = destino[2] / destino[3], t0 = performance.now(), dur = 720;
+  const paso = (t) => {
+    const p = Math.min(1, (t - t0) / dur), e = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+    const w = Math.exp(Math.log(origen[2]) + (Math.log(destino[2]) - Math.log(origen[2])) * e), h = w / r;
+    const cx = cx0 + (cx1 - cx0) * e, cy = cy0 + (cy1 - cy0) * e;
+    ponerVista([cx - w / 2, cy - h / 2, w, h]);
+    if (p < 1) MAPA.raf = requestAnimationFrame(paso);
+  };
+  MAPA.raf = requestAnimationFrame(paso);
+}
+
+/** Acerca el mapa a una isla o, con null, vuelve a toda Canarias. */
+function irAIsla(nombre) {
+  MAPA.isla = nombre;
+  MAPA.tocado = null;
+  MAPA.teclado = null;
+  const mapa = document.getElementById('mapa-portada');
+  mapa.classList.toggle('de-cerca', !!nombre);
+  MAPA.svg.querySelectorAll('.isla').forEach((g) => g.classList.toggle('elegida', g.dataset.isla === nombre));
+  document.getElementById('mapa-volver').hidden = !nombre;
+  MAPA.hasta = animable() ? performance.now() + 750 : 0;   // hasta que termina el acercamiento, pulsar no abre fichas
+  moverVista(true);
+  senalarEnMapa(null);
+}
+
+function abrirFicha(t) { location.href = enlaceFicha(t); }
+
+/** Los territorios que recorren las flechas: las islas de oeste a este o los
+ *  municipios de la isla elegida por orden alfabético. */
+const recorrido = () => MAPA.isla ? municipiosDe(islaDe(MAPA.isla)) : INDICE.islas_resumen;
+function anunciar(texto) { document.getElementById('mapa-estado').textContent = texto; }
+function textoTerritorio(t) {
+  if (t.codmun) return `${t.nombre}: ${nf(t.poblacion)} habitantes. Enter abre su ficha.`;
+  return `${t.nombre}: ${nf(t.poblacion)} habitantes, ${t.municipios} municipios. Enter acerca el mapa.`;
+}
+
+/** Los rótulos de las islas en el mapa entero, por encima del dibujo (en
+ *  píxeles no crecen con el acercamiento): debajo de cada isla y, en
+ *  Lanzarote, que tiene Fuerteventura debajo, a su izquierda. */
+function colocarRotulos() {
+  const vb = encuadre(MAPA.todo, 0.03);
+  const pc = (x, y) => [(x - vb[0]) / vb[2] * 100, (y - vb[1]) / vb[3] * 100];
+  // Una isla pequeña en una pantalla estrecha mide menos de 24 px: un círculo
+  // transparente debajo de su dibujo le da al menos ese objetivo.
+  const unidadesPorPx = vb[2] / (MAPA.svg.clientWidth || 1);
+  MAPA.svg.querySelectorAll('.zona').forEach((c) => {
+    const caja = MAPA.cajas[c.parentNode.dataset.isla];
+    c.setAttribute('r', Math.max(Math.hypot(caja.w, caja.h) / 2, 12 * unidadesPorPx).toFixed(2));
+  });
+  document.getElementById('mapa-rotulos').innerHTML = INDICE.islas_resumen.map((i) => {
+    const c = MAPA.cajas[i.nombre];
+    const izquierda = i.nombre === 'Lanzarote';
+    const [x, y] = izquierda ? pc(c.x - 8, c.y + c.h / 2) : pc(c.x + c.w / 2, c.y + c.h + 6);
+    return `<span class="${izquierda ? 'a-la-izquierda' : ''}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%">${esc(i.nombre)}</span>`;
+  }).join('');
+}
+
+function montarMapa() {
+  const mapa = document.getElementById('mapa-portada');
+  if (!mapa) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const f of GEO.features) {
+    const [a, b, c, d] = f.properties.bbox;
+    x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, c); y1 = Math.max(y1, d);
+  }
+  const k = ANCHO_MAPA / (x1 - x0);
+  const P = (c) => `${((c[0] - x0) * k).toFixed(2)},${((y1 - c[1]) * k).toFixed(2)}`;
+  MAPA.todo = { x: 0, y: 0, w: ANCHO_MAPA, h: (y1 - y0) * k };
+  const grupos = INDICE.islas_resumen.map((isla) => {
+    const suyos = GEO.features.filter((f) => f.properties.isla === isla.nombre);
+    let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+    for (const f of suyos) {
+      const [p, q, r, s] = f.properties.bbox;
+      a = Math.min(a, p); b = Math.min(b, q); c = Math.max(c, r); d = Math.max(d, s);
+    }
+    MAPA.cajas[isla.nombre] = { x: (a - x0) * k, y: (y1 - d) * k, w: (c - a) * k, h: (d - b) * k };
+    const caja = MAPA.cajas[isla.nombre];
+    return `<g class="isla" data-isla="${esc(isla.nombre)}"><circle class="zona" cx="${(caja.x + caja.w / 2).toFixed(2)}" cy="${(caja.y + caja.h / 2).toFixed(2)}" r="0"/>`
+      + suyos.map((f) => `<path data-codmun="${f.properties.codmun}" d="`
+      + f.geometry.coordinates.map((pol) => pol.map((an) => 'M' + an.map(P).join('L') + 'Z').join('')).join('') + '"/>').join('') + '</g>';
+  }).join('');
+  mapa.insertAdjacentHTML('afterbegin', `<svg viewBox="0 0 ${ANCHO_MAPA} ${MAPA.todo.h.toFixed(2)}" aria-hidden="true" focusable="false">${grupos}</svg>`
+    + '<div class="mapa-rotulos" id="mapa-rotulos" aria-hidden="true"></div>');
+  MAPA.svg = mapa.querySelector('svg');
+  pintarPanel(null);
+  ponerVista(encuadreActual());
+  colocarRotulos();
+  mapa.closest('.explorar').hidden = false;   // sin datos, la sección no sale
+  ponerVista(encuadreActual());               // ya con su tamaño
+  colocarRotulos();
+
+  const svg = MAPA.svg;
+  // Al salir del mapa, el panel vuelve al territorio base con un respiro: quien
+  // va hacia su botón llega con el territorio que señalaba.
+  const panel = document.getElementById('mapa-panel');
+  svg.addEventListener('pointerover', (e) => {
+    if (e.pointerType === 'touch') return;
+    clearTimeout(MAPA.vuelta);
+    senalarEnMapa(objetivoDe(e.target));
+  });
+  svg.addEventListener('pointerleave', (e) => {
+    if (e.pointerType !== 'touch') MAPA.vuelta = setTimeout(() => senalarEnMapa(null), 350);
+  });
+  panel.addEventListener('pointerenter', () => clearTimeout(MAPA.vuelta));
+  panel.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') MAPA.vuelta = setTimeout(() => senalarEnMapa(null), 350); });
+  // El clic no dice bien si viene del dedo (Safari lo da como «mouse»): lo dice el pointerdown que lo precede.
+  svg.addEventListener('pointerdown', (e) => { MAPA.puntero = e.pointerType; });
+  svg.addEventListener('click', (e) => {
+    const t = objetivoDe(e.target);
+    const dedo = (MAPA.puntero || e.pointerType) === 'touch';
+    // El doble clic del ratón, gesto de acercar, no abre fichas (con el dedo, el segundo toque sí).
+    if (!t || (e.detail > 1 && !dedo)) return;
+    if (t.slug) { if (t.nombre !== MAPA.isla) irAIsla(t.nombre); return; }
+    if (performance.now() < MAPA.hasta) return;
+    // Con el dedo no hay «señalar»: el primer toque presenta el municipio y el segundo abre su ficha.
+    if (dedo && MAPA.tocado !== String(t.codmun)) { MAPA.tocado = String(t.codmun); senalarEnMapa(null); return; }
+    abrirFicha(t);
+  });
+  document.getElementById('mapa-volver').addEventListener('click', () => { irAIsla(null); mapa.focus(); });
+
+  mapa.addEventListener('keydown', (e) => {
+    if (e.target !== mapa || e.altKey || e.ctrlKey || e.metaKey) return;
+    const lista = recorrido();
+    let i = lista.indexOf(MAPA.teclado);
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': i = i < 0 ? 0 : (i + 1) % lista.length; break;
+      case 'ArrowLeft': case 'ArrowUp': i = i < 0 ? lista.length - 1 : (i - 1 + lista.length) % lista.length; break;
+      case 'Home': i = 0; break;
+      case 'End': i = lista.length - 1; break;
+      case 'Enter': case ' ': {
+        e.preventDefault();
+        const t = MAPA.teclado;
+        if (!t) return;
+        if (t.slug) {
+          irAIsla(t.nombre);
+          anunciar(`${t.nombre}, ${t.municipios} municipios. Flechas para recorrerlos; Escape vuelve a toda Canarias.`);
+        } else abrirFicha(t);
+        return;
+      }
+      case 'Escape':
+        if (!MAPA.isla) return;
+        e.preventDefault();
+        irAIsla(null);
+        anunciar('Toda Canarias. Flechas para recorrer las islas.');
+        return;
+      default: return;
+    }
+    e.preventDefault();
+    MAPA.teclado = lista[i];
+    senalarEnMapa(lista[i]);
+    anunciar(textoTerritorio(lista[i]));
+  });
+  mapa.addEventListener('blur', () => { if (MAPA.teclado) { MAPA.teclado = null; senalarEnMapa(null); } });
+  // Un cambio de tamaño a mitad del acercamiento corta la animación: su destino tenía la proporción vieja.
+  addEventListener('resize', () => { cancelAnimationFrame(MAPA.raf); ponerVista(encuadreActual()); colocarRotulos(); });
+}
+
 /* ------------------------------------------------------------- buscador --- */
 function montarBuscador() {
   const campo = document.getElementById('buscar');
@@ -289,6 +568,7 @@ async function iniciar() {
     [pct(INDICE.extranjero_canarias, 1), 'Origen extranjero'],
   ].map(([v, r], i) => `<div class="ent" style="--n:${i}"><b>${v}</b><span>${r}</span></div>`).join('');
 
+  montarMapa();
   montarIslas();
   montarBuscador();
 

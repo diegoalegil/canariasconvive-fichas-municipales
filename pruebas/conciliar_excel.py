@@ -12,7 +12,9 @@ las hojas «I», donde el origen extranjero se contrasta con la suma de sus
 municipios, y en Canarias contra las «R»; las dos provincias, que no tienen
 hojas, se contrastan con la suma de sus islas (el libro trajo Lanzarote y Fuerteventura cambiadas en C2I/C22I de
 2021 a 2025 hasta que Pedro lo corrigió el 16/9/2026; si volviera a pasar, el
-exportador lo corrige y aquí se cuentan los años corregidos)."""
+exportador lo corrige y aquí se cuentan los años corregidos). También las
+pirámides de 2005, 2010, 2015 y 2020 (C28M–C31M) de cada ficha, con los
+índices de esos años."""
 import json
 import math
 import sys
@@ -257,6 +259,77 @@ for f in FP:
     check([i["nombre"] for i in f["islas"]], [g["nombre"] for g in sorted(suyas, key=lambda g: -g["poblacion"])], f"provincia_islas:{prov}")
     suyos = [g for g in F if g["isla"] in nombres]
     check([m["codmun"] for m in f["municipios"]], [g["codmun"] for g in sorted(suyos, key=lambda g: -g["poblacion"])], f"provincia_municipios:{prov}")
+
+# ---- años anteriores: pirámides C28M–C31M y los índices de esos años --------
+# Cada pirámide municipal, celda a celda contra su hoja y sumando su población de
+# C1M; la de cada isla, la suma de sus municipios en la hoja (en 2005 El Hierro
+# lleva la columna «Frontera (hasta 2007)», y Frontera y El Pinar no tienen ese
+# año) y su población de C1I; Canarias, la suma de las islas y C1R; cada
+# provincia, la suma de sus islas. Los índices, los de las hojas de ese año (las
+# provincias, con la fórmula: invariantes.py).
+HOJAS_ANT = {2005: "C28M", 2010: "C29M", 2015: "C30M", 2020: "C31M"}
+PIR_ANT = {}
+for anio, hoja in HOJAS_ANT.items():
+    filas = list(W[hoja].values)
+    cab = [str(x).strip() if x is not None else None for x in filas[0]]
+    PIR_ANT[anio] = {}
+    for j, nombre in enumerate(cab):
+        if nombre and nombre != "INDEX-C" and j + 1 < len(cab):
+            h, m = [r[j] for r in filas[2:23]], [r[j + 1] for r in filas[2:23]]
+            if all(isinstance(v, (int, float)) for v in h + m):
+                PIR_ANT[anio][nombre] = (h, m)
+FRONTERA_VIEJA = "Frontera (hasta 2007)"
+
+
+def isla_ant(isla, anio):
+    nombres = [n for n in PIR_ANT[anio] if ISLA_DE.get(n) == isla or (isla == "El Hierro" and n == FRONTERA_VIEJA)]
+    return ([sum(PIR_ANT[anio][n][0][k] for n in nombres) for k in range(21)],
+            [sum(PIR_ANT[anio][n][1][k] for n in nombres) for k in range(21)])
+
+
+ISLA_ANT = {(i, a): isla_ant(i, a) for i in ISLAS for a in HOJAS_ANT}
+CAN_ANT = {a: ([sum(ISLA_ANT[(i, a)][0][k] for i in ISLAS) for k in range(21)],
+               [sum(ISLA_ANT[(i, a)][1][k] for i in ISLAS) for k in range(21)]) for a in HOJAS_ANT}
+for (i, a), (h, m) in ISLA_ANT.items():
+    check(sum(h + m), SS["C1I"][i][a], f"anterior_isla_total:{i}:{a}")
+for a, (h, m) in CAN_ANT.items():
+    check(sum(h + m), SS["C1R"]["Canarias"][a], f"anterior_canarias_total:{a}")
+
+
+def comprobar_anteriores(f, que, propia, columnas):
+    """`propia(año)` es la pirámide del libro o None; `columnas`, {clave del índice: (hoja, nombre)}."""
+    esperados = [a for a in HOJAS_ANT if propia(a) is not None]
+    check([x["anio"] for x in f["anteriores"]], esperados, f"anterior_anios:{que}")
+    for x in f["anteriores"]:
+        a, pi = x["anio"], x["piramide"]
+        h, m = propia(a)
+        check(pi["hombres"], h, f"anterior_piramide:{que}:{a}:hombres")
+        check(pi["mujeres"], m, f"anterior_piramide:{que}:{a}:mujeres")
+        hc, mc = CAN_ANT[a]
+        tot = sum(hc + mc)
+        check(pi["canarias_hombres"], [round(v / tot * 100, 3) for v in hc], f"anterior_canarias:{que}:{a}:hombres")
+        check(pi["canarias_mujeres"], [round(v / tot * 100, 3) for v in mc], f"anterior_canarias:{que}:{a}:mujeres")
+        for c, idx in x["indices"].items():
+            factor, dec = (100 if c == "C11" else 1), (2 if c == "C10" else 1)
+            for k, (nivel, nombre) in {**columnas, "canarias": ("R", "Canarias")}.items():
+                check(idx[k], round(SS[c + nivel][nombre][a] * factor, dec), f"anterior_indices:{que}:{a}:{c}:{k}")
+            for otra, v in idx.get("islas", {}).items():
+                check(v, round(SS[c + "I"][otra][a] * factor, dec), f"anterior_indices_islas:{que}:{a}:{c}:{otra}")
+
+
+for f in F:
+    mun = f["nombre"]
+    comprobar_anteriores(f, mun, lambda a, mun=mun: PIR_ANT[a].get(mun), {"municipio": ("M", mun), "isla": ("I", f["isla"])})
+    for x in f["anteriores"]:
+        check(sum(x["piramide"]["hombres"] + x["piramide"]["mujeres"]), SS["C1M"][mun][x["anio"]], f"anterior_total:{mun}:{x['anio']}")
+for f in FI:
+    comprobar_anteriores(f, f["nombre"], lambda a, i=f["nombre"]: ISLA_ANT[(i, a)], {"isla": ("I", f["nombre"])})
+comprobar_anteriores(FC, "Canarias", lambda a: CAN_ANT[a], {})
+for f in FP:
+    nombres = PROVINCIAS[f["nombre"]]
+    suma = lambda a, nombres=nombres: ([sum(ISLA_ANT[(i, a)][0][k] for i in nombres) for k in range(21)],
+                                       [sum(ISLA_ANT[(i, a)][1][k] for i in nombres) for k in range(21)])
+    comprobar_anteriores(f, f["nombre"], suma, {})
 
 total = sum(CUENTA.values())
 if ERR:

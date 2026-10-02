@@ -42,6 +42,12 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   await page.waitForSelector('.isla-menu');
   ok(JSON.stringify(await logosDe('.tapa-marca .placa img')) === logos, 'los tres logotipos en la portada');
   ok(await page.locator('.isla-menu').count() === 7 && await page.locator('#banda-canarias').count() === 1, 'siete islas y la banda de Canarias');
+  // El mapa: los 88 municipios y, al pulsar una isla, se acerca a ella.
+  await page.waitForSelector('#mapa-portada svg');
+  ok(await page.locator('#mapa-portada path[data-codmun]').count() === 88, 'el mapa con los 88 municipios');
+  await page.locator('#mapa-portada path[data-codmun="38038"]').click({ force: true });
+  await page.waitForFunction(() => document.getElementById('mapa-portada').classList.contains('de-cerca'));
+  ok(await page.locator('.explorar-nombre').textContent() === 'Tenerife', 'el mapa se acerca a Tenerife');
 
   // Ficha municipal, por su sobre: redirige, pinta los ocho bloques con su fuente y la cabecera lleva los tres logotipos.
   await page.goto(base + 'm/38038.html');
@@ -50,6 +56,14 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   ok(await page.locator('#nombre').textContent() === 'Santa Cruz de Tenerife', 'la ficha de Santa Cruz de Tenerife');
   ok(await page.locator('.fuente-grafico').count() >= 7, 'las fuentes de los gráficos');
   ok(JSON.stringify(await logosDe('.marca img')) === logos, 'los tres logotipos en la cabecera');
+  // La pirámide y los índices por años: 2005 y vuelta al año de la ficha.
+  await page.click('#anios button[data-anio="2005"]');
+  ok(await page.locator('#fuente-g-piramide').textContent() === 'Fuente: ISTAC. Población según sexo y grupos de edad, 2005.', 'la pirámide de 2005');
+  ok(await page.locator('#g-indices .indice-tit em').first().textContent() === '2005', 'los índices de 2005');
+  await page.click('#anios button:last-child');
+  // Las consultas oficiales: el ISTAC y el INE, con sus enlaces.
+  await page.waitForSelector('#sec-consultas:not([hidden])');
+  ok(await page.locator('.organismo h3').allTextContents().then((t) => t.join(' ')) === 'ISTAC INE', 'las consultas del ISTAC y el INE');
   // Con movimiento, la presentación se reproduce como vídeo (video.js).
   await page.click('#btn-presentar');
   await page.waitForSelector('#presentacion.video');

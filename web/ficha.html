@@ -20,7 +20,7 @@
 <link rel="icon" href="img/icono-32.png" sizes="32x32">
 <link rel="icon" href="img/icono-180.png" sizes="180x180">
 <link rel="apple-touch-icon" href="img/icono-180.png">
-<link rel="stylesheet" href="estilos.css?v=113">
+<link rel="stylesheet" href="estilos.css?v=114">
 </head>
 <body>
 
@@ -132,6 +132,8 @@
     <section class="tarjeta dos-tercios destacada">
       <header class="rotulo" data-ico="edad">
         <div><h2>Estructura de la población</h2></div>
+        <!-- El año de la pirámide y de los índices (ficha.js, `ponerAnios`). -->
+        <div class="anios" id="anios" role="group" aria-label="Año de la pirámide y de los índices"></div>
       </header>
       <div class="cuerpo">
         <div class="vistas">
@@ -176,15 +178,26 @@
       </div>
     </section>
 
+    <!-- Solo en pantalla: las consultas oficiales de este territorio en la web de
+         cada organismo (ficha.js, `pintarConsultas`; los enlaces, de enlaces_oficiales.py). -->
+    <section class="tarjeta consultas" id="sec-consultas" hidden>
+      <header class="rotulo" data-ico="enlace">
+        <div><h2>Consultar en el ISTAC y el INE</h2><p>Las tablas oficiales de este territorio, en la web de cada organismo</p></div>
+      </header>
+      <div class="cuerpo">
+        <div class="organismos" id="consultas"></div>
+      </div>
+    </section>
+
   </div>
 
 </main>
 
-<script src="config.js?v=113"></script>
-<script src="comun.js?v=113"></script>
-<script src="iconos.js?v=113"></script>
-<script src="datos-ui.js?v=113"></script>
-<script src="ficha.js?v=113"></script>
-<script src="video.js?v=113"></script>
+<script src="config.js?v=114"></script>
+<script src="comun.js?v=114"></script>
+<script src="iconos.js?v=114"></script>
+<script src="datos-ui.js?v=114"></script>
+<script src="ficha.js?v=114"></script>
+<script src="video.js?v=114"></script>
 </body>
 </html>

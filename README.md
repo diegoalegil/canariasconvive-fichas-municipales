@@ -64,8 +64,15 @@ TTF instalada); si no la encuentra, se detiene antes de reescribir nada.
 python3 exportar_datos.py    # Excel      -> web/datos/mun/<codINE>.json, isla/<isla>.json, provincia/<provincia>.json, canarias.json + indice.json
 python3 exportar_geo.py      # GeoPackage -> web/datos/geo/municipios.json
 python3 generar_tarjetas.py  # tarjetas og/, envoltorios m/, i/, p/ y r/, y web/config.js
+python3 enlaces_oficiales.py # web/datos/enlaces.json: los enlaces de cada ficha al INE y al ISTAC (necesita red)
 npm test                     # antes de publicar (ver Verificación)
 ```
+
+`enlaces_oficiales.py` lee las tablas del INE y la API del ISTAC y comprueba
+cada enlace antes de guardarlo (ver «Las consultas oficiales» en
+Decisiones). Hay que volver a ejecutarlo después de `exportar_datos.py` y
+cada vez que el INE publique un año nuevo del censo anual (en diciembre): se
+detiene si la población que da el INE no es la de la ficha.
 
 Los dos primeros leen de `~/Downloads/`; la ruta está en una constante al
 principio de cada script. **Los tres van juntos**: las tarjetas, los
@@ -103,9 +110,10 @@ al dominio anterior.
 ## Qué hay
 
 ```
-exportar_datos.py    Excel -> 88 JSON municipales, 7 insulares, 2 provinciales y el de Canarias (unos 4 KB cada uno) + indice.json
+exportar_datos.py    Excel -> 88 JSON municipales, 7 insulares, 2 provinciales y el de Canarias (unos 7 KB cada uno) + indice.json
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 207 KB)
 generar_tarjetas.py  las 99 tarjetas de vista previa, los envoltorios de web/m/, web/i/, web/p/ y web/r/, y web/config.js
+enlaces_oficiales.py los enlaces de cada ficha a sus consultas oficiales en el INE y el ISTAC, comprobados uno a uno
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook; las dos provincias
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública, los orígenes que pueden enmarcar la web y los tres logotipos, en un solo sitio
@@ -113,7 +121,7 @@ requirements.txt     dependencias de Python; package.json, las de las pruebas (P
 pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada; video.cjs, el MP4 de la presentación de una ficha
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
-web/index.html       portada: buscador, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
+web/index.html       portada: buscador, el mapa de Canarias, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
 web/ficha.html       la ficha municipal, la de isla, la de provincia y la de Canarias
 web/comparar.html    hasta tres municipios en paralelo, tres islas o las dos provincias
 web/guia.html        qué mide cada indicador y con qué cuenta se obtiene
@@ -124,7 +132,7 @@ web/comun.js         cifras, escapado, carga con error visible, el cruce con des
 web/datos-ui.js      la fuente de cada gráfico
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; las fichas de municipio, isla, provincia y Canarias
 web/video.js         la presentación en vídeo: los seis capítulos animados, cada fotograma en función del tiempo
-web/portada.js       buscador, banda de Canarias, rótulos de provincia, tarjetas de isla con su desplegable y entrada de la portada
+web/portada.js       mapa que se acerca a cada isla, buscador, banda de Canarias, rótulos de provincia, tarjetas de isla con su desplegable y entrada de la portada
 web/comparar.js      el comparador
 web/guia.js          la guía
 web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
@@ -244,6 +252,28 @@ provinciales desde su pirámide.
 - Frontera y El Pinar no existen antes de 2007: su variación acumulada y su
   TVMA arrancan en 2008, y la etiqueta lo dice.
 
+**La estructura por años** («Consultas según años o periodos», de la lista
+de mejoras de la dirección, 30/9/2026). El libro trae, además de la pirámide
+de 2025, las de 2005, 2010, 2015 y 2020 de los 88 municipios (`C28M` a
+`C31M`, con los mismos 21 grupos; la primera fila se llama «Menor de 5
+años»), y los cuatro índices año a año desde 2000. Cada ficha lleva en
+`anteriores` la pirámide y los índices de esos cuatro años: la ficha puede
+enseñar la estructura de cualquiera de ellos sin pedir datos nuevos a nadie.
+Las islas, Canarias y las provincias se suman desde los municipios; las
+hojas `C28R`/`C28I`… que lista el índice del libro no existen, y no hacen
+falta. El exportador se detiene si una pirámide municipal no suma su
+población de `C1M` ese año, si una isla no suma la de `C1I` o Canarias la de
+`C1R`, o si la fórmula sobre la pirámide no reproduce el índice del libro
+(municipios, islas y Canarias; las provincias, sin hojas, se calculan con
+ella). Al incorporarlas cuadró todo a la primera: las 350 pirámides
+municipales suman exactamente su población y la fórmula reproduce los 1.528
+índices del libro. En 2005 Frontera y El Pinar aún eran un municipio (la
+columna «Frontera (hasta 2007)», vacía después): ninguno de los dos tiene ese
+año y El Hierro lo suma con esa columna. `conciliar_excel.py` contrasta las
+pirámides celda a celda con sus hojas y los índices con los del libro, e
+`invariantes.py` comprueba sumas y fórmulas en los JSON. La pirámide de
+origen extranjero solo existe en el año de la ficha.
+
 ## Decisiones
 
 **Nada de servidor.** Ficheros estáticos: se suben tal cual y se embeben con un
@@ -276,7 +306,7 @@ cualquier recurso que la política bloquease. Las acciones del workflow van
 fijadas por commit, con la versión en el comentario.
 
 **La ficha no espera a los mapas.** La geometría de los mapas pesa 207 KB y
-se pide a la vez que el índice; la ficha se pinta con sus 4 KB en cuanto
+se pide a la vez que el índice; la ficha se pinta con sus 7 KB en cuanto
 llegan, con un hueco del tamaño de cada mapa y su pie, y los mapas se
 dibujan en cuanto llega la geometría, sin que nada salte. Si falla, la
 ficha se ve entera y un aviso ofrece reintentar solo los mapas.
@@ -460,6 +490,73 @@ encuentra Canarias, provincias, islas y municipios: los que empiezan por lo
 tecleado antes que los que solo lo contienen y, a igualdad, del ámbito mayor
 al menor. Se probó antes un mapa grande del archipiélago con pestañas y un
 panel; Diego prefirió las tarjetas, más limpias y del mismo tamaño.
+
+**El mapa de la portada** («Mejorar la consulta según ámbito territorial, con
+el mapa de Canarias y zooms a la selección», de la lista de mejoras de la
+dirección, 30/9/2026). Entre el buscador y las tarjetas, que siguen igual: el
+archipiélago con sus 88 términos municipales y, al lado, un panel con lo
+señalado (nombre, habitantes y el enlace a su ficha). Pulsar una isla acerca
+el mapa hasta ella con sus municipios, con una animación de 0,7 s (el ancho
+cambia en escala logarítmica y el centro en línea recta: no se precipita al
+final; sin animación con «reducir movimiento»); las demás islas quedan
+atenuadas y pulsarlas cambia de isla, y «Toda Canarias» (en el panel: dentro
+del mapa tapaba municipios en el móvil) o Escape vuelven. Pulsar un municipio
+abre su ficha, pero no el doble clic del ratón, que es el gesto de acercar,
+ni un clic durante el acercamiento; con el dedo, que no puede señalar sin
+pulsar, el primer toque lo presenta en el panel y el segundo abre la ficha
+(se distingue por el `pointerdown`: Safari da el clic del dedo como de
+ratón). Al salir del mapa, el panel tarda un poco en volver al territorio
+base, para que quien va hacia su botón llegue con lo que señalaba; y se
+actualiza en su sitio, sin rehacerse, para no perder el foco. Las islas
+pequeñas llevan debajo un círculo transparente que les da al menos 24 px
+para el dedo. Si fallan los datos, la sección no sale. Con el teclado, el mapa se enfoca y las flechas recorren las islas
+de oeste a este o los municipios por orden alfabético; Enter acerca o abre,
+y una región viva dice dónde se está. De lejos las islas van enteras (el
+trazo del color del relleno funde sus municipios) y con su nombre; de cerca,
+la isla elegida lleva sus límites municipales en blanco, que no engordan con
+el acercamiento (`non-scaling-stroke`). En el móvil el mapa es más alto y sin
+rótulos de isla, que no caben sin pisarse. No sustituye a las tarjetas: es
+otra forma de llegar a la misma ficha.
+
+**La pirámide y los índices por años.** En la cabecera azul de «Estructura de
+la población», los años 2005, 2010, 2015, 2020 y el de la ficha (2025),
+pulsado al abrir: es la consulta por años de la lista de mejoras de la
+dirección, con los datos que ya había en el libro (`anteriores`, en «Los
+datos»). Elegir un año mueve las barras hasta la pirámide de ese año, como al
+cambiar de municipio, con Canarias del mismo año en los marcos negros; los
+cuatro índices pasan a ese año (cada uno lo dice junto a su nombre) y las dos
+líneas de fuente también. Mientras no se toca, la ficha es la de siempre.
+«Municipio: Según origen» solo existe en el año de la ficha: pulsarla desde
+un año anterior vuelve a él, y pulsar un año anterior desde ella pasa a la
+primera pestaña. Al cambiar de ficha se conserva el año si la nueva lo tiene
+(Frontera y El Pinar no tienen 2005: vuelven al de la ficha). El papel, la
+presentación, el vídeo, el dossier y el comparador son siempre del año de la
+ficha; tras imprimir vuelve el año que se había elegido.
+
+**Las consultas oficiales** («Logotipos de INE e ISTAC con enlaces a las
+fuentes» y «Enlaces al INE/ISTAC de principales consultas sobre el
+municipio», de la lista de mejoras de la dirección). Al pie de la ficha, solo
+en pantalla, la tarjeta «Consultar en el ISTAC y el INE», con los enlaces a
+las consultas oficiales de ese territorio, que se abren en otra pestaña. Del
+ISTAC, la página de su catálogo dedicada al territorio (eTerritorios), con
+todas sus estadísticas por temas; el identificador del territorio no es el
+código INE (`MUN_BETANCURIA`, `ISLA_GOMERA`…) y `enlaces_oficiales.py` lo
+saca de la API del ISTAC y lo comprueba uno a uno. Del INE, el **censo anual
+de población**, que es la operación cuyas cifras coinciden con las de la
+ficha (Santa Cruz de Tenerife, 211.498 en 2025; la revisión del padrón y las
+«Cifras oficiales de población» del ISTAC dan 211.957, y por eso no se
+enlazan): la población de cada sección censal del municipio de 2021 a 2025
+(una consulta con su serie y la de cada sección; Las Palmas de Gran Canaria y
+Santa Cruz de Tenerife tienen demasiadas secciones para la dirección y
+enlazan la tabla de su provincia, igual que las islas y Canarias) y la
+población por continente de nacimiento del municipio o de la provincia, que
+cubre en parte la petición de «origen de las personas extranjeras
+(países/continentes)» mientras el libro no lo traiga. El script comprueba
+cada enlace del INE antes de guardarlo: que la población del municipio sea la
+de su ficha, que sus secciones la sumen y que la tabla de continentes traiga
+su fila con esa población. Los organismos van por su nombre, sin logotipos:
+los suyos tienen sus propias condiciones de uso. Si `enlaces.json` no llega,
+la ficha se pinta igual y la tarjeta no sale.
 
 **Anillo para el lugar de nacimiento.** Municipio y Canarias, uno al lado del
 otro, con el reparto escrito debajo. Las tres cifras llevan un decimal y suman
@@ -670,18 +767,21 @@ Node 20 o superior (la acción usa 22).
   recursos y ningún recurso de terceros; ningún texto atribuye los datos al
   padrón; y una mudanza a una URL ficticia no deja rastro del dominio
   anterior.
-- `pruebas/conciliar_excel.py`: 3.790 comparaciones contra el libro, celda a celda —población, series, origen extranjero con el decimal
+- `pruebas/conciliar_excel.py`: 11.310 comparaciones contra el libro, celda a celda —población, series, origen extranjero con el decimal
   que se muestra, componentes con sus anomalías, los cuatro índices en los
   tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el lugar de
   nacimiento en los 88 municipios; lo mismo en las siete islas contra las
   hojas «I», con el origen extranjero contrastado con la suma de sus
   municipios y los años que el libro trae cambiados contados aparte; Canarias
-  contra las hojas «R»; y cada provincia contra la suma de sus islas—.
+  contra las hojas «R»; cada provincia contra la suma de sus islas; y las
+  pirámides de 2005, 2010, 2015 y 2020 de cada ficha contra `C28M`–`C31M`
+  (sumadas para islas, provincias y Canarias, y cuadrando con `C1M`, `C1I` y
+  `C1R`), con los índices de esos años contra sus hojas—.
   Necesita el Excel en `~/Downloads` (o en la ruta que se le pase) y
   `openpyxl`; sin el libro se omite avisando, que es lo que pasa en GitHub,
   donde el libro no está; con el libro y sin `openpyxl` falla, porque en la
   máquina que publica la conciliación tiene que correr.
-- `pruebas/web.test.cjs` (Playwright, diecinueve casos): la última selección
+- `pruebas/web.test.cjs` (Playwright, veintidós casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -696,6 +796,12 @@ Node 20 o superior (la acción usa 22).
   por mapa con su pie, mapas al llegar, aviso con reintento si fallan), las
   filas de la pirámide de 24 px, los índices con teclado (flechas, Enter
   fija, Escape suelta) y el alto que la página enmarcada dice al marco; la
+  pirámide y los índices por años (cada año, el grupo de 0 a 4 años y los
+  índices del libro, las fuentes con su año, «Según origen» y el papel y la
+  presentación del año de la ficha, Frontera sin 2005, el año que se conserva
+  al pasar a la isla y el foco en el botón); las consultas oficiales (los
+  enlaces de Betancuria, la tabla provincial para Santa Cruz de Tenerife, las
+  dos provincias en Canarias, nada en papel y la ficha entera si no llegan); la
   ficha de isla (se entra por `i/tenerife.html`, la dirección, la canónica y
   las etiquetas `og:` son las suyas, las pestañas dicen «Isla», los 31
   municipios de mayor a menor con enlace a su ficha, señalar uno lo destaca
@@ -729,7 +835,10 @@ Node 20 o superior (la acción usa 22).
   vacía la comparación y cambia el desplegable y los rótulos; a provincias
   entran las dos de golpe, `?p=` deja una y `?provincias` las dos); el fallo
   de carga inicial visible en el comparador y en la portada (buscador
-  desactivado); la portada (la banda de Canarias y el rótulo de cada
+  desactivado); el mapa de la portada (los 88 municipios; señalar presenta la
+  isla y el municipio en el panel, pulsar acerca y abre la ficha; teclado con
+  flechas, Enter y Escape; con el dedo, el primer toque presenta y el segundo
+  abre; sin desbordes a 320 y 375); la portada (la banda de Canarias y el rótulo de cada
   provincia, con enlace a su ficha, en una fila sobre sus islas a 1280 y cada
   uno sobre las suyas en una columna; siete tarjetas del mismo tamaño, en una
   fila a 1280, que abren dentro de la pantalla a 320, 375 y 1280 y sin

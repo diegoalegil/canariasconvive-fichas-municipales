@@ -10,7 +10,9 @@
    desplegable para pasar de la isla al municipio), el comparador de islas,
    la portada con una tarjeta por isla, las 88 fichas y las 7 de isla en una
    A4 y el dossier de 101 hojas, la ficha que pinta sin esperar a los mapas,
-   los índices con teclado y el alto que la página enmarcada dice al marco.
+   los índices con teclado, el alto que la página enmarcada dice al marco, la
+   pirámide y los índices por años, las consultas oficiales del territorio y
+   el mapa de la portada que se acerca a cada isla.
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
    Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
@@ -591,6 +593,8 @@ test('fichas de Canarias y de provincia: sin referencia repetida, sus provincias
 
 test('ficha: pinta sin esperar a los mapas, los índices se recorren con teclado y las filas de la pirámide miden 24 px', async () => {
   const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
+  // Antes de volver a navegar, que acaben sus descargas: WebKit anota como error la que se corta al salir.
+  await page.waitForLoadState('networkidle');
   // La geometría tarda: la ficha entera está pintada, con un hueco del tamaño de cada mapa y su pie.
   await retrasar(page, '**/datos/geo/municipios.json', 1500);
   await page.goto(base + 'ficha.html?municipio=38038');
@@ -642,6 +646,136 @@ test('ficha: pinta sin esperar a los mapas, los índices se recorren con teclado
   assert.ok(parseInt(await page.title().then((t) => t.slice(5)), 10) > 1000, `el marco recibe el alto de la ficha (${await page.title()})`);
   assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource')), []);
   await contexto.close();
+});
+
+test('ficha: la pirámide y los índices se consultan por años; «Según origen», el papel y la presentación son del año de la ficha', async () => {
+  const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
+  await page.waitForSelector('#anios button');
+  const f = await json(path.join(WEB, 'datos/mun/38038.json'));
+  const pulsados = () => page.locator('#anios button').evaluateAll((bs) => bs.map((b) => `${b.textContent}${b.getAttribute('aria-pressed') === 'true' ? '*' : ''}`).join(' '));
+  const vistas = () => page.locator('.vista').evaluateAll((bs) => bs.map((b) => b.getAttribute('aria-pressed')).join(' '));
+  assert.equal(await pulsados(), '2005 2010 2015 2020 2025*', 'los años anteriores y el de la ficha, pulsado');
+  // La tabla para el lector de pantalla y los índices son los del año elegido.
+  const fila0 = () => page.locator('#g-piramide table tbody tr').first().locator('td').allTextContents();
+  const pct2 = (v) => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %';
+  for (const a of f.anteriores) {
+    await page.click(`#anios button[data-anio="${a.anio}"]`);
+    assert.equal(await pulsados(), ['2005', '2010', '2015', '2020', '2025'].map((x) => x + (+x === a.anio ? '*' : '')).join(' '));
+    const tot = a.piramide.hombres.reduce((x, y) => x + y) + a.piramide.mujeres.reduce((x, y) => x + y);
+    assert.deepEqual((await fila0()).slice(0, 4), [pct2(a.piramide.hombres[0] / tot * 100), pct2(a.piramide.mujeres[0] / tot * 100),
+      pct2(a.piramide.canarias_hombres[0]), pct2(a.piramide.canarias_mujeres[0])], `${a.anio}: el grupo de 0 a 4 años es el del libro`);
+    const envejecimiento = await page.locator('#g-indices .indice').first().evaluate((d) => ({
+      anio: d.querySelector('.indice-tit em').textContent,
+      valores: Object.fromEntries([...d.querySelectorAll('.peldano')].map((x) => [x.dataset.ambito, x.querySelector('b').textContent])),
+    }));
+    assert.equal(envejecimiento.anio, String(a.anio));
+    const i = a.indices.C10, nf2 = (v) => v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    assert.deepEqual(envejecimiento.valores, { Municipio: nf2(i.municipio), Isla: nf2(i.isla), Canarias: nf2(i.canarias) }, `${a.anio}: índices del libro`);
+    assert.equal(await page.textContent('#fuente-g-piramide'), `Fuente: ISTAC. Población según sexo y grupos de edad, ${a.anio}.`);
+    assert.equal(await page.textContent('#fuente-g-indices'), `Fuente: ISTAC. Población según sexo y edades, ${a.anio}.`);
+  }
+  // La presentación y el papel son siempre del año de la ficha, sin perder el año elegido.
+  await page.click('#btn-presentar');
+  await page.waitForSelector('#presentacion');
+  assert.match(await page.textContent('#pres-fuente-pir'), /2025\.$/, 'la presentación es la de 2025');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#presentacion', { state: 'detached' });
+  await page.evaluate(() => dispatchEvent(new Event('beforeprint')));
+  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Población según sexo y grupos de edad, 2025.', 'la hoja es la de 2025');
+  assert.equal(await page.locator('#g-indices .indice-tit em').first().textContent(), '2025');
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('#anios').isVisible(), false, 'en papel no hay botones de año');
+  await page.emulateMedia({ media: null });
+  await page.evaluate(() => dispatchEvent(new Event('afterprint')));
+  assert.equal(await pulsados(), '2005 2010 2015 2020* 2025', 'tras imprimir vuelve el año elegido');
+  // «Según origen» solo existe en el año de la ficha: desde 2020 vuelve a 2025; y desde ella, un año anterior pasa a la primera pestaña.
+  await page.click('.vista >> nth=1');
+  assert.equal(await pulsados(), '2005 2010 2015 2020 2025*');
+  assert.equal(await vistas(), 'false true');
+  assert.equal(await page.textContent('#fuente-g-piramide'), 'Fuente: ISTAC. Población según sexo, edad y lugar de nacimiento, 2025.');
+  await page.click('#anios button[data-anio="2010"]');
+  assert.equal(await vistas(), 'true false');
+  assert.equal(await pulsados(), '2005 2010* 2015 2020 2025');
+  // Frontera no tiene 2005 (aún era un municipio con El Pinar): desde 2005 pasa al año de la ficha.
+  await page.click('#anios button[data-anio="2005"]');
+  await page.selectOption('#sel-municipio', '38013');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Frontera');
+  assert.equal(await pulsados(), '2010 2015 2020 2025*');
+  // Un año que la ficha nueva sí tiene se conserva al pasar a la isla, con las siete islas de ese año.
+  await page.click('#anios button[data-anio="2015"]');
+  await page.selectOption('#sel-municipio', 'isla:tenerife');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Tenerife');
+  assert.equal(await pulsados(), '2005 2010 2015* 2020 2025');
+  const isla = (await json(path.join(WEB, 'datos/isla/tenerife.json'))).anteriores.find((a) => a.anio === 2015);
+  const escalera = await page.locator('#g-indices .indice').first().evaluate((d) => Object.fromEntries([...d.querySelectorAll('[data-ambito]')]
+    .map((x) => [x.dataset.ambito, x.querySelector('b')?.textContent]).filter(([, v]) => v)));
+  for (const [nombre, v] of Object.entries(isla.indices.C10.islas)) {
+    assert.equal(escalera[nombre], v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), `Tenerife 2015: ${nombre}`);
+  }
+  // Con el teclado: los años son botones del orden de tabulación.
+  await page.focus('#anios button[data-anio="2020"]');
+  await page.keyboard.press('Enter');
+  assert.equal(await pulsados(), '2005 2010 2015 2020* 2025');
+  assert.equal(await page.evaluate(() => document.activeElement?.dataset.anio), '2020', 'el foco sigue en el botón');
+  await sinDesborde(page, 'ficha con un año anterior');
+  // El lector de pantalla oye el año: en la tabla oculta y al señalar un grupo.
+  assert.match(await page.locator('#g-piramide table caption').textContent(), / · 2020$/);
+  await page.focus('#g-piramide');
+  await page.keyboard.press('Home');
+  assert.match(await page.textContent('#lectura-piramide'), /^2020\. 0 a 4 años\./);
+  assert.deepEqual(errores, []);
+  await contexto.close();
+  // Con movimiento, dos años seguidos antes de que acabe el fundido del eje: el eje
+  // dibujado es el de las barras (en Adeje, 5 en 2025 y 6 en 2010 y 2015).
+  const { page: p2, contexto: c2 } = await abrir('ficha.html?municipio=38001', { movimiento: 'no-preference' });
+  await p2.waitForSelector('#anios button');
+  await espera(1200);
+  await p2.click('#anios button[data-anio="2010"]');
+  await espera(100);
+  await p2.click('#anios button[data-anio="2015"]');
+  await espera(1200);
+  const eje = await p2.locator('#eje-piramide').evaluate((g) => [g.dataset.eje, g.dataset.dibujado, [...g.querySelectorAll('text')].map((t) => t.textContent).join(' ')]);
+  assert.deepEqual(eje.slice(0, 2), ['6', '6']);
+  assert.match(eje[2], /6\u00a0%/, 'el eje de 2015 lleva su tope de 6 %');
+  await c2.close();
+});
+
+test('ficha: las consultas oficiales del territorio en el ISTAC y el INE, solo en pantalla y sin bloquear la ficha', async () => {
+  const { page, contexto, errores } = await abrir('ficha.html?municipio=35007');
+  await page.waitForSelector('#sec-consultas:not([hidden])');
+  const enlaces = await json(path.join(WEB, 'datos/enlaces.json'));
+  const leer = () => page.locator('.organismo').evaluateAll((os) => os.map((o) => [o.querySelector('h3').textContent,
+    ...[...o.querySelectorAll('a')].map((a) => [a.querySelector('b').textContent, a.querySelector('span').textContent, a.getAttribute('href'), a.target, a.rel])]));
+  assert.deepEqual(await leer(), [
+    ['ISTAC', ['Sus estadísticas en el ISTAC', 'Todos los datos del ISTAC sobre Betancuria, por temas',
+      'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/MUN_BETANCURIA', '_blank', 'noopener']],
+    ['INE', ['Población por sección censal', 'Betancuria y su única sección censal, 2021–2025', enlaces.ine.municipios['35007'].consulta, '_blank', 'noopener'],
+      ['Población por continente de nacimiento', 'Betancuria, 2025', enlaces.ine.continentes['35007'], '_blank', 'noopener']],
+  ]);
+  // Santa Cruz de Tenerife tiene demasiadas secciones para una consulta propia: la tabla de su provincia.
+  await page.selectOption('#sel-municipio', '38038');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife');
+  assert.equal(await page.locator('.organismo a').nth(1).getAttribute('href'), 'https://www.ine.es/jaxiT3/Datos.htm?t=69253');
+  // Canarias: las dos provincias, y su identificador del ISTAC.
+  await page.selectOption('#sel-municipio', 'canarias');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Canarias');
+  assert.deepEqual(await page.locator('.organismo a').evaluateAll((as) => as.map((a) => a.getAttribute('href'))), [
+    'https://www3.gobiernodecanarias.org/aplicaciones/appsistac/edatos-territory/territory/CCAA_CANARIAS',
+    'https://www.ine.es/jaxiT3/Datos.htm?t=69237', 'https://www.ine.es/jaxiT3/Datos.htm?t=69253']);
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('#sec-consultas').isVisible(), false, 'en papel no hay enlaces');
+  await page.emulateMedia({ media: null });
+  assert.deepEqual(errores, []);
+  await contexto.close();
+  // Si los enlaces no llegan, la ficha se pinta entera y la tarjeta no sale.
+  const sin = await navegador.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const p2 = await sin.newPage();
+  await p2.route('**/datos/enlaces.json', (r) => r.abort());
+  await p2.goto(base + 'ficha.html?municipio=35007');
+  await p2.waitForSelector('#fuente-g-origen');
+  await espera(300);
+  assert.equal(await p2.locator('#sec-consultas').isHidden(), true);
+  await sin.close();
 });
 
 test('ficha en el móvil: los rótulos de evolución y componentes no se pisan ni tapan la curva', async () => {
@@ -1094,6 +1228,103 @@ test('portada: siete tarjetas iguales, cada una despliega la isla entera y sus m
   assert.equal(await page.locator('#nombre').textContent(), 'Tenerife', 'Enter abre la primera opción: la isla');
   assert.deepEqual(errores, []);
   await contexto.close();
+});
+
+test('portada: el mapa se acerca a la isla elegida, presenta lo señalado y abre la ficha del municipio, con ratón, teclado y dedo', async () => {
+  const { page, contexto, errores } = await abrir('index.html');
+  await page.waitForSelector('#mapa-portada svg');
+  assert.equal(await page.locator('#mapa-portada .isla').count(), 7);
+  assert.equal(await page.locator('#mapa-portada path[data-codmun]').count(), 88, 'los 88 términos municipales');
+  const panel = async () => ({ nombre: await page.textContent('.explorar-nombre'), enlace: await page.getAttribute('#mapa-panel a', 'href') });
+  assert.deepEqual(await panel(), { nombre: 'Canarias', enlace: 'ficha.html?canarias' });
+  const ancho = async () => +(await page.getAttribute('#mapa-portada svg', 'viewBox')).split(' ')[2];
+  const lejos = await ancho();
+  // Ratón: señalar presenta la isla; pulsarla acerca el mapa (con movimiento reducido, sin animación).
+  const tf = page.locator('#mapa-portada .isla[data-isla="Tenerife"] path[data-codmun="38038"]');
+  await tf.hover({ force: true });
+  assert.deepEqual(await panel(), { nombre: 'Tenerife', enlace: 'ficha.html?isla=tenerife' });
+  await tf.click({ force: true });
+  assert.ok(await ancho() < lejos / 2, 'el mapa se acerca a Tenerife');
+  assert.equal(await page.locator('#mapa-volver').isVisible(), true);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.mapa-rotulos')).opacity === '0', null, { timeout: 2000 });   // sin rótulos de isla de cerca
+  const adeje = page.locator('#mapa-portada path[data-codmun="38001"]');
+  await adeje.hover({ force: true });
+  assert.deepEqual(await panel(), { nombre: 'Adeje', enlace: 'ficha.html?municipio=38001' });
+  assert.match(await page.textContent('.explorar-datos'), /50\.612/);
+  await page.mouse.move(5, 5);
+  // Al salir del mapa vuelve la isla elegida, con un respiro por si el puntero iba al botón del panel.
+  await page.waitForFunction(() => document.querySelector('.explorar-nombre').textContent === 'Tenerife', null, { timeout: 2000 });
+  await Promise.all([page.waitForURL(/municipio=38001|m\/38001/), adeje.click({ force: true })]);
+  await page.waitForSelector('#g-piramide svg');   // volver a mitad de carga cortaría sus peticiones
+  await page.waitForLoadState('networkidle');
+  await page.goBack();
+  await page.waitForSelector('#mapa-portada svg');
+  await page.evaluate(() => irAIsla(null));   // si la página vuelve de la caché, sigue acercada
+  await page.mouse.move(5, 5);                // y el ratón, que se quedó sobre el mapa, no señala nada
+  await espera(450);
+  // Teclado: las flechas recorren las islas de oeste a este, Enter acerca, Escape vuelve.
+  await page.focus('#mapa-portada');
+  await page.keyboard.press('ArrowRight');
+  assert.match(await page.textContent('#mapa-estado'), /^El Hierro: 11\.993 habitantes, 3 municipios/);
+  assert.equal(await page.textContent('.explorar-nombre'), 'El Hierro');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#mapa-portada').getAttribute('class'), 'explorar-mapa de-cerca');
+  await page.keyboard.press('ArrowRight');
+  assert.match(await page.textContent('#mapa-estado'), /^El Pinar de El Hierro: /, 'los municipios, por orden alfabético');
+  await page.keyboard.press('Escape');
+  assert.equal(await ancho(), lejos, 'Escape vuelve a toda Canarias');
+  assert.equal(await page.locator('#mapa-volver').isVisible(), false);
+  // Tab desde el mapa llega al enlace del panel (el panel no se rehace al perder el foco). Safari
+  // no lleva el tabulador a los enlaces salvo que se active en sus ajustes: solo en Chromium.
+  if (MOTOR === chromium) {
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Ver la ficha de Canarias');
+  }
+  // «Toda Canarias», en el panel, responde a Enter; las flechas con el foco en él no mueven el mapa.
+  await page.locator('#mapa-portada path[data-codmun="38038"]').click({ force: true });
+  await page.focus('#mapa-volver');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  assert.equal(await ancho(), lejos, 'el botón vuelve a toda Canarias');
+  assert.ok(page.url().endsWith('index.html'), 'sin abrir ninguna ficha');
+  // El doble clic acerca, pero no abre la ficha del municipio que queda debajo.
+  await page.locator('#mapa-portada path[data-codmun="38038"]').dblclick({ force: true });
+  await espera(900);
+  assert.ok(page.url().endsWith('index.html') && await ancho() < lejos / 2, 'el doble clic solo acerca');
+  // Teclas con modificador, para el navegador.
+  await page.focus('#mapa-portada');
+  assert.equal(await page.evaluate(() => {
+    const e = new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, cancelable: true, bubbles: true });
+    document.getElementById('mapa-portada').dispatchEvent(e);
+    return e.defaultPrevented;
+  }), false, 'Alt+← sigue siendo del navegador');
+  await contexto.close();
+  // Sin datos, la sección del mapa no sale.
+  const { page: p3, contexto: c3 } = await abrir('index.html');
+  await p3.route('**/datos/indice.json', (r) => r.abort());
+  await p3.reload();
+  await p3.waitForSelector('#estado-portada:not([hidden])');
+  assert.equal(await p3.locator('.explorar').isHidden(), true, 'sin datos no queda un mapa vacío');
+  await c3.close();
+  // Con el dedo, el primer toque presenta el municipio y el segundo abre su ficha; sin desborde a 320 y 375.
+  const movil = await navegador.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: MOTOR === chromium, reducedMotion: 'reduce' });
+  const m = await movil.newPage();
+  await m.goto(base + 'index.html');
+  await m.waitForSelector('#mapa-portada svg');
+  await m.locator('#mapa-portada path[data-codmun="35016"]').tap({ force: true });
+  assert.equal(await m.textContent('.explorar-nombre'), 'Gran Canaria');
+  await m.locator('#mapa-portada path[data-codmun="35016"]').tap({ force: true });
+  assert.equal(await m.textContent('.explorar-nombre'), 'Las Palmas de Gran Canaria');
+  assert.ok(m.url().endsWith('index.html'), 'el primer toque no abre la ficha');
+  await Promise.all([m.waitForURL(/municipio=35016|m\/35016/), m.locator('#mapa-portada path[data-codmun="35016"]').tap({ force: true })]);
+  for (const w of [320, 375]) {
+    await m.goto(base + 'index.html');
+    await m.setViewportSize({ width: w, height: 812 });
+    await m.waitForSelector('#mapa-portada svg');
+    await sinDesborde(m, `portada con el mapa a ${w}`);
+  }
+  await movil.close();
+  assert.deepEqual(errores, []);
 });
 
 test('logotipos: los tres juntos, en el orden de sitio.json, en la portada, la cabecera, el papel, la presentación y el dossier', async () => {
