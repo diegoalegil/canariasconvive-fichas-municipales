@@ -37,8 +37,8 @@ portada, la cabecera de las páginas interiores, la placa de la hoja impresa,
 la presentación y la portada y las hojas del dossier. Viven en `sitio.json`
 (`logos`: id, nombre, logotipo grande y de menú, en el orden en que se
 muestran) y llegan a la web en `config.js`; en el HTML estático van escritos
-(`invariantes.py` comprueba que la portada, las cuatro cabeceras y la placa
-del papel llevan los tres, en ese orden) y `logotipos()` (`comun.js`) dibuja
+(`invariantes.py` comprueba que la portada, las cinco cabeceras y las dos
+placas del papel llevan los tres, en ese orden) y `logotipos()` (`comun.js`) dibuja
 los que se generan al vuelo. Cada logotipo lleva su altura, por `data-logo`
 en `estilos.css` y `dossier.css`, siempre con la misma proporción (1 · 1,18 ·
 1,33): el de OBITen es apaisado con letra pequeña y el de Juntas es cuadrado,
@@ -48,7 +48,7 @@ delante de ella. La web es la de Canarias Convive: su nombre va en los
 títulos de las páginas, en los pies del dossier y en las tarjetas de vista
 previa. Cambiar un logotipo es cambiar su PNG en `web/img/` (y su entrada en
 `sitio.json` si cambia el nombre o el fichero), escribirlo en la portada, las
-cuatro cabeceras y la placa de `ficha.html`, y ejecutar
+cinco cabeceras y las placas de `ficha.html` y `escenario.html`, y ejecutar
 `generar_tarjetas.py`.
 
 ## Regenerar los datos
@@ -65,6 +65,7 @@ python3 exportar_datos.py    # Excel      -> web/datos/mun/<codINE>.json, isla/<
 python3 exportar_geo.py      # GeoPackage -> web/datos/geo/municipios.json
 python3 generar_tarjetas.py  # tarjetas og/, envoltorios m/, i/, p/ y r/, y web/config.js
 python3 enlaces_oficiales.py # web/datos/enlaces.json: los enlaces de cada ficha al INE y al ISTAC (necesita red)
+python3 exportar_escenario.py # PROYECCION_HP_2035.xlsx -> web/datos/escenario/: el escenario 2035 de cada territorio
 npm test                     # antes de publicar (ver Verificación)
 ```
 
@@ -73,6 +74,14 @@ cada enlace antes de guardarlo (ver «Las consultas oficiales» en
 Decisiones). Hay que volver a ejecutarlo después de `exportar_datos.py` y
 cada vez que el INE publique un año nuevo del censo anual (en diciembre): se
 detiene si la población que da el INE no es la de la ficha.
+
+`exportar_escenario.py` lee el libro de la proyección de Pedro
+(`~/Downloads/PROYECCION_HP_2035.xlsx`, aparte del libro CanCon) y las fichas
+ya exportadas, así que va después de `exportar_datos.py`. Se detiene sin
+escribir nada si la población de 2025 del libro no es la de las fichas, si
+alguna provincia no reproduce la proyección del INE en algún sexo y grupo de
+edad, si los índices de 2025 no son los de las fichas o si falta o sobra un
+municipio (ver «El escenario 2035» en Decisiones).
 
 Los dos primeros leen de `~/Downloads/`; la ruta está en una constante al
 principio de cada script. **Los tres van juntos**: las tarjetas, los
@@ -96,7 +105,7 @@ mismo, avisando, es la de dos islas con las columnas cambiadas (ver Los
 datos).
 
 La URL pública está en un solo sitio, `sitio.json`: de ahí salen las
-canónicas y las etiquetas `og:` de las cinco páginas, los envoltorios de
+canónicas y las etiquetas `og:` de las seis páginas, los envoltorios de
 `web/m/`, `web/i/`, `web/p/` y `web/r/`, el enlace de vuelta de las páginas
 de aviso y `web/config.js`, que se la da al JavaScript para el botón de
 compartir. No se escribe a la vista en ninguna pieza (ni el dossier ni el
@@ -114,11 +123,12 @@ exportar_datos.py    Excel -> 88 JSON municipales, 7 insulares, 2 provinciales y
 exportar_geo.py      GeoPackage -> GeoJSON simplificado (17,2 MB -> 207 KB)
 generar_tarjetas.py  las 99 tarjetas de vista previa, los envoltorios de web/m/, web/i/, web/p/ y web/r/, y web/config.js
 enlaces_oficiales.py los enlaces de cada ficha a sus consultas oficiales en el INE y el ISTAC, comprobados uno a uno
+exportar_escenario.py el libro de la proyección de Pedro -> el escenario 2035 de los 98 territorios (unos 2 KB cada uno)
 territorios.py       islas, comarcas y excepciones de nombres, extraídas del notebook; las dos provincias
 correcciones_libro.py  las celdas cruzadas conocidas del libro, que se corrigen solo mientras sigan mal
 sitio.json           la URL pública, los orígenes que pueden enmarcar la web y los tres logotipos, en un solo sitio
 requirements.txt     dependencias de Python; package.json, las de las pruebas (Playwright)
-pruebas/             la batería: invariantes de los datos, conciliación con el Excel e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada; video.cjs, el MP4 de la presentación de una ficha
+pruebas/             la batería: invariantes de los datos, conciliación con los dos libros e interacciones; medir-papel.cjs, las medidas de la A4 y del dossier; humo.cjs, el recorrido de la web publicada; video.cjs, el MP4 de la presentación de una ficha
 .github/workflows/   la acción que pasa la batería y publica web/ en GitHub Pages
 
 web/index.html       portada: buscador, el mapa de Canarias, Canarias, las dos provincias y una tarjeta por isla, con sus municipios
@@ -126,9 +136,10 @@ web/ficha.html       la ficha municipal, la de isla, la de provincia y la de Can
 web/comparar.html    hasta tres municipios en paralelo, tres islas o las dos provincias
 web/guia.html        qué mide cada indicador y con qué cuenta se obtiene
 web/dossier.html     las 98 fichas en un documento A4 de 101 hojas
+web/escenario.html   el escenario demográfico 2035 de cada territorio: la prospectiva de Pedro, en verde
 
 web/config.js        la URL pública, los orígenes del iframe y los logotipos, generados desde sitio.json
-web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque, el aviso al enmarcar y los logotipos
+web/comun.js         cifras, escapado, carga con error visible, el cruce con desenfoque, el aviso al enmarcar, los logotipos y la curva suavizada
 web/datos-ui.js      la fuente de cada gráfico
 web/ficha.js         los gráficos en SVG, sin librerías, en pantalla y en hoja; las fichas de municipio, isla, provincia y Canarias
 web/video.js         la presentación en vídeo: los seis capítulos animados, cada fotograma en función del tiempo
@@ -136,7 +147,8 @@ web/portada.js       mapa que se acerca a cada isla, buscador, banda de Canarias
 web/comparar.js      el comparador
 web/guia.js          la guía
 web/dossier.js       compone el dossier reutilizando los gráficos de ficha.js
-web/iconos.js        los quince iconos, en un solo sitio
+web/escenario.js     los gráficos del escenario 2035, en pantalla y en hoja
+web/iconos.js        los dieciséis iconos, en un solo sitio
 web/estilos.css      sistema de tarjeta, identidad visual e impresión
 web/dossier.css      solo el armazón del dossier
 web/404.html         la página de error de GitHub Pages, con el camino a la portada
@@ -322,7 +334,7 @@ manejadores ni scripts (los envoltorios `m/`, `i/`, `p/` y `r/` permiten solo
 su script de redirección, por la huella sha256 que `generar_tarjetas.py`
 calcula). Los estilos en línea sí se permiten: los gráficos los llevan;
 ninguna página usa `<base>`, así que `base-uri` va a `'none'`.
-`pruebas/invariantes.py` comprueba que las siete páginas y los envoltorios la
+`pruebas/invariantes.py` comprueba que las ocho páginas y los envoltorios la
 llevan y que no queda ningún manejador en línea, y la batería fallaría con
 cualquier recurso que la política bloquease. Las acciones del workflow van
 fijadas por commit, con la versión en el comentario.
@@ -365,7 +377,7 @@ centrada; la pirámide manda en su fila y no se toca. En el papel y en el
 dossier, lo mismo, y las hojas miden igual que antes porque la fila ya la
 marcaba la tarjeta más alta.
 
-**Iconografía propia.** Quince iconos sobre retícula de 24, trazo 1,5 uniforme
+**Iconografía propia.** Dieciséis iconos sobre retícula de 24, trazo 1,5 uniforme
 y monocromo, en `iconos.js`. Ninguno usa banderas ni siluetas humanas: al
 hablar de personas, un signo geométrico no arrastra los sesgos que arrastra un
 retrato. El color lo pone el contenedor con `currentColor`, así que sobre la
@@ -619,6 +631,57 @@ cuenta se obtiene, con los enunciados de Pedro y la fórmula de cada uno
 recursos. Las tarjetas de cada fila miden lo mismo, con la fórmula abajo, y
 la última, sola, va a todo el ancho.
 
+**El escenario 2035.** La prospectiva de Pedro, que él pidió meter «en un
+apartado en la web» y que se viera como su ficha de prueba (el PDF del
+30/9/2026, de su cuaderno `FICHAS_MUNICIPALES_PROSPECTIVAS`, celdas P1 a P3):
+`escenario.html?municipio=38038`, `?isla=…`, `?provincia=…` o `?canarias`, con
+el mismo desplegable que la ficha. Se llega desde la tarjeta de evolución de
+cada ficha (botón «Escenario 2035», solo en pantalla; en la barra la hacía
+crecer una línea entre 800 y 1.180 px) y desde los atajos de la portada, que
+abren el de Canarias; y vuelve con «Ficha demográfica». Los bloques son los
+suyos y en su orden: la cabecera con «Escenario demográfico 2035» y
+«Desagregación municipal de la proyección provincial del INE por sexo y
+edad»; la evolución observada en negro y la proyectada en verde discontinuo
+hasta 2035, con una línea de puntos en 2025 y los rótulos «observado» y
+«proyectado»; la variación media anual del territorio, su isla y Canarias,
+de 2015 a 2025 (casilla blanca con borde negro) y de 2025 a 2035 (casilla
+verde), sin «+» y sin «−0,0»; la pirámide de 2035 en porcentaje sobre su
+total, con el contorno negro de 2025 y los grupos de 85 en adelante juntos
+(«85 o más»), con escala propia y marcas de dos en dos; los cuatro índices en
+2025 y 2035 con su cambio en porcentaje y una flecha; y su nota metodológica,
+literal. **Va en verde a propósito** (#1B6B47, #2F8A5E, #7DC4A0, #B9E0CD): es
+la decisión de Pedro para separar lo estimado de lo observado, que en el
+resto de la web es azul; la barra y los botones siguen siendo los de la web.
+El cambio de los índices va en el verde oscuro y no en el medio de su
+cuaderno, que sobre blanco se queda en 4,3:1 y no llega al contraste AA.
+La isla, la provincia y Canarias tienen su escenario, sumando sus municipios
+como hace su cuaderno: la tabla de variación lleva entonces el territorio y
+Canarias. La provincia y Canarias reproducen así la proyección del INE.
+
+Lo proyectado no se escribe como cifra exacta en ningún sitio (la nota de
+Pedro: «lo que sostiene esta página es la dirección y la intensidad del
+cambio estructural, no el valor exacto de cada cifra»): el gráfico no lleva
+lectura al pasar el ratón y la tabla para el lector de pantalla dice «unos
+226.600», con cuatro cifras significativas y nunca por debajo de las decenas
+(«unos 1.140» en Agulo). En papel es una A4 como la suya,
+con la cabecera blanca, el nombre en verde y los tres logotipos.
+
+`exportar_escenario.py` no proyecta nada: lee las hojas de valores de 2030 y
+2035 del libro (`24_VALORES_2030`, `25_VALORES_2035`), con la misma forma que
+`C23M`, y la proyección provincial del INE por edad simple (`03_INE_2030_SIMPLE`,
+`04_INE_2035_SIMPLE`). Los índices se calculan con las fórmulas del libro
+sobre los 21 grupos; la variación observada, con la serie de la ficha. Sus
+comprobaciones, antes de escribir: la pirámide de 2025 del libro es la de la
+ficha en cada grupo de los 88 municipios; cada provincia reproduce la
+proyección del INE en cada sexo y grupo de edad (a menos de 0,01 personas);
+los índices de 2025 son los de las fichas; no hay huecos ni negativos. Dos
+reparos que conviene tener presentes, y que su nota ya avisa: en los
+municipios de menos de 2.000 habitantes el error del método se dobla (10 %
+de media hacia atrás, frente al 5,2 % general) y algunos índices saltan mucho
+(el reemplazo laboral de Artenara pasa de 15,8 a 81,8, un 416 %); y el cambio
+de los índices que ya son porcentajes es un cambio relativo (la juventud de
+Santa Cruz de Tenerife, de 15,0 a 12,3, es «18 % ▼», no 2,7 puntos).
+
 **Comparador.** Hasta tres municipios en columnas, siempre de mayor a menor
 por la cifra clave elegida en la barra (habitantes, edad media, variación
 media anual, mujeres u hombres). Los índices no ordenan la comparación: su
@@ -795,14 +858,20 @@ Node 20 o superior (la acción usa 22).
   cuatro índices están en los tres ámbitos; cada fuente de gráfico lleva el
   año de referencia; las islas van de oeste a este; los 88 envoltorios llevan la
   población y el año de `indice.json`, su tarjeta `og` y la URL de
-  `sitio.json` (igual que las canónicas y `og:` de las cinco páginas, la
+  `sitio.json` (igual que las canónicas y `og:` de las seis páginas, la
   descripción de la portada, que lleva el año y el arranque de la serie, y
   `config.js`, con los orígenes del iframe y los logotipos de `sitio.json`,
-  que existen en `web/img/` y van escritos en la portada, las cuatro
-  cabeceras y la placa del papel); las cinco cargan la misma versión de
+  que existen en `web/img/` y van escritos en la portada, las cinco
+  cabeceras y las dos placas del papel); las seis cargan la misma versión de
   recursos y ningún recurso de terceros; ningún texto atribuye los datos al
-  padrón; y una mudanza a una URL ficticia no deja rastro del dominio
-  anterior.
+  padrón; una mudanza a una URL ficticia no deja rastro del dominio
+  anterior; y el escenario 2035 tiene un fichero por territorio, con la
+  serie observada y la pirámide de 2025 de su ficha, las pirámides sumando
+  100, los índices de 2025 de la ficha, la variación media anual que dan sus
+  series, islas, provincias y Canarias como suma de lo que contienen, la
+  nota de escenario.html con los años de los datos y, como ancla, lo que se
+  lee en la ficha de prueba de Pedro (Santa Cruz de Tenerife, Arrecife y
+  Artenara).
 - `pruebas/conciliar_excel.py`: 11.310 comparaciones contra el libro, celda a celda —población, series, origen extranjero con el decimal
   que se muestra, componentes con sus anomalías, los cuatro índices en los
   tres ámbitos, puestos y pesos, las 42 barras de cada pirámide y el lugar de
@@ -817,7 +886,15 @@ Node 20 o superior (la acción usa 22).
   `openpyxl`; sin el libro se omite avisando, que es lo que pasa en GitHub,
   donde el libro no está; con el libro y sin `openpyxl` falla, porque en la
   máquina que publica la conciliación tiene que correr.
-- `pruebas/web.test.cjs` (Playwright, veintidós casos): la última selección
+- `pruebas/conciliar_escenario.py`: 16.269 comparaciones del escenario 2035
+  contra el libro de la proyección, por otro camino que el exportador: la
+  población de 2025, 2030 y 2035, los cuatro índices de 2025 y 2035 y la
+  variación media anual de los 98 territorios contra los que calcula el
+  propio libro en su hoja `21_INDICES_TVMA`, y las 36 barras de cada pirámide
+  de 2025 y de 2035 contra `POB_2025` y `25_VALORES_2035`; y en cada cifra,
+  que el decimal que escribe la página es el del libro redondeado una sola
+  vez. Como la anterior, sin el libro se omite.
+- `pruebas/web.test.cjs` (Playwright, veinticinco casos): la última selección
   manda, la dirección visible es `m/<código>.html` y desde ella se sigue
   cargando todo, el error se ve y se reintenta, la tipografía carga de la
   propia web y ninguna página pide nada fuera ni recibe un error HTTP; los
@@ -891,7 +968,16 @@ Node 20 o superior (la acción usa 22).
   hace nada); el dossier que reintenta una petición fallida y se desplaza con
   teclado en pantallas estrechas; la ficha enmarcada en otro origen, que pasa
   al aviso, y enmarcada en la propia web, que se muestra; la guía (los
-  enunciados de Pedro, sin edad media ni desplegables, exponente y anclas); y
+  enunciados de Pedro, sin edad media ni desplegables, exponente y anclas); el
+  escenario 2035 (se llega desde la evolución de la ficha y vuelve a ella, con
+  el mismo territorio; los valores de la ficha de prueba de Pedro en Santa Cruz
+  de Tenerife, Artenara y Agulo; la pirámide verde con el contorno de 2025; la
+  isla, la provincia y Canarias con sus filas; lo proyectado como «unos …» para
+  el lector de pantalla; un fallo de carga con reintento; los 98 territorios
+  a 320 y 375 px sin desborde y sin solapes en la cabecera, el eje del tiempo
+  o la tabla de variación, con «proyectado» dentro del gráfico; los 98 en una
+  A4, con los logotipos y sin controles; la ficha impresa sin el enlace al
+  escenario); y
   el papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias
   en una A4 con cuatro cifras clave y la placa del programa en la cabecera
   (la provincia sin su lista de municipios y con la de islas), y el dossier
@@ -900,11 +986,12 @@ Node 20 o superior (la acción usa 22).
   Canarias sin marco, la placa en cada hoja y sin hojas desbordadas.
 
 Unas dieciséis aserciones llevan cifras del dato de 2025 (Puerto del Rosario
-«+3,1 %», los pesos de las listas del dossier, el eje de Tenerife…): con cada libro
+«+3,1 %», los pesos de las listas del dossier, el eje de Tenerife…), y las
+del escenario 2035, las de la ficha de prueba de Pedro: con cada libro
 nuevo hay que refrescarlas después de exportar; las de La Oliva y Güímar se
 derivan del JSON y no. En GitHub corre en Chromium. En local, `MOTOR=webkit
-npm run test:web` pasa los mismos casos en el motor de Safari, salvo el de
-papel (`page.pdf` solo existe en Chromium); cubre, entre otras cosas, que
+npm run test:web` pasa los mismos casos en el motor de Safari, salvo los dos
+de papel (`page.pdf` solo existe en Chromium); cubre, entre otras cosas, que
 Safari no da el foco a un botón al pulsarlo con el ratón, y sin él la
 presentación no devolvería el foco ni las listas de isla recibirían las
 teclas. Lo que la batería no cubre: los diálogos de impresión reales, un
@@ -915,8 +1002,8 @@ previa. Dos herramientas más, fuera de la batería: `npm run medir`
 del dossier contra una web servida (por defecto, `http://localhost:8140/`), y
 `npm run humo` (`pruebas/humo.cjs`), que se lanza a mano después de cada
 publicación, recorre la web publicada: política de contenido y versión de
-recursos en las cinco páginas, los tres logotipos, la presentación en vídeo,
-los sobres, el comparador, la 404 y el dossier, sin errores de consola. Después de publicar conviene
+recursos en las seis páginas, los tres logotipos, la presentación en vídeo,
+el escenario 2035 desde la ficha, los sobres, el comparador, la 404 y el dossier, sin errores de consola. Después de publicar conviene
 pasar `m/38038.html` por el depurador de compartir de Facebook o pegarlo en
 un chat de WhatsApp y comprobar que la tarjeta es la del municipio.
 
@@ -956,12 +1043,12 @@ se mide. El contorno de foco de los gráficos no depende solo de
 blanco, y la pastilla de color de la provincia mayor (del mismo azul que la
 barra) lleva un anillo blanco para no fundirse con ella; con foco, «Toda la
 isla» lleva la barra blanca y su cifra en blanco. Los avisos de carga y de
-error son regiones de estado en las cinco páginas, como «Enlace copiado», la
+error son regiones de estado en las seis páginas, como «Enlace copiado», la
 cuenta del comparador, cuántos territorios encuentra el buscador y el cambio
 de diapositiva de la presentación; el bloque de índices con teclado es un
 grupo con nombre, cada fórmula de la guía se lee en palabras y los mapas
 dicen qué son. axe-core (WCAG 2.2
-AA) no señala ninguna violación en las cinco páginas a 320 y 1280 px, con
+AA) no señala ninguna violación en las seis páginas a 320 y 1280 px, con
 desplegables, presentación y comparador abiertos, con una excepción que es
 decisión de Pedro: las cifras del lugar de nacimiento en el comparador van
 del tono de su tramo, y los dos tonos claros no llegan al contraste AA sobre
@@ -1028,8 +1115,8 @@ abriendo `/fichas/no-existe.html`; si WordPress captura las rutas, la suya es
 la que sale. Lo que se pierde sin GitHub es la publicación automática con las
 pruebas delante: cada actualización de datos es exportar, probar y volver a
 copiar la carpeta a mano. Meter el código «dentro» de WordPress (en una
-página con el editor, o como plugin) no compensa: son cinco páginas, nueve
-scripts y dos hojas de estilo, un centenar de ficheros de datos y otros
+página con el editor, o como plugin) no compensa: son seis páginas, diez
+scripts y dos hojas de estilo, dos centenares de ficheros de datos y otros
 doscientos entre tarjetas y sobres, que WordPress y Divi reescribirían o
 servirían mal; la carpeta aparte y, si se quiere dentro de una página del
 sitio, el `<iframe>` de arriba es la integración limpia. Como repositorio, el

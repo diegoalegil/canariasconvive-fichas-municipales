@@ -56,19 +56,6 @@ function pasoRedondo(rango, objetivo = 5) {
   for (const m of [1, 2, 5, 10]) if (bruto <= m * exp) return m * exp;
   return 10 * exp;
 }
-/** El paso del eje de la evolución: el múltiplo redondo (1, 2, 2,5 o 5 por
- *  potencia de diez) con el que salen los tramos más cercanos a `objetivo`
- *  desde cero, y a igual número de tramos el más fino. Con `pasoRedondo` un
- *  tercio de las fichas se quedaba en tres tramos (Tenerife de 500.000 en
- *  500.000) y la curva perdía detalle (Pedro); así salen entre cuatro y seis. */
-function pasoEvolucion(rango, objetivo = 5) {
-  if (!(rango > 0)) return 1;
-  const exp = Math.pow(10, Math.floor(Math.log10(rango / objetivo)));
-  const tramos = (p) => Math.ceil(rango / p - 1e-9);
-  return [1, 2, 2.5, 5, 10].map((m) => m * exp)
-    .reduce((mejor, p) => (Math.abs(tramos(p) - objetivo) < Math.abs(tramos(mejor) - objetivo) ? p : mejor));
-}
-
 /* ---------------------------------------------------------- impresión ----- */
 /* Al imprimir, los gráficos se redibujan a la medida de la hoja (escalar un SVG
    de pantalla deja las letras ilegibles). Caja útil de la A4: 190 mm, retícula
@@ -96,34 +83,6 @@ function anchoDe(id, porDefecto = 520) {
 function abrirSVG(w, h, titulo, fluido = true) {
   return `<svg viewBox="0 0 ${w} ${h}" ${fluido ? 'width="100%"' : `width="${w}" height="${h}"`} `
        + `role="img" aria-label="${esc(titulo)}" preserveAspectRatio="xMidYMid meet">`;
-}
-
-/** Interpolación cúbica monótona (Fritsch-Carlson, como el PCHIP del cuaderno de
- *  Pedro): suaviza sin inventar máximos ni mínimos. */
-function suavizar(xs, ys, muestras = 240) {
-  const k = xs.length;
-  if (k < 3) return xs.map((x, i) => [x, ys[i]]);
-  const dx = [], delta = [], m = [];
-  for (let i = 0; i < k - 1; i++) { dx[i] = xs[i + 1] - xs[i]; delta[i] = (ys[i + 1] - ys[i]) / dx[i]; }
-  m[0] = delta[0];
-  for (let i = 1; i < k - 1; i++) {
-    if (delta[i - 1] * delta[i] <= 0) { m[i] = 0; continue; }
-    const w1 = 2 * dx[i] + dx[i - 1], w2 = dx[i] + 2 * dx[i - 1];
-    m[i] = (w1 + w2) / (w1 / delta[i - 1] + w2 / delta[i]);
-  }
-  m[k - 1] = delta[k - 2];
-
-  const salida = [];
-  for (let s = 0; s < muestras; s++) {
-    const x = xs[0] + (xs[k - 1] - xs[0]) * (s / (muestras - 1));
-    let i = 0;
-    while (i < k - 2 && x > xs[i + 1]) i++;
-    const t = (x - xs[i]) / dx[i], t2 = t * t, t3 = t2 * t;
-    const y = (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * dx[i] * m[i]
-            + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * dx[i] * m[i + 1];
-    salida.push([x, y]);
-  }
-  return salida;
 }
 
 /* ------------------------------------------------------------------ mapas -- */
@@ -1030,6 +989,8 @@ function pintar(f) {
 
   el('migas').textContent = R.migas;
   el('btn-comparar').href = rutaWeb(R.comparar);   // el comparador abre con esta ficha
+  // El escenario 2035 de este mismo territorio (escenario.html, la prospectiva de Pedro).
+  el('btn-escenario').href = rutaWeb(`escenario.html?${ENT.canarias ? 'canarias' : `${ENT.tipo}=${ENT.id}`}`);
   el('nombre').textContent = f.nombre;
   el('anio').textContent = f.anio;
   el('habitantes').innerHTML = `<b>${nf(f.poblacion)}</b><span>habitantes</span>`;

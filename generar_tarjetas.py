@@ -4,7 +4,7 @@ LinkedIn), una genérica, una por municipio, una por isla, una por provincia y
 la de Canarias, más los envoltorios web/m/<cod>.html, web/i/<slug>.html,
 web/p/<slug>.html y web/r/canarias.html con las etiquetas og: de cada ficha
 (los rastreadores no ejecutan JavaScript) y la URL pública de sitio.json en
-las cinco páginas y config.js.
+las seis páginas y config.js.
 
     python3 generar_tarjetas.py  ->  web/og/portada.png, web/og/<cod>.png, web/og/<slug>.png,
                                      web/m/<cod>.html, web/i/<slug>.html, web/p/<slug>.html, web/r/canarias.html
@@ -322,7 +322,7 @@ ORIGENES = SITIO.get("origenes_iframe", [])   # los sitios que pueden enmarcar l
 LOGOS = SITIO.get("logos", [])                # los tres programas, en el orden en que van sus logotipos (comun.js)
 
 PAGINAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html",
-           "guia": "guia.html", "dossier": "dossier.html"}
+           "guia": "guia.html", "dossier": "dossier.html", "escenario": "escenario.html"}
 
 
 def _meta(html, propiedad, valor):
@@ -331,7 +331,7 @@ def _meta(html, propiedad, valor):
 
 
 def reescribir_paginas(base, web=WEB, anio=None, origenes=(), logos=None):
-    """Canónica, og:url y og:image de las cinco páginas, la fecha del dato en
+    """Canónica, og:url y og:image de las seis páginas, la fecha del dato en
     la descripción de la portada, el enlace de vuelta (y el icono) de 404.html
     y de enmarcada.html, y web/config.js (URL pública, orígenes que pueden
     enmarcar la web y los logotipos), con la URL pública dada (sin barra
@@ -448,7 +448,7 @@ def main():
     print(f"{len(idx['municipios'])} envoltorios en {SALIDA_M}, {len(idx['islas_resumen'])} en {SALIDA_I}, "
           f"{len(idx['provincias'])} en {SALIDA_P} y Canarias en {SALIDA_R}")
     print(f"Tipografía: {familia()[0]}")
-    print(f"URL pública: {BASE}/ (sitio.json) en las cinco páginas, los envoltorios y config.js; "
+    print(f"URL pública: {BASE}/ (sitio.json) en las seis páginas, los envoltorios y config.js; "
           f"logotipos: {', '.join(l['nombre'] for l in LOGOS)}")
 
 

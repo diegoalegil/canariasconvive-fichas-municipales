@@ -16,7 +16,7 @@
 
    Uso: npm test (o npm run test:web). Sirve web/ bajo /fichas/, como GitHub
    Pages, en un puerto libre. Sin red: los JSON salen del disco. Con
-   MOTOR=webkit corre en el motor de Safari (sin el caso de papel: page.pdf
+   MOTOR=webkit corre en el motor de Safari (sin los casos de papel: page.pdf
    solo existe en Chromium); en GitHub Actions corre en Chromium. */
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -1589,6 +1589,158 @@ test('papel: las 88 fichas, las 7 de isla, las 2 de provincia y la de Canarias c
   assert.deepEqual(desbordan, [], 'hojas del dossier que se salen');
   const dossier = await page.pdf({ preferCSSPageSize: true, printBackground: true });
   assert.equal(paginasPDF(dossier), 101);
+  assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
+/* ---- Escenario 2035: la prospectiva de Pedro (escenario.html). ---- */
+const textoFilas = (page, sel) => page.locator(sel).evaluateAll((trs) => trs.map((tr) => [...tr.children].map((c) => c.textContent.replace(/\s+/g, ' ').trim())));
+
+test('escenario: los valores de la ficha de prueba de Pedro, el paso entre territorios y la ida y vuelta con la ficha', async () => {
+  // Desde la ficha: el enlace de la evolución lleva al escenario del mismo territorio.
+  const { page, contexto, errores } = await abrir('ficha.html?municipio=38038');
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#btn-escenario').evaluate((a) => a.href), base + 'escenario.html?municipio=38038');
+  await page.locator('#btn-escenario').click();
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife' && document.querySelector('#g-tvma tbody'));
+  assert.ok(page.url().endsWith('/fichas/escenario.html?municipio=38038'), page.url());
+  assert.equal(await page.title(), 'Santa Cruz de Tenerife · Escenario demográfico 2035 · Canarias Convive');
+  assert.equal(await page.locator('#periodo').textContent(), '2025-2035');
+  assert.equal(await page.locator('#migas').textContent(), 'Tenerife · Área Metropolitana');
+  assert.equal(await page.locator('#btn-ficha').evaluate((a) => a.href), base + 'ficha.html?municipio=38038');
+  // Lo que se lee en la ficha de Pedro (PDF del 30/9/2026), igual.
+  assert.deepEqual(await textoFilas(page, '#g-tvma tbody tr'), [['Municipio', '0,4 %', '0,7 %'], ['Tenerife', '0,8 %', '0,9 %'], ['Canarias', '0,7 %', '0,8 %']]);
+  assert.deepEqual(await page.locator('#g-indices dd').allTextContents(), ['2,03', '3,17', '15,0', '12,3', '45,4', '51,1', '71,1', '49,8']);
+  assert.deepEqual(await page.locator('#g-indices .esc-cambio [aria-hidden]').allTextContents().then((t) => t.map((x) => x.replace(/\s+/g, ' '))), ['56 % ▲', '18 % ▼', '13 % ▲', '30 % ▼']);
+  assert.match(await page.locator('#g-indices .esc-cambio .oculto').first().textContent(), /Entre 2025 y 2035, aumenta un 56/);
+  assert.deepEqual(await page.locator('#g-indices h3').allTextContents(), ['Envejecimiento', 'Juventud (%)', 'Dependencia (%)', 'Reemplazo laboral (%)']);
+  // Pirámide de 2035 en dos verdes con el contorno de 2025, de «0 a 4» a «85 o más».
+  const pir = page.locator('#g-piramide svg');
+  assert.equal(await pir.locator('rect[fill="#2F8A5E"]').count(), 18);
+  assert.equal(await pir.locator('rect[fill="#7DC4A0"]').count(), 18);
+  assert.equal(await pir.locator('rect[fill="none"][stroke="#000000"]').count(), 36);
+  const edades = await pir.locator('text[text-anchor="end"]').allTextContents();
+  assert.deepEqual([edades[0], edades.at(-1)], ['0 a 4', '85 o más']);
+  assert.match(await page.locator('#leyenda-piramide').textContent(), /Población 2025\s*Hombres 2035\s*Mujeres 2035/);
+  // Evolución: lo observado en negro, lo proyectado en verde discontinuo, y los dos rótulos.
+  const ev = page.locator('#g-evolucion svg');
+  assert.equal(await ev.locator('polyline[stroke="#1A1A1A"]').count(), 1);
+  assert.equal(await ev.locator('polyline[stroke="#1B6B47"][stroke-dasharray]').count(), 1);
+  assert.deepEqual((await ev.locator('text').allTextContents()).filter((x) => /^(observado|proyectado)$/.test(x)), ['observado', 'proyectado']);
+  // Lo proyectado no se escribe como cifra exacta ni para el lector de pantalla.
+  const tablaEv = await page.locator('#g-evolucion .oculto').textContent();
+  assert.match(tablaEv, /2035, proyectado\s*unos 226\.600/);
+  assert.match(await page.locator('.esc-nota').textContent(), /no el valor exacto de cada cifra/);
+  // El mismo desplegable que la ficha: la isla (dos filas), Canarias (una) y de vuelta a un municipio.
+  await page.selectOption('#sel-territorio', 'isla:tenerife');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Tenerife');
+  assert.ok(page.url().endsWith('/fichas/escenario.html?isla=tenerife'), page.url());
+  assert.equal(await page.locator('#btn-ficha').evaluate((a) => a.href), base + 'ficha.html?isla=tenerife');
+  assert.deepEqual(await textoFilas(page, '#g-tvma tbody tr'), [['Isla', '0,8 %', '0,9 %'], ['Canarias', '0,7 %', '0,8 %']]);
+  assert.equal(await page.locator('#migas').textContent(), 'Canarias · 31 municipios');
+  await page.selectOption('#sel-territorio', 'canarias');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Canarias');
+  assert.deepEqual(await textoFilas(page, '#g-tvma tbody tr'), [['Canarias', '0,7 %', '0,8 %']]);
+  assert.equal(await page.locator('#migas').textContent(), '2 provincias · 7 islas · 88 municipios');
+  await page.selectOption('#sel-territorio', 'provincia:las-palmas');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Las Palmas');
+  assert.equal(await page.title(), 'Las Palmas · Escenario demográfico 2035 de la provincia · Canarias Convive');
+  assert.deepEqual((await textoFilas(page, '#g-tvma tbody tr')).map((f) => f[0]), ['Provincia', 'Canarias']);
+  // Artenara: el reemplazo laboral que más cambia (15,8 → 81,8); Agulo: una variación observada de −0,0 se escribe 0,0.
+  await page.selectOption('#sel-territorio', '35005');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Artenara');
+  assert.deepEqual((await page.locator('#g-indices .esc-cambio [aria-hidden]').allTextContents()).at(-1).replace(/\s+/g, ' '), '416 % ▲');
+  await page.selectOption('#sel-territorio', '38002');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Agulo');
+  assert.equal((await textoFilas(page, '#g-tvma tbody tr'))[0][1], '0,0 %');
+  // Un territorio que no carga: aviso con reintento, y se mantiene el que se ve.
+  await page.route('**/datos/escenario/mun/35007.json', (r) => r.abort());
+  await page.selectOption('#sel-territorio', '35007');
+  await page.waitForFunction(() => document.getElementById('estado-escenario').textContent.includes('No se ha podido'));
+  assert.equal(await page.locator('#nombre').textContent(), 'Agulo');
+  assert.equal(await page.locator('#sel-territorio').inputValue(), '38002');
+  await page.unroute('**/datos/escenario/mun/35007.json');
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Betancuria');
+  assert.ok(await page.locator('#estado-escenario').isHidden());
+  // Y de vuelta a la ficha del mismo territorio.
+  await page.locator('#btn-ficha').click();
+  await page.waitForSelector('#fuente-g-origen');
+  assert.equal(await page.locator('#nombre').textContent(), 'Betancuria');
+  // Sin consulta, o con una que no existe, abre Canarias; la portada enlaza ahí.
+  await page.goto(base + 'escenario.html?municipio=99999');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Canarias');
+  await page.goto(base);
+  assert.equal(await page.locator('.atajos a', { hasText: 'Escenario 2035' }).evaluate((a) => a.href), base + 'escenario.html?canarias');
+  assert.deepEqual(errores.filter((e) => !e.includes('Failed to load resource')), []);
+  await contexto.close();
+});
+
+test('escenario en el móvil: los 98 territorios a 320 y 375 px sin desborde, sin solapes en la cabecera, el eje o la tabla, y el enlace de la ficha visible', { timeout: 240000 }, async () => {
+  const { page, contexto, errores } = await abrir('escenario.html?canarias', { ancho: 320, alto: 700 });
+  await page.waitForFunction(() => document.querySelector('#g-tvma tbody'));
+  const consultas = [...indice.municipios.map((m) => `municipio=${m.codmun}`), ...indice.islas_resumen.map((i) => `isla=${i.slug}`),
+    ...indice.provincias.map((p) => `provincia=${p.slug}`), 'canarias'];
+  for (const ancho of [320, 375]) {
+    await page.setViewportSize({ width: ancho, height: 700 });
+    for (const c of consultas) {
+      await page.goto(base + `escenario.html?${c}`);
+      await page.waitForFunction(() => document.querySelector('#g-tvma tbody'));
+      await sinDesborde(page, `escenario ${c} a ${ancho}`);
+      const r = await page.evaluate(() => {
+        const caja = (el) => el.getBoundingClientRect();
+        // El nombre, por sus líneas de texto (la caja del h1 ocupa todo el ancho libre).
+        const rango = document.createRange();
+        rango.selectNodeContents(document.getElementById('nombre'));
+        const lineas = [...rango.getClientRects()], periodo = caja(document.getElementById('periodo'));
+        const s = document.querySelector('#g-evolucion svg'), ev = caja(s);
+        const textos = [...s.querySelectorAll('text')];
+        const proy = caja(textos.find((x) => x.textContent === 'proyectado'));
+        const anios = textos.filter((x) => /^\d{4}$/.test(x.textContent)).map(caja);
+        const tabla = caja(document.querySelector('.esc-tvma')), cuerpo = document.querySelector('.tarjeta.tvma > .cuerpo');
+        const libre = caja(cuerpo).right - parseFloat(getComputedStyle(cuerpo).paddingRight);
+        return {
+          cabecera: lineas.some((l) => !(l.right <= periodo.left || periodo.right <= l.left || l.bottom <= periodo.top || periodo.bottom <= l.top)),
+          proyectado: proy.right > ev.right + 0.5,
+          anios: anios.some((a, i) => i > 0 && a.left < anios[i - 1].right + 2),
+          tabla: tabla.right > libre + 0.5,
+        };
+      });
+      assert.deepEqual(r, { cabecera: false, proyectado: false, anios: false, tabla: false }, `escenario ${c} a ${ancho} px`);
+    }
+  }
+  await page.goto(base + 'ficha.html?municipio=35023');
+  await page.waitForSelector('#fuente-g-origen');
+  await sinDesborde(page, 'ficha a 375 con el enlace al escenario');
+  assert.ok(await page.locator('#btn-escenario').isVisible());
+  assert.deepEqual(errores, []);
+  await contexto.close();
+});
+
+test('escenario en papel: los 98 territorios en una A4, con los logotipos y sin controles; la ficha impresa no lleva el enlace', { timeout: 240000, ...SOLO_CHROMIUM }, async () => {
+  const { page, contexto, errores } = await abrir('escenario.html?canarias');
+  await page.waitForFunction(() => document.querySelector('#g-tvma tbody'));
+  const consultas = [...indice.municipios.map((m) => `municipio=${m.codmun}`), ...indice.islas_resumen.map((i) => `isla=${i.slug}`),
+    ...indice.provincias.map((p) => `provincia=${p.slug}`), 'canarias'];
+  for (const c of consultas) {
+    await page.goto(base + `escenario.html?${c}`);
+    await page.waitForFunction(() => document.querySelector('#g-tvma tbody'));
+    await page.evaluate(() => document.fonts.ready);
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    assert.equal(paginasPDF(pdf), 1, `A4 del escenario ${c}`);
+  }
+  // Tras imprimir, los gráficos vuelven a la medida de la pantalla.
+  const ancho = await page.locator('#g-piramide').evaluate((f) => f.clientWidth);
+  assert.equal(await page.locator('#g-piramide svg').evaluate((s) => +s.getAttribute('viewBox').split(' ')[2]), ancho);
+  await page.emulateMedia({ media: 'print' });
+  assert.equal(await page.locator('.cabecera .placa-papel img:visible').count(), 3, 'los tres logotipos en la cabecera de la hoja');
+  assert.ok(await page.locator('.barra').isHidden());
+  await page.emulateMedia({ media: null });
+  await page.goto(base + 'ficha.html?municipio=38038');
+  await page.waitForSelector('#fuente-g-origen');
+  await page.emulateMedia({ media: 'print' });
+  assert.ok(await page.locator('#btn-escenario').isHidden(), 'el enlace al escenario no va en la hoja de la ficha');
+  await page.emulateMedia({ media: null });
   assert.deepEqual(errores, []);
   await contexto.close();
 });

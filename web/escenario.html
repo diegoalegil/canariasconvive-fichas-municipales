@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<link rel="canonical" href="https://diegoalegil.github.io/canariasconvive-fichas-municipales/escenario.html">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escenario demográfico 2035 · Canarias Convive</title>
+<meta name="description" content="Escenario demográfico 2035 de Canarias, de cada provincia, de cada isla y de cada uno de los 88 municipios: la proyección provincial del INE repartida por sexo y edad.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Canarias Convive">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Escenario demográfico 2035 · Canarias Convive">
+<meta property="og:description" content="Escenario demográfico 2035 de Canarias, de cada provincia, de cada isla y de cada uno de los 88 municipios: la proyección provincial del INE repartida por sexo y edad.">
+<meta property="og:image" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/og/portada.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://diegoalegil.github.io/canariasconvive-fichas-municipales/escenario.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/icono-32.png" sizes="32x32">
+<link rel="icon" href="img/icono-180.png" sizes="180x180">
+<link rel="apple-touch-icon" href="img/icono-180.png">
+<link rel="stylesheet" href="estilos.css?v=116">
+</head>
+<body class="pag-escenario">
+
+<header class="barra">
+  <div class="barra-int">
+    <a class="marca" href="index.html">
+      <img src="img/logo-canariasconvive-menu.png" alt="Canarias Convive" data-logo="canariasconvive">
+      <img src="img/logo-obiten.png" alt="OBITen" data-logo="obiten">
+      <img src="img/logo-juntas.png" alt="Juntas en la misma dirección" data-logo="juntas">
+      <span>Fichas demográficas municipales</span>
+    </a>
+    <div class="campo">
+      <label for="sel-territorio">Territorio</label>
+      <select id="sel-territorio"><option>Cargando…</option></select>
+    </div>
+    <a class="btn btn-liso" href="ficha.html" id="btn-ficha" data-ico="poblacion" aria-label="Ficha demográfica"><span>Ficha demográfica</span></a>
+    <a class="btn btn-liso" href="index.html" data-ico="inicio" aria-label="Inicio"><span>Inicio</span></a>
+    <!-- Abre el diálogo de impresión (la hoja es una A4), no descarga nada. -->
+    <button class="btn" type="button" id="btn-pdf" data-ico="descargar">Imprimir o guardar en PDF</button>
+  </div>
+</header>
+
+<!-- La prospectiva de Pedro (escenario.js): en verde, para separar lo estimado de lo observado. -->
+<main class="envoltorio">
+  <div id="estado-escenario" class="aviso-carga" role="status" aria-live="polite" hidden></div>
+
+  <section class="cabecera">
+    <p class="migas" id="migas">—</p>
+    <div class="titular">
+      <h1 id="nombre">Cargando…</h1>
+      <span class="anio" id="periodo">2025-2035</span>
+    </div>
+    <p class="esc-titulo" id="esc-titulo">Escenario demográfico 2035</p>
+    <p class="esc-metodo">Desagregación municipal de la proyección provincial del INE por sexo y edad</p>
+    <!-- Solo en papel: los tres logotipos, en la esquina de la cabecera. -->
+    <span class="placa placa-papel">
+      <img src="img/logo-canariasconvive.png" alt="Canarias Convive" data-logo="canariasconvive">
+      <img src="img/logo-obiten.png" alt="OBITen" data-logo="obiten">
+      <img src="img/logo-juntas.png" alt="Juntas en la misma dirección" data-logo="juntas">
+    </span>
+  </section>
+
+  <div class="rejilla">
+
+    <section class="tarjeta dos-tercios">
+      <header class="rotulo" data-ico="escenario">
+        <div><h2>Evolución de la población</h2><p id="sub-evolucion"></p></div>
+      </header>
+      <div class="cuerpo">
+        <figure id="g-evolucion"></figure>
+      </div>
+    </section>
+
+    <section class="tarjeta tercio tvma">
+      <header class="rotulo" data-ico="variacion">
+        <div><h2>Variación media anual</h2><p id="sub-tvma"></p></div>
+      </header>
+      <div class="cuerpo">
+        <div id="g-tvma"></div>
+      </div>
+    </section>
+
+    <section class="tarjeta dos-tercios destacada">
+      <header class="rotulo" data-ico="edad">
+        <div><h2 id="tit-piramide">Estructura de la población en 2035</h2></div>
+      </header>
+      <div class="cuerpo">
+        <figure id="g-piramide"></figure>
+        <div class="leyenda" id="leyenda-piramide"></div>
+      </div>
+    </section>
+
+    <section class="tarjeta tercio indices">
+      <header class="rotulo" data-ico="dependencia">
+        <div><h2>Información geodemográfica</h2><p id="sub-indices"></p></div>
+      </header>
+      <div class="cuerpo">
+        <div id="g-indices"></div>
+      </div>
+    </section>
+
+    <!-- La nota de Pedro, literal (su cuaderno, NOTA). invariantes.py comprueba que los años son los de los datos. -->
+    <section class="esc-nota" aria-labelledby="tit-nota">
+      <h2 id="tit-nota">Nota metodológica</h2>
+      <div>
+      <p>El INE proyecta la población hasta el nivel provincial y no publica cifras municipales. Estas se obtienen repartiendo su proyección provincial de 2035 entre los 88 municipios, en tres pasos. Primero, la estructura por sexo y edad de cada municipio se proyecta con el método Hamilton-Perry, que sigue a cada generación hacia delante según cómo cambió en 2015-2020 y 2020-2025. Segundo, el número total de habitantes se obtiene promediando ese resultado con el del método de cuota constante, que supone que el municipio conserva su peso actual dentro de la provincia. Y tercero, ambos se ajustan mediante un control bidimensional hasta que la suma de los 88 municipios reproduce exactamente la proyección del INE en cada sexo y grupo de edad.</p>
+      <p>Aplicado hacia atrás —estimar 2025 partiendo de 2015— el total de cada municipio se desvió de la cifra real un 5,2 % de media, y bastante más en los de menos de 2.000 habitantes. Por eso lo que sostiene esta página es la dirección y la intensidad del cambio estructural, no el valor exacto de cada cifra. Todo el escenario depende además de la hipótesis migratoria del INE: el saldo vegetativo canario ya es negativo y se prevé más negativo en el periodo proyectado.</p>
+      <p>Fuentes: ISTAC (población observada) e INE (proyección provincial). Método: Hamilton y Perry (1962); Smith, Tayman y Swanson (2013).</p>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<script src="config.js?v=116"></script>
+<script src="comun.js?v=116"></script>
+<script src="iconos.js?v=116"></script>
+<script src="escenario.js?v=116"></script>
+</body>
+</html>

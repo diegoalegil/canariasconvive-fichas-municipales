@@ -814,6 +814,73 @@ select {
   .tapa.espera .ent, .tapa.entra .ent { opacity: 1; animation: none; transform: none; }
 }
 
+/* ----------------------------------------------------- escenario 2035 ---- */
+/* El enlace desde la ficha, en la cabecera de la evolución: lleva ya el verde del escenario. */
+.btn-escenario { margin-left: auto; flex: none; color: #1B6B47; padding: 7px 12px; }
+.btn-escenario:hover { color: #1B6B47; border-color: #7DC4A0; background: #F3F8F5; }
+@media (max-width: 460px) {
+  .rotulo:has(> .btn-escenario) { flex-wrap: wrap; }
+  .btn-escenario { margin-left: 38px; }
+}
+/* La prospectiva de Pedro (escenario.html) va en verde a propósito: separa lo
+   estimado de lo observado, que es azul. Su escalera de luminosidad es la misma
+   que la azul (su cuaderno, P1); el texto blanco sobre el verde da 6,5:1. */
+.pag-escenario {
+  --verde: #1B6B47; --verde-medio: #2F8A5E; --verde-claro: #7DC4A0; --verde-palido: #B9E0CD;
+  --verde-nota: #F3F8F5; --verde-sobre: #D3EBDF;   /* texto secundario sobre el verde: 5,2:1 */
+}
+.pag-escenario .cabecera h1, .pag-escenario .anio { color: var(--verde); }
+.esc-titulo { font-size: 16px; font-weight: 600; color: var(--gris); margin-top: var(--e-3); }
+.esc-metodo { font-size: 13.5px; font-style: italic; color: var(--gris); margin-top: 4px; text-wrap: pretty; }
+.pag-escenario .tarjeta { border-top-color: var(--verde); }
+.pag-escenario .rotulo { color: var(--verde); }
+.pag-escenario .tarjeta.destacada { border-top-color: var(--linea); }
+.pag-escenario .tarjeta.destacada .rotulo { background: var(--verde); }
+.pag-escenario .tarjeta.destacada .rotulo p { color: var(--verde-sobre); }
+
+/* Variación media anual: el ámbito y dos casillas, la observada blanca con
+   borde negro y la proyectada verde (las casillas de Pedro). */
+.tarjeta.tvma > .cuerpo { display: flex; flex-direction: column; justify-content: center; }
+.esc-tvma { width: 100%; border-collapse: separate; border-spacing: 0 14px; margin-top: -14px; }
+.esc-tvma thead th { padding: 0; height: 0; }
+.esc-tvma tbody th { text-align: left; font-size: 13.5px; font-weight: 700; padding-right: var(--e-2); }
+.esc-tvma td { text-align: right; padding-left: 6px; width: 1%; }
+/* Las casillas caben con «Fuerteventura» a 320 px y con la tarjeta en un tercio (941 px). */
+.esc-tvma td span {
+  display: inline-block; min-width: 56px; padding: 7px 8px; text-align: center;
+  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+  border: 1.5px solid var(--negro);
+}
+.esc-tvma .pro { background: var(--verde); border-color: var(--verde); color: #fff; }
+.esc-leyenda { justify-content: flex-start; margin-top: 0; }
+
+/* Índices: el año base y el horizonte, cada uno sobre su franja, y el cambio a la derecha,
+   en el verde oscuro: el medio de Pedro (#2F8A5E) da 4,3:1 sobre blanco y no llega al AA. */
+.esc-indice + .esc-indice { margin-top: var(--e-5); }
+.esc-indice h3 { font-size: 14.5px; font-weight: 700; margin-bottom: var(--e-2); }
+.esc-indice-fila { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--e-3); }
+.esc-anios { display: grid; grid-template-columns: 1fr 1fr; }
+.esc-anios > div { text-align: center; border-bottom: 7px solid var(--verde-palido); padding-bottom: 4px; }
+.esc-anios > div + div { border-bottom-color: var(--verde); }
+.esc-anios dt { font-size: 12px; color: #333; }
+.esc-anios dd { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.esc-cambio { font-size: 13.5px; font-weight: 700; color: var(--verde); white-space: nowrap; min-width: 62px; text-align: right; }
+
+/* La nota metodológica, literal de Pedro, a todo lo ancho y en dos columnas de lectura. */
+.esc-nota {
+  grid-column: 1 / -1;
+  background: var(--verde-nota); border: 1px solid var(--verde-claro); border-radius: var(--r-3);
+  padding: 22px var(--e-5) 24px;
+}
+.esc-nota h2 { font-size: 16px; font-weight: 700; color: var(--verde); margin-bottom: var(--e-3); }
+.esc-nota div { columns: 2; column-gap: var(--e-7); }
+.esc-nota p { font-size: 13.5px; line-height: 1.6; color: #333; text-wrap: pretty; break-inside: avoid-column; padding-bottom: var(--e-3); }
+/* Con padding y no con margen: en Safari el margen del párrafo que abre la segunda columna la bajaba 12 px. */
+.esc-nota p:last-child { padding-bottom: 0; }
+@media (max-width: 940px) { .esc-nota div { columns: 1; } }
+/* En el móvil, un nombre largo de una sola palabra («Fuencaliente…») no deja sitio al periodo: baja a su línea. */
+@media screen and (max-width: 620px) { .pag-escenario .titular { flex-wrap: wrap; row-gap: 6px; } }
+
 /* --------------------------------------------------------- responsive ------ */
 @media (max-width: 940px) {
   .tarjeta.mitad, .tarjeta.tercio, .tarjeta.dos-tercios { grid-column: span 12; }
@@ -1071,7 +1138,7 @@ body.presentando { overflow: hidden; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   body { background: #fff; font-size: 8pt; line-height: 1.3; }
-  .barra, .vistas, .anios, .filtros, .atajos, .lectura, .tarjeta.consultas { display: none !important; }   /* controles, lecturas al vuelo y enlaces */
+  .barra, .vistas, .anios, .filtros, .atajos, .lectura, .tarjeta.consultas, .btn-escenario { display: none !important; }   /* controles, lecturas al vuelo y enlaces */
   .envoltorio { max-width: none; padding: 0; }
   /* Duración 0 y no `animation: none`: al cerrar el diálogo de impresión, las
      tarjetas volvían a hacer su entrada. */
@@ -1176,3 +1243,34 @@ body.presentando { overflow: hidden; }
   .nota { font-size: 6.5pt; margin-top: 1.4mm; }
 }
 
+/* El escenario en papel: una A4 como la de Pedro, con la cabecera blanca y el
+   nombre en verde, 8/4 columnas y la nota a todo lo ancho, justificada. */
+@media print {
+  .pag-escenario .cabecera { background: #fff; padding: 0 0 2mm; margin-bottom: 2.4mm; border-bottom: .4mm solid var(--verde); }
+  .pag-escenario .cabecera .migas { color: var(--gris); }
+  /* Sin margen lateral en la cabecera blanca, la placa va al borde y el titular le deja sus 47 mm. */
+  .pag-escenario .placa-papel { right: 0; padding-right: 0; }
+  .pag-escenario .tarjeta.destacada .rotulo { background: transparent; color: var(--verde); }
+  .pag-escenario .cabecera h1 { color: var(--verde); font-size: 19pt; }
+  .pag-escenario .anio { color: var(--verde); font-size: 13pt; }
+  .pag-escenario .esc-titulo { font-size: 9.5pt; margin-top: 1mm; }
+  .pag-escenario .esc-metodo { font-size: 7.5pt; margin-top: .3mm; }
+  .pag-escenario .tarjeta.tercio { grid-column: span 4; }
+  .pag-escenario .tarjeta.dos-tercios { grid-column: span 8; }
+  .esc-tvma { border-spacing: 0 2.4mm; margin-top: -1mm; }
+  .esc-tvma tbody th { font-size: 7pt; padding-right: 1.5mm; }
+  .esc-tvma td { padding-left: 1.2mm; }
+  .esc-tvma td span { min-width: 13mm; padding: 1.2mm 1mm; font-size: 7.5pt; border-width: .25mm; }
+  .esc-indice + .esc-indice { margin-top: 2.6mm; }
+  .esc-indice h3 { font-size: 7.5pt; margin-bottom: .8mm; }
+  .esc-indice-fila { gap: 1.5mm; }
+  .esc-anios > div { border-bottom-width: 1.6mm; padding-bottom: .5mm; }
+  .esc-anios dt { font-size: 6.5pt; }
+  .esc-anios dd { font-size: 9pt; }
+  .esc-cambio { font-size: 7pt; min-width: 0; }
+  .esc-nota { border-radius: 1.2mm; padding: 2.4mm 3.5mm 2.6mm; border-width: .25mm; break-inside: avoid; }
+  .esc-nota h2 { font-size: 8pt; margin-bottom: 1.2mm; }
+  .esc-nota div { columns: 1; }
+  .esc-nota p { font-size: 6.6pt; line-height: 1.5; text-align: justify; hyphens: auto; padding-bottom: 1.2mm; }
+  .esc-nota p:last-child { padding-bottom: 0; }
+}

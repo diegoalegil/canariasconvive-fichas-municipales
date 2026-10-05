@@ -14,7 +14,8 @@ por lugar de nacimiento suman cien, que los cuatro índices están en los tres
 envoltorios de web/m/ apuntan a la URL pública de sitio.json y llevan la
 población y el año de los datos (con su tarjeta og), que la serie de origen
 extranjero se muestra con un solo redondeo, que las islas van en el mismo orden
-en el índice, que las cinco páginas cargan la misma versión de recursos y que
+en el índice, que las seis páginas cargan la misma versión de recursos, que el
+escenario 2035 es coherente con las fichas y con la ficha de prueba de Pedro y que
 todas llevan su política de contenido sin manejadores ni scripts en línea (los
 envoltorios, con la huella de su único script).
 
@@ -70,9 +71,10 @@ def imagenes_de(clave):
     return "".join(f'<img src="{l[clave]}" alt="{l["nombre"]}" data-logo="{l["id"]}">' for l in logos)
 _tres = lambda html, clave: imagenes_de(clave) in re.sub(r">\s+<", "><", html)
 comprobar(_tres((WEB / "index.html").read_text(encoding="utf-8"), "logo"), "web/index.html: la placa de la portada tiene que llevar los tres logotipos de sitio.json, en su orden")
-for pagina in ("ficha", "comparar", "guia", "dossier"):
+for pagina in ("ficha", "comparar", "guia", "dossier", "escenario"):
     comprobar(_tres((WEB / f"{pagina}.html").read_text(encoding="utf-8"), "menu"), f"web/{pagina}.html: la cabecera tiene que llevar los tres logotipos de menú de sitio.json, en su orden")
-comprobar(_tres((WEB / "ficha.html").read_text(encoding="utf-8"), "logo"), "web/ficha.html: la placa del papel tiene que llevar los tres logotipos de sitio.json, en su orden")
+for pagina in ("ficha", "escenario"):
+    comprobar(_tres((WEB / f"{pagina}.html").read_text(encoding="utf-8"), "logo"), f"web/{pagina}.html: la placa del papel tiene que llevar los tres logotipos de sitio.json, en su orden")
 _logos_config = re.search(r"^const LOGOS = (.*);$", config, re.M)
 comprobar(_logos_config is not None and json.loads(_logos_config.group(1)) == logos, "web/config.js no lleva los logotipos de sitio.json: ejecutar generar_tarjetas.py")
 
@@ -317,7 +319,7 @@ if ruta.exists():
 
 # La referencia de Canarias en el lugar de nacimiento es una sola en las 98 fichas y suma 100,0.
 _refs_canarias = {tuple(json.loads(r.read_text(encoding="utf-8"))["origen"]["canarias"])
-                  for r in [WEB / "datos/canarias.json", *(WEB / "datos").glob("*/*.json")] if r.parent.name != "geo"}
+                  for r in [WEB / "datos/canarias.json", *(WEB / "datos").glob("*/*.json")] if r.parent.name not in ("geo", "escenario")}
 comprobar(len(_refs_canarias) == 1 and suma_cien(list(next(iter(_refs_canarias)))),
           f"el lugar de nacimiento de Canarias tiene que ser uno solo en todas las fichas y sumar 100,0: {sorted(_refs_canarias)}")
 
@@ -416,6 +418,99 @@ if ruta_enlaces.exists():
                   f"enlaces.json: la consulta del municipio {c} no es del INE o es demasiado larga")
     comprobar(all(u.startswith("https://www.ine.es/jaxiT3/Datos.htm?t=68538&") for u in ine["continentes"].values()), "enlaces.json: tabla de continentes que no es la del INE")
 
+# El escenario 2035 (exportar_escenario.py, la prospectiva de Pedro): un fichero
+# por territorio, con la parte observada igual a la de su ficha, la pirámide en
+# porcentaje que suma cien, los índices de 2025 iguales a los de la ficha, la
+# variación media anual que sale de las series, islas, provincias y Canarias
+# como suma de lo que contienen, y los valores de la ficha de prueba de Pedro
+# (PDF del 30/9/2026) como ancla. La nota de escenario.html lleva sus años.
+ESC = WEB / "datos/escenario"
+def _ficha_y_escenario(ruta):
+    return (json.loads((WEB / "datos" / ruta).read_text(encoding="utf-8")),
+            json.loads((ESC / ruta).read_text(encoding="utf-8")) if (ESC / ruta).exists() else None)
+_rutas_esc = ([f"mun/{m['codmun']}.json" for m in municipios] + [f"isla/{i['slug']}.json" for i in indice["islas_resumen"]]
+              + [f"provincia/{p['slug']}.json" for p in indice["provincias"]] + ["canarias.json"])
+comprobar(sorted(str(f.relative_to(ESC)) for f in ESC.rglob("*.json")) == sorted(_rutas_esc),
+          "datos/escenario: no hay exactamente un fichero por municipio, isla, provincia y Canarias: ejecutar exportar_escenario.py")
+ESCENARIOS = {}
+for ruta in _rutas_esc:
+    f, e = _ficha_y_escenario(ruta)
+    if e is None:
+        continue
+    ESCENARIOS[ruta] = e
+    donde = f"escenario {ruta}"
+    b = indice["anio"]
+    comprobar(e["tipo"] == f["tipo"] and e["nombre"] == f["nombre"], f"{donde}: no es el territorio de su ficha")
+    comprobar((e["base"], e["medio"], e["horizonte"]) == (b, b + 5, b + 10), f"{donde}: años {e['base']}, {e['medio']}, {e['horizonte']}")
+    comprobar(e["observado"] == {"anios": f["evolucion"]["anios"], "valores": [int(v) for v in f["evolucion"]["valores"]]},
+              f"{donde}: la serie observada no es la de la ficha")
+    pr = e["proyectado"]
+    comprobar(pr["anios"] == [b, b + 5, b + 10] and pr["valores"][0] == f["poblacion"] == e["poblacion"] and all(v > 0 for v in pr["valores"]),
+              f"{donde}: la proyección no arranca en la población de la ficha")
+    pi = e["piramide"]
+    comprobar(pi["edades"] == f["piramide"]["edades"][:17] + ["85 o más"], f"{donde}: grupos de edad de la pirámide")
+    for anio in ("base", "horizonte"):
+        lados = pi[anio]["hombres"] + pi[anio]["mujeres"]
+        comprobar(len(pi[anio]["hombres"]) == len(pi[anio]["mujeres"]) == 18 and min(lados) >= 0 and abs(sum(lados) - 100) < 0.01,
+                  f"{donde}: la pirámide de {anio} no suma 100")
+    total = f["poblacion"]
+    for lado in ("hombres", "mujeres"):
+        v = f["piramide"][lado]
+        de_ficha = [x / total * 100 for x in v[:17] + [sum(v[17:])]]
+        comprobar(all(abs(a - c) < 1e-3 for a, c in zip(pi["base"][lado], de_ficha)), f"{donde}: la pirámide de {b} no es la de la ficha ({lado})")
+    for cod, d in e["indices"].items():
+        comprobar(mostrado(d["base"], d["decimales"]) == mostrado(f["indices"][cod][f["tipo"]], d["decimales"]),
+                  f"{donde}: {cod} de {b} {d['base']} frente a {f['indices'][cod][f['tipo']]} en la ficha")
+        comprobar(d["horizonte"] > 0 and d["etiqueta"] == f["indices"][cod]["etiqueta"], f"{donde}: {cod} de {b + 10}")
+    serie = dict(zip(f["evolucion"]["anios"], f["evolucion"]["valores"]))
+    propia = e["tvma"]["filas"][0]
+    comprobar(e["tvma"]["periodos"] == [[b - 10, b], [b, b + 10]], f"{donde}: periodos de la variación media anual")
+    comprobar(abs(propia["observada"] - ((serie[b] / serie[b - 10]) ** 0.1 - 1) * 100) < 1e-5, f"{donde}: la variación observada no es la de la serie")
+    comprobar(abs(propia["proyectada"] - ((pr["valores"][2] / pr["valores"][0]) ** 0.1 - 1) * 100) < 0.005, f"{donde}: la variación proyectada no es la de la proyección")
+    rotulos = [x["rotulo"] for x in e["tvma"]["filas"]]
+    esperados = {"municipio": ["Municipio", f.get("isla"), "Canarias"], "isla": ["Isla", "Canarias"],
+                 "provincia": ["Provincia", "Canarias"], "canarias": ["Canarias"]}[f["tipo"]]
+    comprobar(rotulos == esperados, f"{donde}: filas de la variación media anual {rotulos}")
+if len(ESCENARIOS) == len(_rutas_esc):
+    propia_de = lambda ruta: ESCENARIOS[ruta]["tvma"]["filas"][0]
+    slug_isla = {i["nombre"]: i["slug"] for i in indice["islas_resumen"]}
+    for m in municipios:
+        filas = ESCENARIOS[f"mun/{m['codmun']}.json"]["tvma"]["filas"]
+        comprobar(filas[1] | {"rotulo": "Isla"} == propia_de(f"isla/{slug_isla[m['isla']]}.json")
+                  and filas[2] == propia_de("canarias.json"), f"escenario de {m['nombre']}: la fila de su isla o de Canarias no es la de su escenario")
+    def _suma_proyeccion(partes, todo, que):
+        for k in (1, 2):
+            s = sum(ESCENARIOS[r]["proyectado"]["valores"][k] for r in partes)
+            v = ESCENARIOS[todo]["proyectado"]["valores"][k]
+            comprobar(abs(s - v) <= len(partes), f"escenario de {que}: {v} en {ESCENARIOS[todo]['horizonte' if k == 2 else 'medio']}, y sus partes suman {s}")
+    for isla, muns in indice["islas"].items():
+        cod = {x["nombre"]: x["codmun"] for x in municipios}
+        _suma_proyeccion([f"mun/{cod[n]}.json" for n in muns], f"isla/{slug_isla[isla]}.json", isla)
+    for p in indice["provincias"]:
+        _suma_proyeccion([f"isla/{s}.json" for s in p["islas"]], f"provincia/{p['slug']}.json", p["nombre"])
+    _suma_proyeccion([f"provincia/{p['slug']}.json" for p in indice["provincias"]], "canarias.json", "Canarias")
+    # La ficha de prueba de Pedro (PDF del 30/9/2026): lo que se lee en ella, aquí igual.
+    cod = {x["nombre"]: x["codmun"] for x in municipios}
+    ANCLAS = {
+        "Santa Cruz de Tenerife": {"tvma": [("0.4", "0.7"), ("0.8", "0.9"), ("0.7", "0.8")],
+                                   "C10": ("2.03", "3.17"), "C11": ("15.0", "12.3"), "C17": ("45.4", "51.1"), "C14": ("71.1", "49.8")},
+        "Arrecife": {"tvma": [("2.1", "1.4")], "C10": ("0.95", "1.49")},
+        "Artenara": {"C14": ("15.8", "81.8")},
+    }
+    for nombre, anclas in ANCLAS.items():
+        e = ESCENARIOS[f"mun/{cod[nombre]}.json"]
+        for k, (o, p_) in enumerate(anclas.get("tvma", [])):
+            fila = e["tvma"]["filas"][k]
+            comprobar((mostrado(fila["observada"]), mostrado(fila["proyectada"])) == (o, p_), f"escenario de {nombre}: la variación de «{fila['rotulo']}» no es la de la ficha de Pedro")
+        for cod_i, (v0, v1) in ((c, v) for c, v in anclas.items() if c != "tvma"):
+            d = e["indices"][cod_i]
+            comprobar((mostrado(d["base"], d["decimales"]), mostrado(d["horizonte"], d["decimales"])) == (v0, v1), f"escenario de {nombre}: {cod_i} no es el de la ficha de Pedro")
+    nota = (WEB / "escenario.html").read_text(encoding="utf-8")
+    b = indice["anio"]
+    for trozo in (f"proyección provincial de {b + 10} entre los 88 municipios", f"cambió en {b - 10}-{b - 5} y {b - 5}-{b}.",
+                  f"estimar {b} partiendo de {b - 10}"):
+        comprobar(trozo in nota, f"escenario.html: la nota de Pedro no dice «{trozo}» (los años del escenario)")
+
 # La fuente de cada gráfico (FUENTES_GRAFICOS en datos-ui.js) lleva los años de la
 # operación estadística escritos a mano: cuando se actualicen los datos, el año
 # de referencia del índice tiene que seguir apareciendo en cada una.
@@ -446,7 +541,7 @@ for texto, hasta in re.findall(r"texto: '([^']*)', desde: [^,]+, hasta: (\d{4})"
         comprobar(int(hasta) <= 2020, f"FUENTES_OFICIALES: «{texto}» solo llega a 2020")
 
 versiones = set()
-RUTAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html", "guia": "guia.html", "dossier": "dossier.html"}
+RUTAS = {"index": "", "ficha": "ficha.html", "comparar": "comparar.html", "guia": "guia.html", "dossier": "dossier.html", "escenario": "escenario.html"}
 for pagina, ruta in RUTAS.items():
     h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
     versiones |= set(re.findall(r"\?v=(\d+)", h))
@@ -471,11 +566,11 @@ for pagina in ("404", "enmarcada"):
     h = (WEB / f"{pagina}.html").read_text(encoding="utf-8")
     comprobar('http-equiv="Content-Security-Policy"' in h and "<script" not in h, f"{pagina}.html: sin política de contenido o con script")
 # El padrón solo se nombra en las fuentes (datos-ui.js), con sus años.
-for js in ("portada", "dossier", "ficha", "comparar", "guia"):
+for js in ("portada", "dossier", "ficha", "comparar", "guia", "escenario"):
     comprobar("adrón" not in (WEB / f"{js}.js").read_text(encoding="utf-8"), f"{js}.js atribuye los datos al padrón")
 
 # Ensayo de mudanza: con otra URL pública en sitio.json, ¿queda alguna referencia
-# al dominio actual en las cinco páginas, los envoltorios o config.js?
+# al dominio actual en las seis páginas, los envoltorios o config.js?
 sys.path.insert(0, str(RAIZ))
 try:
     from generar_tarjetas import reescribir_paginas, escribir_envoltorios
@@ -503,4 +598,4 @@ if fallos:
     for x in fallos:
         print(" -", x)
     sys.exit(1)
-print(f"ok · 88 municipios, {len(islas_resumen)} islas, {len(provincias)} provincias y Canarias, {format(suma, ',').replace(',', '.')} habitantes, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")
+print(f"ok · 88 municipios, {len(islas_resumen)} islas, {len(provincias)} provincias y Canarias, {format(suma, ',').replace(',', '.')} habitantes, {len(ESCENARIOS)} escenarios 2035, {len(graficos)} fuentes de gráfico, recursos v={versiones.pop()}, ensayo de mudanza a https://ejemplo.test/fichas/ limpio")

@@ -11,6 +11,7 @@ const TRAZOS = {
   territorio:  '<path d="M4 7l5-3 6 3 5-3v13l-5 3-6-3-5 3V7z"/><path d="M9 4v13M15 7v13"/>',
   relevo:      '<circle cx="7" cy="8" r="3"/><circle cx="17" cy="16" r="3"/><path d="M13.5 8h3.5a3.5 3.5 0 013.5 3.5"/><path d="M10.5 16H7a3.5 3.5 0 01-3.5-3.5"/>',
   dependencia: '<path d="M3.5 8h17"/><path d="M12 8v11M8 19h8"/><circle cx="6.5" cy="4.5" r="2.5"/><circle cx="17.5" cy="4.5" r="2.5"/>',
+  escenario:   '<path d="M3.5 4v16h17"/><path d="M6.5 16l3.5-3.5 3 1.5"/><path d="M15 12.3l1.6-1.2M18.4 9.8l1.6-1.2"/>',
 
   /* Interfaz */
   inicio:      '<path d="M3.5 10.6L12 4l8.5 6.6V19a1 1 0 01-1 1h-15a1 1 0 01-1-1v-8.4z"/><path d="M9.5 20v-5.5h5V20"/>',

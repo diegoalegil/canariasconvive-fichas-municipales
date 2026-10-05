@@ -27,10 +27,10 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   page.on('response', (r) => { if (r.status() >= 400 && !/favicon|no-existe/.test(r.url())) consola.push(`HTTP ${r.status()} ${r.url()}`); });
   const logosDe = (sel) => page.locator(sel).evaluateAll((is) => is.map((i) => i.alt + (i.complete && i.naturalWidth > 0 ? '' : ' (no carga)')));
 
-  // Las cinco páginas: política de contenido y versión de recursos. Cada una
+  // Las seis páginas: política de contenido y versión de recursos. Cada una
   // termina sus descargas antes de pasar a la siguiente: marcharse a mitad
   // corta las peticiones y la portada anota un «Failed to fetch» que no es suyo.
-  for (const p of ['index.html', 'ficha.html?municipio=38038', 'comparar.html', 'guia.html', 'dossier.html']) {
+  for (const p of ['index.html', 'ficha.html?municipio=38038', 'comparar.html', 'guia.html', 'dossier.html', 'escenario.html?canarias']) {
     const respuesta = await page.goto(base + p, { waitUntil: 'networkidle', timeout: 180000 });
     ok(respuesta.ok(), `${p} responde ${respuesta.status()}`);
     ok(await page.locator('meta[http-equiv="Content-Security-Policy"]').count() === 1, `${p} lleva su política de contenido`);
@@ -75,6 +75,15 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   ok(JSON.stringify(await logosDe('.placa-papel img')) === logos, 'los tres logotipos en la placa del papel');
   await page.emulateMedia({ media: null });
 
+  // El escenario 2035, desde el enlace de la ficha: la tabla de Pedro, la pirámide de 2035 y los logotipos.
+  await page.click('#btn-escenario');
+  await page.waitForFunction(() => document.getElementById('nombre').textContent === 'Santa Cruz de Tenerife' && document.querySelector('#g-tvma tbody'));
+  ok(/\/escenario\.html\?municipio=38038$/.test(page.url()), `el escenario de Santa Cruz de Tenerife (${page.url()})`);
+  ok(JSON.stringify(await page.locator('#g-tvma tbody td').allTextContents().then((t) => t.map((x) => x.replace(/\s+/g, ' ')))) === JSON.stringify(['0,4 %', '0,7 %', '0,8 %', '0,9 %', '0,7 %', '0,8 %']),
+    'la variación media anual del escenario');
+  ok(await page.locator('#g-piramide svg rect[fill="#2F8A5E"]').count() === 18, 'la pirámide de 2035');
+  ok(JSON.stringify(await logosDe('.marca img')) === logos, 'los tres logotipos en la cabecera del escenario');
+
   // Isla, provincia y Canarias, por sus sobres.
   await page.goto(base + 'i/tenerife.html');
   await page.waitForSelector('#fuente-g-origen');
@@ -107,6 +116,6 @@ const ok = (condicion, que) => { if (!condicion) errores.push(`FALLA: ${que}`); 
   await navegador.close();
   const ruido = consola.filter((m) => !/favicon|no-existe/.test(m));   // la 404 a propósito no es ruido
   if (ruido.length) errores.push(`consola: ${ruido.join(' | ')}`);
-  console.log(errores.length ? errores.join('\n') : `humo v=${version}: todo en verde en ${base} (política de contenido en las cinco páginas, sin errores de consola)`);
+  console.log(errores.length ? errores.join('\n') : `humo v=${version}: todo en verde en ${base} (política de contenido en las seis páginas, sin errores de consola)`);
   process.exit(errores.length ? 1 : 0);
 })();
